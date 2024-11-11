@@ -10,11 +10,13 @@
     "@larksuiteoapi/node-sdk": "^1.38.0",
     "dotenv": "^16.4.5",
     "feishu-card": "^0.0.1-alpha.0",
+    "ioredis": "^5.4.1",
     "koa": "^2.13.4",
     "openai": "^4.71.1",
     "typescript": "^4.8.4"
   },
   "devDependencies": {
+    "@types/ioredis": "^4.28.10",
     "@types/koa": "^2.13.4",
     "ts-node": "^10.4.0",
     "tslint": "^6.1.3"
