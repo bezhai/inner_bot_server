@@ -5,5 +5,7 @@ declare namespace NodeJS {
     APP_SECRET: string;
     VERIFICATION_TOKEN: string;
     ENCRYPT_KEY: string;
+    ROBOT_OPEN_ID: string;
+    ADMIN_USER_ID: string;
   }
 }

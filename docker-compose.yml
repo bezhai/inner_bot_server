@@ -12,3 +12,16 @@ services:
     env_file:
       - .env
     restart: on-failure
+  redis:
+    image: "redis:6.2"         # 使用 Redis 官方镜像
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - redis-data:/data       # 持久化 Redis 数据
+    restart: always
+
+volumes:
+  redis-data:

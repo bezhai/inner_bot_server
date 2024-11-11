@@ -1,16 +1,25 @@
 import { LarkReceiveMessage } from "../../types/lark";
 import { sendMsg } from "../larkClient";
 import { replyText } from "../openaiService";
+import { MessageFactory } from "./messageFactory";
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
 
-  console.log(params.message);
+  const factory = MessageFactory.create(params);
+  const commonMessage = factory.build();
 
-  if (params.message.message_type === "text") {
-    const content: {text: string} = JSON.parse(params.message.content);
-    const replyMessage = await replyText(content.text);
+  if (!commonMessage) {
+    console.error("Unsupported message type or failed to build message.");
+    return;
+  }
+
+  console.log(commonMessage);
+
+  // 示例：处理文本消息
+  if (commonMessage.isTextMessage() && (commonMessage.isP2P() || commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))) {
+    const replyMessage = await replyText(commonMessage.text());
     if (replyMessage) {
-        await sendMsg(params.message.chat_id, replyMessage);
+      await sendMsg(params.message.chat_id, replyMessage);
     }
   }
 }
