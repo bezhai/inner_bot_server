@@ -7,5 +7,7 @@ declare namespace NodeJS {
     ENCRYPT_KEY: string;
     ROBOT_OPEN_ID: string;
     ADMIN_USER_ID: string;
+    REDIS_PASSWORD: string;
+    REDIS_IP: string;
   }
 }
