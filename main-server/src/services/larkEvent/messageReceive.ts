@@ -1,10 +1,9 @@
 import { LarkReceiveMessage } from "../../types/lark";
-import { sendMsg } from "../larkClient";
+import { sendMsg, sendPost } from "../larkClient";
 import { replyText } from "../openaiService";
 import { MessageFactory } from "./messageFactory";
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
-
   const factory = MessageFactory.create(params);
   const commonMessage = factory.build();
 
@@ -16,10 +15,23 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
   console.log(commonMessage);
 
   // 示例：处理文本消息
-  if (commonMessage.isTextMessage() && (commonMessage.isP2P() || commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))) {
+  if (
+    commonMessage.isTextMessage() &&
+    (commonMessage.isP2P() ||
+      commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))
+  ) {
     const replyMessage = await replyText(commonMessage.text());
     if (replyMessage) {
-      await sendMsg(params.message.chat_id, replyMessage);
+      await sendPost(params.message.chat_id, {
+        content: [
+          [
+            {
+              tag: "md",
+              text: replyMessage,
+            },
+          ],
+        ],
+      });
     }
   }
 }

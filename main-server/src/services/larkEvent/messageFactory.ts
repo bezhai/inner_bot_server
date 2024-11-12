@@ -5,7 +5,7 @@ import {
   PostContent,
   StickerContent,
   TextContent,
-} from "../../types/message";
+} from "../../types/receiveMessage";
 
 export class MessageFactory {
   static create(event: LarkReceiveMessage): MessageHandler {
@@ -104,7 +104,7 @@ class PostMessageFactory implements MessageHandler {
           if (node.tag === "text") {
             msg.addText(node.text ?? "");
           } else if (node.tag === "img") {
-            msg.addImage(node.href ?? "");
+            msg.addImage(node.image_key ?? "");
           }
         });
       });

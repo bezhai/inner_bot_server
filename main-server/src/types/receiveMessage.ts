@@ -134,18 +134,64 @@ export interface StickerContent {
   file_key: string; // 表情包文件的 key，必填
 }
 
-// 富文本消息中的每个节点
-export interface PostNode {
-  tag: string; // 节点类型，如文本、链接、at等
-  text?: string; // 文本内容
-  href?: string; // 链接
-  user_id?: string; // @用户的ID
-  user_name?: string; // @用户的名字
+export type TextPostNodeType = "bold" | "underline" | "lineThrough" | "italic";
+
+export interface TextPostNode {
+  tag: "text";
+  text: string; // 文本内容
+  un_escape?: boolean; // 是否 unescape 解码。默认为 false
+  style?: TextPostNodeType[];
 }
+
+export interface LinkPostNode {
+  tag: "a";
+  text: string; // 超链接的文本内容
+  href: string; // 超链接地址
+  style?: TextPostNodeType[];
+}
+
+export interface AtPostNode {
+  tag: "at";
+  user_id: string; // 用户 ID，用来指定被 @ 的用户。传入的值可以是用户的 user_id、open_id、union_id
+  style?: TextPostNodeType[];
+}
+
+export interface ImgPostNode {
+  tag: "img";
+  image_key: string; // 图片 Key
+}
+
+export interface MediaPostNode {
+  tag: "media";
+  file_key: string; // 视频 Key
+  image_key: string; // 图片 Key
+}
+
+export interface MdPostNode {
+  tag: "md";
+  text: string; // 内容
+}
+
+export interface CodeBlockPostNode {
+  tag: "code_block";
+  language?: string; // 代码块的语言类型
+  text: string; // 代码块内容
+}
+
+// 富文本消息中的每个节点
+export type PostNode =
+  | TextPostNode
+  | ImgPostNode
+  | LinkPostNode
+  | AtPostNode
+  | MediaPostNode
+  | MediaPostNode
+  | MdPostNode
+  | CodeBlockPostNode;
 
 // 富文本消息内容
 export interface PostContent {
-  title: string; // 富文本消息的标题
+  title?: string; // 富文本消息的标题
   content: PostNode[][]; // 富文本消息的内容，二维数组
 }
 
