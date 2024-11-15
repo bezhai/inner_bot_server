@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import {
   StreamedCompletionChunk,
   NonStreamedCompletion,
@@ -24,10 +25,14 @@ async function handleStreamResponse(response: Response): Promise<string> {
       // 解析 JSON 数据
       try {
         const chunk: StreamedCompletionChunk = JSON.parse(chunkText);
-        const deltaContent = chunk.choices[0].delta.content;
-        if (deltaContent) {
-          console.log(deltaContent);
-          fullResponse += deltaContent;
+
+        // 检查 choices 是否存在且有内容
+        if (chunk.choices && chunk.choices.length > 0) {
+          const deltaContent = chunk.choices[0].delta?.content;
+          if (deltaContent) {
+            console.log("流式响应内容:", deltaContent, "时间", dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"));
+            fullResponse += deltaContent; // 累积生成的内容
+          }
         }
       } catch (err) {
         console.error("解析流式数据时出错:", err);
@@ -63,7 +68,6 @@ export async function getCompletion(
     }
 
     // 检查是否是流式响应
-    const contentType = response.headers.get("content-type");
 
     const transferEncoding = response.headers.get("transfer-encoding");
 
