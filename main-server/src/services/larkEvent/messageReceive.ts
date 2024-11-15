@@ -14,24 +14,25 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 
   console.log(commonMessage);
 
+  const nonStreamSendMsg = async (text: string) => {
+    await sendPost(params.message.chat_id, {
+      content: [
+        [
+          {
+            tag: "md",
+            text,
+          },
+        ],
+      ],
+    });
+  };
+
   // 示例：处理文本消息
   if (
     commonMessage.isTextMessage() &&
     (commonMessage.isP2P() ||
       commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))
   ) {
-    const replyMessage = await replyText(commonMessage.text());
-    if (replyMessage) {
-      await sendPost(params.message.chat_id, {
-        content: [
-          [
-            {
-              tag: "md",
-              text: replyMessage,
-            },
-          ],
-        ],
-      });
-    }
+    await replyText(commonMessage.text(), nonStreamSendMsg, nonStreamSendMsg);
   }
 }

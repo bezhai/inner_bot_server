@@ -5,66 +5,106 @@ import {
   CompletionRequest,
 } from "../types/ai";
 
-async function handleStreamResponse(response: Response): Promise<string> {
+export type UpdateTextFunction = (updatedText: string) => Promise<void>;
+
+async function handleStreamResponse(
+  response: Response,
+  updateTextAPI: UpdateTextFunction
+): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) {
     throw new Error("无法读取响应流");
   }
 
-  let fullResponse = "";
+  let fullResponse = ""; // 累积的全量文本
   let done = false;
+  let buffer = ""; // 用来存储不完整的 JSON 数据
 
-  while (!done) {
-    const { value, done: readerDone } = await reader.read();
-    done = readerDone;
+  // 定时器，每250ms调用一次API
+  const intervalId = setInterval(async () => {
+    if (fullResponse) {
+      console.log(
+        "调用API更新文本:",
+        fullResponse,
+        dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
+      );
+      await updateTextAPI(fullResponse); // 调用API更新文本
+    }
+  }, 500);
 
-    if (value) {
-      // 将 Uint8Array 转为字符串
-      const chunkTexts = new TextDecoder().decode(value).split("\n");
+  try {
+    while (!done) {
+      const { value, done: readerDone } = await reader.read();
+      done = readerDone;
 
-      // 解析 JSON 数据
-      for (const chunkText of chunkTexts) {
-        if (chunkText.trim() === "") {
-          continue;
-        }
-        try {
-          const chunk: StreamedCompletionChunk = JSON.parse(chunkText);
+      if (value) {
+        // 将 Uint8Array 转为字符串并累积到 buffer 中
+        const chunkText = new TextDecoder().decode(value);
+        buffer += chunkText;
 
-          // 检查 choices 是否存在且有内容
-          if (chunk.choices && chunk.choices.length > 0) {
-            const deltaContent = chunk.choices[0].delta?.content;
-            if (deltaContent) {
-              console.log(
-                "流式响应内容:",
-                "[",
-                deltaContent,
-                "]",
-                dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
-              );
-              fullResponse += deltaContent; // 累积生成的内容
+        // 按换行符拆分每个 JSON 块（假设每行是一个 JSON 对象）
+        let lines = buffer.split("\n");
+
+        // 保留最后一行，可能是不完整的 JSON 数据
+        buffer = lines.pop() || "";
+
+        // 逐行处理 JSON 数据
+        for (let line of lines) {
+          if (line.trim()) {
+            // 跳过空行
+            try {
+              const chunk: StreamedCompletionChunk = JSON.parse(line.trim());
+
+              // 检查 choices 是否存在且有内容
+              if (chunk.choices && chunk.choices.length > 0) {
+                const deltaContent = chunk.choices[0].delta?.content;
+                if (deltaContent) {
+                  // 累积全量文本
+                  fullResponse += deltaContent;
+
+                  // 输出日志
+                  console.log(
+                    "流式响应内容:",
+                    "[",
+                    deltaContent,
+                    "]",
+                    dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
+                  );
+                }
+              }
+            } catch (err) {
+              console.error("解析流式数据时出错:", err, "原始数据", line);
             }
           }
-        } catch (err) {
-          console.error("解析流式数据时出错:", err, "原始数据", chunkText);
         }
       }
     }
+  } finally {
+    // 停止定时器
+    clearInterval(intervalId);
   }
 
-  return fullResponse;
+  // 流结束时，确保调用一次API，发送最终的全量文本
+  if (fullResponse) {
+    console.log("最终文本内容:", fullResponse);
+    await updateTextAPI(fullResponse);
+  }
 }
 
 // 处理非流式响应
 function handleNonStreamResponse(
-  response: NonStreamedCompletion
-): string | null {
-  return response.choices[0].message.content;
+  response: NonStreamedCompletion,
+  nonStreamUpdateAPI: UpdateTextFunction
+) {
+  nonStreamUpdateAPI(response.choices[0].message.content);
 }
 
 // 主函数：处理流式和非流式请求
 export async function getCompletion(
-  payload: CompletionRequest
-): Promise<string | null> {
+  payload: CompletionRequest,
+  streamUpdateAPI: UpdateTextFunction,
+  nonStreamUpdateAPI: UpdateTextFunction
+): Promise<void> {
   try {
     const response = await fetch("http://ai-app:8000/chat", {
       method: "POST",
@@ -84,14 +124,13 @@ export async function getCompletion(
 
     if (transferEncoding === "chunked") {
       // 流式响应
-      return await handleStreamResponse(response);
+      return await handleStreamResponse(response, streamUpdateAPI);
     } else {
       // 非流式响应
       const json: NonStreamedCompletion = await response.json();
-      return handleNonStreamResponse(json);
+      return handleNonStreamResponse(json, nonStreamUpdateAPI);
     }
   } catch (error) {
     console.error("请求出错:", error);
-    return "请求失败，请重试";
   }
 }
