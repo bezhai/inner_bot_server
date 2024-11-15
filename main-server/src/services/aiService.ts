@@ -30,7 +30,13 @@ async function handleStreamResponse(response: Response): Promise<string> {
         if (chunk.choices && chunk.choices.length > 0) {
           const deltaContent = chunk.choices[0].delta?.content;
           if (deltaContent) {
-            console.log("流式响应内容:", deltaContent, "时间", dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"));
+            console.log(
+              "流式响应内容:",
+              "[",
+              deltaContent,
+              "]",
+              dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
+            );
             fullResponse += deltaContent; // 累积生成的内容
           }
         }
