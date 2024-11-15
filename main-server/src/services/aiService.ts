@@ -20,28 +20,33 @@ async function handleStreamResponse(response: Response): Promise<string> {
 
     if (value) {
       // 将 Uint8Array 转为字符串
-      const chunkText = new TextDecoder().decode(value);
+      const chunkTexts = new TextDecoder().decode(value).split("\n");
 
       // 解析 JSON 数据
-      try {
-        const chunk: StreamedCompletionChunk = JSON.parse(chunkText);
-
-        // 检查 choices 是否存在且有内容
-        if (chunk.choices && chunk.choices.length > 0) {
-          const deltaContent = chunk.choices[0].delta?.content;
-          if (deltaContent) {
-            console.log(
-              "流式响应内容:",
-              "[",
-              deltaContent,
-              "]",
-              dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
-            );
-            fullResponse += deltaContent; // 累积生成的内容
-          }
+      for (const chunkText of chunkTexts) {
+        if (chunkText.trim() === "") {
+          continue;
         }
-      } catch (err) {
-        console.error("解析流式数据时出错:", err, "原始数据", chunkText);
+        try {
+          const chunk: StreamedCompletionChunk = JSON.parse(chunkText);
+
+          // 检查 choices 是否存在且有内容
+          if (chunk.choices && chunk.choices.length > 0) {
+            const deltaContent = chunk.choices[0].delta?.content;
+            if (deltaContent) {
+              console.log(
+                "流式响应内容:",
+                "[",
+                deltaContent,
+                "]",
+                dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
+              );
+              fullResponse += deltaContent; // 累积生成的内容
+            }
+          }
+        } catch (err) {
+          console.error("解析流式数据时出错:", err, "原始数据", chunkText);
+        }
       }
     }
   }
