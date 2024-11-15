@@ -49,7 +49,7 @@ export async function getCompletion(
   payload: CompletionRequest
 ): Promise<string | null> {
   try {
-    const response = await fetch("https://ai-app:8000/chat", {
+    const response = await fetch("http://ai-app:8000/chat", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
