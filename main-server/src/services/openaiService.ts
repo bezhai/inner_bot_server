@@ -34,6 +34,7 @@ export async function replyText(text: string): Promise<string | null> {
     ],
     temperature: 1.5,
     presence_penalty: 1.8,
+    stream: true,
   });
   return completion;
 }

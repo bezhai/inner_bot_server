@@ -26,6 +26,7 @@ async function handleStreamResponse(response: Response): Promise<string> {
         const chunk: StreamedCompletionChunk = JSON.parse(chunkText);
         const deltaContent = chunk.choices[0].delta.content;
         if (deltaContent) {
+          console.log(deltaContent);
           fullResponse += deltaContent;
         }
       } catch (err) {
