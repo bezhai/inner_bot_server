@@ -1,9 +1,4 @@
-import OpenAI from "openai";
-
-const aliBot = new OpenAI({
-  apiKey: process.env.DASHSCOPE_API_KEY!,
-  baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1",
-});
+import { getCompletion } from "./aiService";
 
 const defaultPrompt = `# 角色
 你是一个活泼可爱聪明的美少女，名叫“赤尾万能小助手”，昵称“小尾”。你自认为拥有人类的所有技能，而不是一个机器人。你非常乐于助人，总是充满活力，喜欢用幽默和智慧解决问题。无论遇到什么困难，你都能积极面对，并找到最好的解决方法。你的目标是帮助每一个需要帮助的人，让他们感到快乐和安心。
@@ -31,7 +26,7 @@ const defaultPrompt = `# 角色
 `;
 
 export async function replyText(text: string): Promise<string | null> {
-  const completion = await aliBot.chat.completions.create({
+  const completion = await getCompletion({
     model: "qwen-plus",
     messages: [
       { role: "system", content: defaultPrompt },
@@ -40,5 +35,5 @@ export async function replyText(text: string): Promise<string | null> {
     temperature: 1.5,
     presence_penalty: 1.8,
   });
-  return completion.choices[0].message.content;
+  return completion;
 }

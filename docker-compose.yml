@@ -5,7 +5,7 @@ services:
     build:
       context: ./ai-service 
     ports:
-      - "8000:8000"
+      - "8000"
     volumes:
       - .env:/app/.env
     restart: on-failure 
