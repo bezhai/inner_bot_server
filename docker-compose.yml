@@ -1,6 +1,15 @@
 version: '3.8'
 
 services:
+  ai-app:
+    build:
+      context: ./ai-service  # 指定 FastAPI 项目的构建上下文
+    ports:
+      - "8000:8000"          # 将 FastAPI 的 8000 端口映射到宿主机
+    volumes:
+      - ../.env:/app/.env  # 将 .env 文件从父目录挂载到容器中的 /app/.env
+    restart: on-failure      # 如果服务失败，自动重启
+
   app:
     build:
       context: ./main-server
@@ -12,6 +21,7 @@ services:
     env_file:
       - .env
     restart: on-failure
+
   redis:
     image: "redis:6.2"         # 使用 Redis 官方镜像
     ports:
