@@ -35,7 +35,7 @@ async function handleStreamResponse(response: Response): Promise<string> {
           }
         }
       } catch (err) {
-        console.error("解析流式数据时出错:", err);
+        console.error("解析流式数据时出错:", err, "原始数据", chunkText);
       }
     }
   }
