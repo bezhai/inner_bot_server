@@ -65,15 +65,15 @@ export async function getCompletion(
     // 检查是否是流式响应
     const contentType = response.headers.get("content-type");
 
-    if (contentType?.includes("application/json")) {
-      // 非流式响应
-      const json: NonStreamedCompletion = await response.json();
-      return handleNonStreamResponse(json);
-    } else if (contentType?.includes("text/event-stream")) {
+    const transferEncoding = response.headers.get("transfer-encoding");
+
+    if (transferEncoding === "chunked") {
       // 流式响应
       return await handleStreamResponse(response);
     } else {
-      throw new Error("未知的响应类型");
+      // 非流式响应
+      const json: NonStreamedCompletion = await response.json();
+      return handleNonStreamResponse(json);
     }
   } catch (error) {
     console.error("请求出错:", error);
