@@ -24,9 +24,9 @@ async function handleStreamResponse(
   const intervalId = setInterval(async () => {
     if (fullResponse) {
       console.log(
+        dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
         "调用API更新文本:",
-        fullResponse,
-        dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
+        fullResponse
       );
       await updateTextAPI(fullResponse); // 调用API更新文本
     }
@@ -61,15 +61,6 @@ async function handleStreamResponse(
                 if (deltaContent) {
                   // 累积全量文本
                   fullResponse += deltaContent;
-
-                  // 输出日志
-                  console.log(
-                    "流式响应内容:",
-                    "[",
-                    deltaContent,
-                    "]",
-                    dayjs().format("YYYY-MM-DD HH:mm:ss.SSS")
-                  );
                 }
               }
             } catch (err) {

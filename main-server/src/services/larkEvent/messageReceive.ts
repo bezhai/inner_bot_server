@@ -1,5 +1,11 @@
+import {
+  Config,
+  LarkV2Card,
+  MarkdownComponent,
+  withElementId,
+} from "feishu-card";
 import { LarkReceiveMessage } from "../../types/lark";
-import { sendMsg, sendPost } from "../larkClient";
+import { V2card } from "../larkClient/card";
 import { replyText } from "../openaiService";
 import { MessageFactory } from "./messageFactory";
 
@@ -14,25 +20,34 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 
   console.log(commonMessage);
 
-  const nonStreamSendMsg = async (text: string) => {
-    await sendPost(params.message.chat_id, {
-      content: [
-        [
-          {
-            tag: "md",
-            text,
-          },
-        ],
-      ],
-    });
-  };
+  // const nonStreamSendMsg = async (text: string) => {
+  //   await sendPost(params.message.chat_id, {
+  //     content: [
+  //       [
+  //         {
+  //           tag: "md",
+  //           text,
+  //         },
+  //       ],
+  //     ],
+  //   });
+  // };
 
-  // 示例：处理文本消息
   if (
     commonMessage.isTextMessage() &&
     (commonMessage.isP2P() ||
       commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))
   ) {
-    await replyText(commonMessage.text(), nonStreamSendMsg, nonStreamSendMsg);
+    const v2Card = await V2card.create(
+      new LarkV2Card()
+        .withConfig(new Config().withStreamingMode(true))
+        .addElements(withElementId(new MarkdownComponent(""), "md"))
+    );
+
+    const streamSendMsg = async (text: string) => {
+      await v2Card.streamUpdateText("md", text);
+    };
+
+    await replyText(commonMessage.text(), streamSendMsg, streamSendMsg);
   }
 }

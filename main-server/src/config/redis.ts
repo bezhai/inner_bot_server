@@ -14,4 +14,6 @@ redis.on('error', (err: Error) => {
   console.error('Redis connection error:', err);
 });
 
-export default redis;
+export async function incr(key: string): Promise<number> {
+  return redis.incr(key);
+}
