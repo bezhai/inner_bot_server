@@ -32,7 +32,7 @@ export class V2card {
       },
       "POST"
     ).then((res) => {
-      return res.card_id;
+      return res?.card_id;
     });
   }
 

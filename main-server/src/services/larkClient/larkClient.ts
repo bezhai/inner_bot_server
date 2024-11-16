@@ -43,8 +43,12 @@ export async function sendReq<T>(url: string, data: any, method: string) {
     })
     .then((res) => {
       if (res.code!== 0) {
+        console.error(JSON.stringify(res, null, 4));
         throw new Error(res.msg);
       }
       return res.data;
+    }).catch((e) => {
+      console.error(JSON.stringify(e.response.data, null, 4));
+      throw e;
     });
 }

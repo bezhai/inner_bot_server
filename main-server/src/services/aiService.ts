@@ -20,14 +20,8 @@ async function handleStreamResponse(
   let done = false;
   let buffer = ""; // 用来存储不完整的 JSON 数据
 
-  // 定时器，每250ms调用一次API
   const intervalId = setInterval(async () => {
     if (fullResponse) {
-      console.log(
-        dayjs().format("YYYY-MM-DD HH:mm:ss.SSS"),
-        "调用API更新文本:",
-        fullResponse
-      );
       await updateTextAPI(fullResponse); // 调用API更新文本
     }
   }, 500);

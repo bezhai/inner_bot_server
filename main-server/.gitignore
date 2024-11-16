@@ -1,1 +1,19 @@
 .env
+# Node.js dependencies
+node_modules/
+
+# TypeScript output
+dist/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.vscode/
+.idea/
