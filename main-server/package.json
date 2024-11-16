@@ -1,10 +1,16 @@
 {
   "name": "main-server",
   "version": "1.0.0",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "node --loader ts-node/esm src/index.ts",
+    "lint": "tslint -p tsconfig.json"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.38.0",
@@ -13,13 +19,14 @@
     "feishu-card": "^0.0.7",
     "ioredis": "^5.4.1",
     "koa": "^2.13.4",
-    "openai": "^4.71.1",
-    "typescript": "^4.8.4"
+    "openai": "^4.71.1"
   },
   "devDependencies": {
     "@types/ioredis": "^4.28.10",
     "@types/koa": "^2.13.4",
+    "@types/node": "^20.0.0",
     "ts-node": "^10.4.0",
-    "tslint": "^6.1.3"
+    "tslint": "^6.1.3",
+    "typescript": "^4.8.4"
   }
 }
