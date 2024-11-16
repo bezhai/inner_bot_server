@@ -6,7 +6,7 @@ COPY package*.json ./
 
 RUN npm config set registry https://registry.npmmirror.com
 
-RUN npm ci --only=production
+RUN npm ci
 
 COPY . .
 
