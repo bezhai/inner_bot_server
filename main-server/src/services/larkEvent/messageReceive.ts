@@ -3,6 +3,7 @@ import {
   LarkV2Card,
   MarkdownComponent,
   StreamConfig,
+  Summary,
   withElementId,
 } from "feishu-card";
 import { LarkReceiveMessage } from "../../types/lark";
@@ -42,18 +43,18 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
     const v2Card = await V2card.create(
       new LarkV2Card()
         .withConfig(
-          new Config().withStreamingMode(
-            true,
-            new StreamConfig()
-              .withPrintStrategy("delay")
-              .withPrintFrequency(20)
-              .withPrintStep(1)
-          )
+          new Config()
+            .withStreamingMode(
+              true,
+              new StreamConfig()
+                .withPrintStrategy("delay")
+                .withPrintFrequency(20)
+                .withPrintStep(1)
+            )
+            .withSummary(new Summary("少女回复中"))
         )
         .addElements(withElementId(new MarkdownComponent(""), "md"))
     );
-
-    console.log(v2Card);
 
     await v2Card.send(params.message.chat_id);
 
