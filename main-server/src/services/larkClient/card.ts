@@ -58,6 +58,18 @@ export class V2card {
     this.messageId = sendResp?.message_id;
   }
 
+  async closeUpdate() {
+    this.card.config!.streaming_mode = false;
+    await sendReq(
+      `/open-apis/cardkit/v1/cards/${this.cardId}/settings`,
+      {
+        settings: JSON.stringify({ config: this.card.config }),
+        sequence: await this.getSequence(),
+      },
+      "PATCH"
+    );
+  }
+
   getMessageId() {
     return this.messageId;
   }

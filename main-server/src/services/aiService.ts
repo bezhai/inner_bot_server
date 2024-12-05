@@ -9,7 +9,8 @@ export type UpdateTextFunction = (updatedText: string) => Promise<void>;
 
 async function handleStreamResponse(
   response: Response,
-  updateTextAPI: UpdateTextFunction
+  updateTextAPI: UpdateTextFunction,
+  endOfReply?: () => void
 ): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) {
@@ -73,6 +74,9 @@ async function handleStreamResponse(
   if (fullResponse) {
     console.log("最终文本内容:", fullResponse);
     await updateTextAPI(fullResponse);
+    if (endOfReply) {
+      await endOfReply();
+    }
   }
 }
 
@@ -88,7 +92,8 @@ function handleNonStreamResponse(
 export async function getCompletion(
   payload: CompletionRequest,
   streamUpdateAPI: UpdateTextFunction,
-  nonStreamUpdateAPI: UpdateTextFunction
+  nonStreamUpdateAPI: UpdateTextFunction,
+  endOfReply?: () => void,
 ): Promise<void> {
   try {
     const response = await fetch("http://ai-app:8000/chat", {
@@ -109,7 +114,7 @@ export async function getCompletion(
 
     if (transferEncoding === "chunked") {
       // 流式响应
-      return await handleStreamResponse(response, streamUpdateAPI);
+      return await handleStreamResponse(response, streamUpdateAPI, endOfReply);
     } else {
       // 非流式响应
       const json: NonStreamedCompletion = await response.json();

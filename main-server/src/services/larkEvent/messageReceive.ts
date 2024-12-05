@@ -62,6 +62,10 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
       await v2Card.streamUpdateText("md", text);
     };
 
-    await replyText(commonMessage.text(), streamSendMsg, streamSendMsg);
+    const endOfReply = async () => {
+      await v2Card.closeUpdate();
+    };
+
+    await replyText(commonMessage.clearText(), streamSendMsg, streamSendMsg, endOfReply);
   }
 }

@@ -28,7 +28,8 @@ const defaultPrompt = `# 角色
 export async function replyText(
   text: string,
   streamUpdateAPI: UpdateTextFunction,
-  nonStreamUpdateAPI: UpdateTextFunction
+  nonStreamUpdateAPI: UpdateTextFunction,
+  endOfReply?: () => void
 ) {
   await getCompletion(
     {
@@ -42,6 +43,7 @@ export async function replyText(
       stream: true,
     },
     streamUpdateAPI,
-    nonStreamUpdateAPI
+    nonStreamUpdateAPI,
+    endOfReply,
   );
 }
