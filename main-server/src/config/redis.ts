@@ -17,3 +17,11 @@ redis.on('error', (err: Error) => {
 export async function incr(key: string): Promise<number> {
   return redis.incr(key);
 }
+
+export async function set(key: string, value: string) {
+  return redis.set(key, value);
+}
+
+export async function get(key: string): Promise<string | null> {
+  return redis.get(key);
+}

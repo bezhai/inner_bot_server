@@ -10,6 +10,12 @@ import { LarkReceiveMessage } from "../../types/lark";
 import { V2card } from "../larkClient/card";
 import { replyText } from "../openaiService";
 import { MessageFactory } from "./messageFactory";
+import { replyMessage } from "../larkClient/message";
+import { get, set } from "../../config/redis";
+
+function extractBindValue(input: string): string | null {
+  return input.match(/\/bind (\S+)/)?.[1] || null;
+}
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
   const factory = MessageFactory.create(params);
@@ -22,24 +28,26 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 
   console.log(commonMessage);
 
-  // const nonStreamSendMsg = async (text: string) => {
-  //   await sendPost(params.message.chat_id, {
-  //     content: [
-  //       [
-  //         {
-  //           tag: "md",
-  //           text,
-  //         },
-  //       ],
-  //     ],
-  //   });
-  // };
-
   if (
     commonMessage.isTextMessage() &&
     (commonMessage.isP2P() ||
       commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))
   ) {
+    const clearText = commonMessage.clearText();
+    if (extractBindValue(clearText)) {
+      const model = extractBindValue(clearText)!;
+
+      if (commonMessage.sender !== process.env.ADMIN_USER_ID) {
+        await replyMessage(commonMessage.messageId, "没有权限");
+        return;
+      }
+
+      await set(`bind_${commonMessage.chatId}`, model);
+
+      await replyMessage(commonMessage.messageId, `设置模型[${model}]成功`);
+      return;
+    }
+
     const v2Card = await V2card.create(
       new LarkV2Card()
         .withConfig(
@@ -56,7 +64,7 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
         .addElements(withElementId(new MarkdownComponent(""), "md"))
     );
 
-    await v2Card.send(params.message.chat_id);
+    await v2Card.reply(commonMessage.messageId);
 
     const streamSendMsg = async (text: string) => {
       await v2Card.streamUpdateText("md", text);
@@ -66,6 +74,14 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
       await v2Card.closeUpdate(fullText);
     };
 
-    await replyText(commonMessage.clearText(), streamSendMsg, streamSendMsg, endOfReply);
+    const model = await get(`bind_${commonMessage.chatId}`) || "qwen-plus";
+
+    await replyText(
+      model,
+      commonMessage.clearText(),
+      streamSendMsg,
+      streamSendMsg,
+      endOfReply
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { LarkV2Card } from "feishu-card";
-import { sendReq, send as basicSend } from "./larkClient";
+import { sendReq, send as basicSend, reply } from "./larkClient";
 import { incr } from "../../config/redis";
 
 export class V2card {
@@ -55,6 +55,17 @@ export class V2card {
       },
     };
     const sendResp = await basicSend(chat_id, realCardJson, "interactive");
+    this.messageId = sendResp?.message_id;
+  }
+
+  async reply(messageId: string) {
+    const realCardJson = {
+      type: "card",
+      data: {
+        card_id: this.cardId,
+      },
+    };
+    const sendResp = await reply(messageId, realCardJson, "interactive");
     this.messageId = sendResp?.message_id;
   }
 

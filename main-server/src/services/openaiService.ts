@@ -1,3 +1,4 @@
+import { get } from "../config/redis";
 import { getCompletion, UpdateTextFunction } from "./aiService";
 
 const defaultPrompt = `# 角色
@@ -26,6 +27,7 @@ const defaultPrompt = `# 角色
 `;
 
 export async function replyText(
+  model: string,
   text: string,
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
@@ -33,7 +35,7 @@ export async function replyText(
 ) {
   await getCompletion(
     {
-      model: "qwen-plus",
+      model,
       messages: [
         { role: "system", content: defaultPrompt },
         { role: "user", content: text },

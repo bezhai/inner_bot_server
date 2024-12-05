@@ -34,6 +34,27 @@ export async function send(chat_id: string, content: any, msgType: string) {
     });
 }
 
+export async function reply(messageId: string, content: any, msgType: string) {
+  return await client.im.message.reply({
+      path: {
+        message_id: messageId,
+      },
+      data: {
+        content: JSON.stringify(content),
+        msg_type: msgType,
+      },
+    })
+    .then((res) => {
+      if (res.code !== 0) {
+        throw new Error(res.msg);
+      }
+      return res.data;
+    })
+    .catch((e) => {
+      console.error(JSON.stringify(e.response.data, null, 4));
+    });
+}
+
 export async function sendReq<T>(url: string, data: any, method: string) {
   return await client
     .request<LarkResp<T>>({
