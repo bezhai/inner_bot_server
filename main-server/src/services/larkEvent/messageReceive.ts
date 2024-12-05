@@ -76,6 +76,8 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 
     const model = await get(`bind_${commonMessage.chatId}`) || "qwen-plus";
 
+    console.log("model", model);
+
     await replyText(
       model,
       commonMessage.clearText(),

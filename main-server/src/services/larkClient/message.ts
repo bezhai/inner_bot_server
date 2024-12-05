@@ -7,7 +7,7 @@ export async function sendMsg(chat_id: string, message: string) {
 }
 
 export async function replyMessage(messageId: string, message: string) {
-  await reply(message, { text: message }, "text");
+  await reply(messageId, { text: message }, "text");
 }
 
 export async function sendPost(chat_id: string, content: PostContent) {
