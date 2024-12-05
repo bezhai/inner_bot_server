@@ -25,7 +25,10 @@ async def get_ai_response(model: str, messages: list, temperature: float = 0.7, 
             messages=messages,
             temperature=temperature,
             stream=stream,
-            stream_options={"include_usage": True}
+            stream_options={"include_usage": True},
+            extra_body={
+                "enable_search": True
+            }
         )
 
         # 如果流式传输，返回生成器
