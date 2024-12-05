@@ -29,7 +29,7 @@ export async function replyText(
   text: string,
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
-  endOfReply?: () => void
+  endOfReply?: (fullText: string) => void
 ) {
   await getCompletion(
     {

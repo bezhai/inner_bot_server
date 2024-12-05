@@ -10,7 +10,7 @@ export type UpdateTextFunction = (updatedText: string) => Promise<void>;
 async function handleStreamResponse(
   response: Response,
   updateTextAPI: UpdateTextFunction,
-  endOfReply?: () => void
+  endOfReply?: (fullText: string) => void
 ): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) {
@@ -93,7 +93,7 @@ export async function getCompletion(
   payload: CompletionRequest,
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
-  endOfReply?: () => void,
+  endOfReply?: (fullText: string) => void,
 ): Promise<void> {
   try {
     const response = await fetch("http://ai-app:8000/chat", {

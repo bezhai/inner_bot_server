@@ -58,8 +58,10 @@ export class V2card {
     this.messageId = sendResp?.message_id;
   }
 
-  async closeUpdate() {
+  async closeUpdate(fullText: string) {
+    const truncate = (str: string, max: number) => str.length > max ? str.slice(0, max) + '...' : str;
     this.card.config!.streaming_mode = false;
+    this.card.config!.summary!.content = truncate(fullText, 20);
     await sendReq(
       `/open-apis/cardkit/v1/cards/${this.cardId}/settings`,
       {
