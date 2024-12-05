@@ -75,7 +75,7 @@ async function handleStreamResponse(
     console.log("最终文本内容:", fullResponse);
     await updateTextAPI(fullResponse);
     if (endOfReply) {
-      await endOfReply();
+      await endOfReply(fullResponse);
     }
   }
 }
