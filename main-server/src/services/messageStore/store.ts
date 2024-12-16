@@ -30,7 +30,7 @@ export async function searchMessageByRootId(
   return collection.find(
     {
       root_id: rootId,
-      $and: [{ message_type: messageType }, { is_from_robot: true }],
+      $or: [{ message_type: messageType }, { is_from_robot: true }],
       is_delete: false,
     },
     { sort: { create_time: -1 }, limit }
