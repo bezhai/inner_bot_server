@@ -1,12 +1,10 @@
 // 基础 Message 接口
-export interface BaseMessage {
-  role: string; // system, user, assistant, etc.
-}
 
 // System Message 接口
-export interface SystemMessage extends BaseMessage {
+export interface SystemMessage {
   role: "system"; // 固定为 "system"
   content: string; // 消息内容
+  name?: string; // 名称，可选
 }
 
 export interface UserContent {
@@ -17,19 +15,21 @@ export interface UserContent {
 }
 
 // User Message 接口
-export interface UserMessage extends BaseMessage {
+export interface UserMessage {
   role: "user"; // 固定为 "user"
   content: string | UserContent; // 消息内容
+  name?: string; // 名称，可选
 }
 
 // Assistant Message 接口
-export interface AssistantMessage extends BaseMessage {
+export interface AssistantMessage {
   role: "assistant"; // 固定为 "assistant"
   content: string; // 消息内容
+  name?: string; // 名称，可选
 }
 
 // 通用的 Message 数组接口
-export type Message = SystemMessage | UserMessage | AssistantMessage; // 可以是任何一种消息类型
+export type Message = SystemMessage | UserMessage | AssistantMessage;
 
 // 请求体的接口
 export interface CompletionRequest {

@@ -1,4 +1,6 @@
-import { LarkMessage, LarkReceiveMessage } from "./lark";
+import { send } from "../services/larkClient/larkClient";
+import { LarkMention, LarkMessage, LarkReceiveMessage } from "./lark";
+import { LarkMessageMetaInfo } from "./mongo";
 
 class BaseMessage {
   rootId?: string;
@@ -6,23 +8,56 @@ class BaseMessage {
   messageId: string;
   chatId: string;
   sender: string;
+  senderName?: string;
   parentMessageId?: string;
   mentions: string[];
   chatType: string;
+  isRobotMessage: boolean;
 
-  constructor(event: LarkReceiveMessage) {
-    this.messageId = event.message.message_id;
-    this.chatId = event.message.chat_id;
-    this.sender = event.sender.sender_id?.user_id!;
-    this.parentMessageId = event.message.parent_id;
-    this.mentions = this.addMentions(event.message);
-    this.chatType = event.message.chat_type;
-    this.rootId = event.message.root_id || event.message.message_id;
-    this.threadId = event.message.thread_id;
+  // 私有构造函数，强制使用工厂方法创建实例
+  constructor(init: {
+    rootId?: string;
+    threadId?: string;
+    messageId: string;
+    chatId: string;
+    sender: string;
+    parentMessageId?: string;
+    mentions: string[];
+    chatType: string;
+    isRobotMessage: boolean;
+    senderName?: string;
+  }) {
+    this.rootId = init.rootId;
+    this.threadId = init.threadId;
+    this.messageId = init.messageId;
+    this.chatId = init.chatId;
+    this.sender = init.sender;
+    this.parentMessageId = init.parentMessageId;
+    this.mentions = init.mentions;
+    this.chatType = init.chatType;
+    this.isRobotMessage = init.isRobotMessage;
+    this.senderName = init.senderName;
   }
 
-  private addMentions(message: LarkMessage): string[] {
-    return message.mentions ? message.mentions.map((m) => m.id.open_id!) : [];
+  static fromLarkEvent<T extends BaseMessage>(
+    this: new (...args: any[]) => T,
+    event: LarkReceiveMessage
+  ): T {
+    return new this({
+      messageId: event.message.message_id,
+      chatId: event.message.chat_id,
+      sender: event.sender.sender_id?.user_id ?? "unknown_sender",
+      parentMessageId: event.message.parent_id,
+      mentions: BaseMessage.addMentions(event.message.mentions),
+      chatType: event.message.chat_type,
+      rootId: event.message.root_id || event.message.message_id,
+      threadId: event.message.thread_id,
+      isRobotMessage: false,
+    });
+  }
+
+  protected static addMentions(mentions: LarkMention[] | undefined): string[] {
+    return mentions ? mentions.map((m) => m.id.open_id!) : [];
   }
 
   isP2P(): boolean {
@@ -120,6 +155,40 @@ export class CommonMessage extends BaseMessage {
 
   isStickerMessage(): boolean {
     return this.sticker().length > 0;
+  }
+
+  static fromMessage(message: LarkMessageMetaInfo): CommonMessage {
+
+    if (message.is_from_robot) {
+      const baseMessage = new CommonMessage({
+        messageId: message.message_id,
+        chatId: message.chat_id,
+        sender: "robot",
+        parentMessageId: message.parent_id,
+        mentions: [],
+        chatType: message.chat_type,
+        rootId: message.root_id,
+        threadId: message.thread_id,
+        isRobotMessage: true,
+      });
+      baseMessage.addText(message.robot_text ?? "");
+      return baseMessage;
+    } else {
+      const baseMessage = new CommonMessage({
+        messageId: message.message_id,
+        chatId: message.chat_id,
+        sender: message.sender?? "unknown_sender",
+        parentMessageId: message.parent_id,
+        mentions: BaseMessage.addMentions(message.mentions),
+        chatType: message.chat_type,
+        rootId: message.root_id,
+        threadId: message.thread_id,
+        isRobotMessage: false,
+      })
+      const content = JSON.parse(message.message_content ?? "{}");
+      baseMessage.addText(content.text ?? "");
+      return baseMessage;
+    }
   }
 }
 

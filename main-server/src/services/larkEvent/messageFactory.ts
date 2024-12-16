@@ -36,7 +36,7 @@ class TextMessageFactory implements MessageHandler {
   }
 
   build(): CommonMessage | null {
-    const msg = new CommonMessage(this.event);
+    const msg = CommonMessage.fromLarkEvent(this.event);
     try {
       const content: TextContent = JSON.parse(this.event.message.content);
       msg.addText(content.text);
@@ -56,7 +56,7 @@ class ImageMessageFactory implements MessageHandler {
   }
 
   build(): CommonMessage | null {
-    const msg = new CommonMessage(this.event);
+    const msg = CommonMessage.fromLarkEvent(this.event);
     try {
       const content: ImageContent = JSON.parse(this.event.message.content);
       msg.addImage(content.image_key);
@@ -76,7 +76,7 @@ class StickerMessageFactory implements MessageHandler {
   }
 
   build(): CommonMessage | null {
-    const msg = new CommonMessage(this.event);
+    const msg = CommonMessage.fromLarkEvent(this.event);
     try {
       const content: StickerContent = JSON.parse(this.event.message.content);
       msg.addSticker(content.file_key);
@@ -96,7 +96,7 @@ class PostMessageFactory implements MessageHandler {
   }
 
   build(): CommonMessage | null {
-    const msg = new CommonMessage(this.event);
+    const msg = CommonMessage.fromLarkEvent(this.event);
     try {
       const content: PostContent = JSON.parse(this.event.message.content);
       content.content.forEach((row) => {

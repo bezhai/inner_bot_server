@@ -10,12 +10,18 @@ import { LarkReceiveMessage } from "../../types/lark";
 import { V2card } from "../larkClient/card";
 import { replyText } from "../openaiService";
 import { MessageFactory } from "./messageFactory";
-import { replyMessage } from "../larkClient/message";
-import { get, set } from "../../config/redis";
-import { LarkRobotMessageMetaInfo, LarkUserMessageMetaInfo } from "../../types/mongo";
+import {
+  LarkMessageMetaInfo,
+  LarkRobotMessageMetaInfo,
+  LarkUserMessageMetaInfo,
+} from "../../types/mongo";
 import dayjs from "dayjs";
-import { saveMessage, updateRobotMessageText } from "../messageStore/store";
-import { CommonMessage } from "../../types/receiveMessage";
+import {
+  saveMessage,
+  searchMessageByRootId,
+  updateRobotMessageText,
+} from "../messageStore/store";
+import { CommonMessage, TextContent } from "../../types/receiveMessage";
 
 async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
@@ -38,7 +44,11 @@ async function saveLarkMessage(params: LarkReceiveMessage) {
   await saveMessage(mongoMessage);
 }
 
-async function saveRobotMessage(message: CommonMessage, messageId: string, cardId: string) {
+async function saveRobotMessage(
+  message: CommonMessage,
+  messageId: string,
+  cardId: string
+) {
   const mongoMessage: LarkRobotMessageMetaInfo = {
     message_id: messageId,
     root_id: message.rootId,
@@ -52,7 +62,7 @@ async function saveRobotMessage(message: CommonMessage, messageId: string, cardI
     message_type: "interactive",
     update_time: dayjs().toDate(),
     card_id: cardId,
-  }
+  };
 
   await saveMessage(mongoMessage);
 }
@@ -80,47 +90,66 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 }
 
 async function makeCardReply(commonMessage: CommonMessage) {
-  const v2Card = await V2card.create(
-    new LarkV2Card()
-      .withConfig(
-        new Config()
-          .withStreamingMode(
-            true,
-            new StreamConfig()
-              .withPrintStrategy("delay")
-              .withPrintFrequency(20)
-              .withPrintStep(1)
-          )
-          .withSummary(new Summary("少女回复中"))
-      )
-      .addElements(withElementId(new MarkdownComponent(""), "md"))
+  // 异步任务：创建 V2Card 并进行回复
+  const v2CardPromise = (async () => {
+    const v2Card = await V2card.create(
+      new LarkV2Card()
+        .withConfig(
+          new Config()
+            .withStreamingMode(
+              true,
+              new StreamConfig()
+                .withPrintStrategy("delay")
+                .withPrintFrequency(20)
+                .withPrintStep(1)
+            )
+            .withSummary(new Summary("少女回复中"))
+        )
+        .addElements(withElementId(new MarkdownComponent(""), "md"))
+    );
+
+    await v2Card.reply(commonMessage.messageId);
+    return v2Card;
+  })();
+
+  // 异步任务：搜索消息
+  const searchMessagesPromise = searchMessageByRootId(commonMessage.rootId!);
+
+  // 等待 V2Card 和消息搜索完成后再保存机器人消息
+  const [v2Card, mongoMessages] = await Promise.all([v2CardPromise, searchMessagesPromise]);
+
+  const contextMessages = mongoMessages.map((msg) => CommonMessage.fromMessage(msg));
+
+  // 保存机器人消息
+  await saveRobotMessage(
+    commonMessage,
+    v2Card.getMessageId()!,
+    v2Card.getCardId()!
   );
 
-  await v2Card.reply(commonMessage.messageId);
-
-  await saveRobotMessage(commonMessage, v2Card.getMessageId()!, v2Card.getCardId()!);
-
+  // 定义流式更新方法和结束回调
   const streamSendMsg = async (text: string) => {
     await v2Card.streamUpdateText("md", text);
   };
 
   const endOfReply = async (fullText: string) => {
-    Promise.allSettled([
+    await Promise.allSettled([
       v2Card.closeUpdate(fullText),
-      updateRobotMessageText(
-        v2Card.getMessageId()!,
-        fullText
-      ),
+      updateRobotMessageText(v2Card.getMessageId()!, fullText),
     ]);
   };
 
-  const model = "gpt-4o-mini-2024-07-18";
+  // 模型信息
+  const model = "gpt-4o-mini";
 
+  // 并行执行 replyText
   await replyText(
     model,
-    commonMessage.clearText(),
+    contextMessages,
     streamSendMsg,
     streamSendMsg,
     endOfReply
   );
+
+  console.log("所有任务都已完成");
 }
