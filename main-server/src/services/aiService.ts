@@ -96,6 +96,9 @@ export async function getCompletion(
   endOfReply?: (fullText: string) => void,
 ): Promise<void> {
   try {
+
+    console.info("请求参数:", payload);
+
     const response = await fetch(`http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/chat`, {
       method: "POST",
       headers: {
