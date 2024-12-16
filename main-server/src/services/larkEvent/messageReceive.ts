@@ -26,7 +26,7 @@ import { CommonMessage, TextContent } from "../../types/receiveMessage";
 async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
     message_id: params.message.message_id,
-    root_id: params.message.root_id,
+    root_id: params.message.root_id ?? params.message.message_id,
     parent_id: params.message.parent_id,
     thread_id: params.message.thread_id,
     chat_id: params.message.chat_id,

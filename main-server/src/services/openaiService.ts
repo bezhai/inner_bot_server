@@ -47,6 +47,8 @@ export async function replyText(
     }
   });
 
+  customMessages.reverse();
+
   await getCompletion(
     {
       model,
