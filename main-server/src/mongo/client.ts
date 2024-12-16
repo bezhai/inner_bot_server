@@ -28,3 +28,8 @@ export const mongoInitPromise = (async () => {
     throw err;
   }
 })();
+
+export const getMessageCollection = async (): Promise<MongoCollection<LarkMessageMetaInfo>> => {
+  await mongoInitPromise; // 确保初始化完成
+  return MessageColletion; // 返回初始化后的集合
+};
