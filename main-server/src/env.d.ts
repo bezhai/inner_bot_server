@@ -9,5 +9,8 @@ declare namespace NodeJS {
     ADMIN_USER_ID: string;
     REDIS_PASSWORD: string;
     REDIS_IP: string;
+    MONGO_INITDB_ROOT_PASSWORD: string;
+    MONGO_INITDB_ROOT_USERNAME: string;
+    MONGO_INITDB_HOST: string;
   }
 }

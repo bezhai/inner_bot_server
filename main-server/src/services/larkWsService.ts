@@ -1,5 +1,6 @@
 import * as Lark from "@larksuiteoapi/node-sdk";
 import { handleMessageReceive } from "./larkEvent/messageReceive";
+import { handleMessageRecalled } from "./larkEvent/messageRecalled";
 
 const wsClient = new Lark.WSClient({
   appId: process.env.APP_ID!,
@@ -26,6 +27,7 @@ export function startLarkWebSocket() {
       encryptKey: process.env.ENCRYPT_KEY!,
     }).register({
       "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
+      "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
     }),
   });
 

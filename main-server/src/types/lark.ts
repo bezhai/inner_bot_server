@@ -51,3 +51,19 @@ export interface LarkReceiveMessage {
   sender: LarkSender;
   message: LarkMessage;
 }
+
+export interface LarkRecalledMessage {
+  event_id?: string;
+  token?: string;
+  create_time?: string;
+  event_type?: string;
+  tenant_key?: string;
+  ts?: string;
+  uuid?: string;
+  type?: string;
+  app_id?: string;
+  message_id?: string;
+  chat_id?: string;
+  recall_time?: string;
+  recall_type?: "message_owner" | "group_owner" | "group_manager" | "enterprise_manager";
+}
