@@ -96,7 +96,7 @@ export async function getCompletion(
   endOfReply?: (fullText: string) => void,
 ): Promise<void> {
   try {
-    const response = await fetch("http://ai-app:8000/chat", {
+    const response = await fetch(`http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,7 +1,8 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    dashscope_api_key: str  # 这里我们仍然使用 api_key 作为变量名
+    dashscope_api_key: str
+    openai_api_key: str
 
     class Config:
         env_file = ".env"

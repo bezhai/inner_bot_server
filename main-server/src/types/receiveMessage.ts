@@ -1,6 +1,8 @@
 import { LarkMessage, LarkReceiveMessage } from "./lark";
 
 class BaseMessage {
+  rootId?: string;
+  threadId?: string;
   messageId: string;
   chatId: string;
   sender: string;
@@ -15,6 +17,8 @@ class BaseMessage {
     this.parentMessageId = event.message.parent_id;
     this.mentions = this.addMentions(event.message);
     this.chatType = event.message.chat_type;
+    this.rootId = event.message.root_id || event.message.message_id;
+    this.threadId = event.message.thread_id;
   }
 
   private addMentions(message: LarkMessage): string[] {

@@ -15,3 +15,8 @@ export async function recallMessage(messageId: string) {
     const collection = await getMessageCollection();
     return collection.updateOne({ message_id: messageId }, { is_delete: true });
 }
+
+export async function updateRobotMessageText(messageId: string, text: string) {
+    const collection = await getMessageCollection();
+    return collection.updateOne({ message_id: messageId }, { robot_text: text });
+}

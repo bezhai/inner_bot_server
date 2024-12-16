@@ -24,7 +24,8 @@ export interface LarkUserMessageMetaInfo extends LarkBaseMessageMetaInfo {
 
 export interface LarkRobotMessageMetaInfo extends LarkBaseMessageMetaInfo {
   is_from_robot: true; // 是否是机器人发送的消息
-  robot_text?: string; // 机器人回复的内容, 如果是用户发送的消息则没有该字段
+  robot_text?: string; // 机器人回复的内容
+  card_id?: string; // 机器人回复的卡片 ID
 }
 
 export interface LarkSimpleMention {

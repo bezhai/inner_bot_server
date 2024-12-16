@@ -4,8 +4,8 @@ import json
 
 # 初始化 OpenAI 客户端
 client = openai.OpenAI(
-    api_key=settings.dashscope_api_key,  # 从配置中读取 API Key
-    base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+    api_key=settings.openai_api_key,  # 从配置中读取 API Key
+    base_url="https://api.302ai.cn/v1",
 )
 
 async def get_ai_response(model: str, messages: list, temperature: float = 0.7, stream: bool = False):
@@ -25,10 +25,10 @@ async def get_ai_response(model: str, messages: list, temperature: float = 0.7, 
             messages=messages,
             temperature=temperature,
             stream=stream,
-            stream_options={"include_usage": True},
-            extra_body={
-                "enable_search": True
-            }
+            # stream_options={"include_usage": True},
+            # extra_body={
+            #     "enable_search": True
+            # }
         )
 
         # 如果流式传输，返回生成器

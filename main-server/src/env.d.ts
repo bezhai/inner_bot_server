@@ -12,5 +12,7 @@ declare namespace NodeJS {
     MONGO_INITDB_ROOT_PASSWORD: string;
     MONGO_INITDB_ROOT_USERNAME: string;
     MONGO_INITDB_HOST: string;
+    AI_SERVER_HOST: string;
+    AI_SERVER_PORT: string;
   }
 }
