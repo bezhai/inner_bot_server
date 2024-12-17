@@ -78,8 +78,6 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
     return;
   }
 
-  console.log(commonMessage);
-
   if (
     commonMessage.isTextMessage() &&
     (commonMessage.isP2P() ||
