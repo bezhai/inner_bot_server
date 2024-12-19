@@ -22,7 +22,7 @@ export async function replyText(
     } else {
       return {
         role: "user",
-        content: msg.clearText(),
+        content: "@" + msg.senderName + "：" + msg.clearText(),
         name: msg.senderName,
       };
     }

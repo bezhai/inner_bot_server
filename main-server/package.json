@@ -12,6 +12,7 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^18.0.0",
+    "clinic": "^13.0.0",
     "ts-node": "^10.0.0",
     "typescript": "^5.6.3"
   },
