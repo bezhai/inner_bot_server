@@ -4,10 +4,13 @@ dotenv.config();
 import { startLarkWebSocket } from "./services/larkWsService";
 import { botInitialization } from "./services/initialize/main";
 import { mongoInitPromise } from "./dal/mongo/client";
+import AppDataSource from "./ormconfig";
 
 (async () => {
   try {
     await mongoInitPromise();
+    await AppDataSource.initialize();
+    console.log('Database connection established!');
     await botInitialization();
     console.log("Bot initialized successfully!");
     startLarkWebSocket();

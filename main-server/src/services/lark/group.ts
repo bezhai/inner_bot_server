@@ -1,5 +1,5 @@
+import { LarkBaseChatInfo, LarkGroupChatInfo, LarkGroupMember, LarkUser } from "../../dal/entities";
 import { getChatInfo, getChatList, searchAllMembers } from "../../dal/larkClient";
-import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from "../../types/mongo";
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {
@@ -33,7 +33,6 @@ export async function searchLarkChatInfo(chat_id: string) {
     }
 
     const groupInfo: LarkGroupChatInfo = {
-        chat_mode: chatInfo.chat_mode as 'topic' | 'group',
         name: chatInfo.name!,
         avatar: chatInfo.avatar!,
         description: chatInfo.description!,
@@ -44,6 +43,11 @@ export async function searchLarkChatInfo(chat_id: string) {
         download_has_permission_setting: chatInfo.restricted_mode_setting?.download_has_permission_setting as 'all_members' | 'not_anyone' | undefined,
         user_count: chatInfo.user_count ? Number(chatInfo.user_count) : 0,
         chat_id,
+    };
+
+    const baseChatInfo: LarkBaseChatInfo = {
+        chat_id,
+        chat_mode: chatInfo.chat_mode as 'topic' | 'group',
         has_main_bot: chatInfo.bot_manager_id_list?.includes(process.env.MAIN_BOT_APP_ID!) ?? false,
         has_dev_bot: chatInfo.bot_manager_id_list?.includes(process.env.DEV_BOT_APP_ID!) ?? false,
     };
@@ -62,6 +66,7 @@ export async function searchLarkChatInfo(chat_id: string) {
 
     return {
         groupInfo,
+        baseChatInfo,
         members,
     }
 }
