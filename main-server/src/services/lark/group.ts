@@ -1,5 +1,5 @@
-import { getChatInfo, getChatList } from "../../dal/larkClient";
-import { LarkGroupChatInfo } from "../../types/mongo";
+import { getChatInfo, getChatList, searchAllMembers } from "../../dal/larkClient";
+import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from "../../types/mongo";
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {
@@ -25,14 +25,14 @@ export async function searchAllLarkGroup() {
     return chatIdList;
 }
 
-export async function searchLarkChatInfo(chat_id: string): Promise<LarkGroupChatInfo> {
+export async function searchLarkChatInfo(chat_id: string) {
     const chatInfo = await getChatInfo(chat_id);
 
     if (!chatInfo) {
         throw new Error(`chat_id ${chat_id} not found`);
     }
 
-    return {
+    const groupInfo: LarkGroupChatInfo = {
         chat_mode: chatInfo.chat_mode as 'topic' | 'group',
         name: chatInfo.name!,
         avatar: chatInfo.avatar!,
@@ -46,5 +46,52 @@ export async function searchLarkChatInfo(chat_id: string): Promise<LarkGroupChat
         chat_id,
         has_main_bot: chatInfo.bot_manager_id_list?.includes(process.env.MAIN_BOT_APP_ID!) ?? false,
         has_dev_bot: chatInfo.bot_manager_id_list?.includes(process.env.DEV_BOT_APP_ID!) ?? false,
+    };
+
+    const members: LarkGroupMember[] = [{
+        chat_id,
+        union_id: chatInfo.owner_id!,
+        is_owner: true,
+    }];
+
+    members.push(...chatInfo.user_manager_id_list!.map(union_id => ({
+        chat_id,
+        union_id,
+        is_manager: true,
+    })));
+
+    return {
+        groupInfo,
+        members,
+    }
+}
+
+export async function searchLarkChatMember(chat_id: string) {
+    const members: LarkGroupMember[] = [];
+    const users: LarkUser[] = [];
+    let pageToken: string | undefined = undefined;
+
+    while (true) {
+        const res = await searchAllMembers(chat_id, pageToken);
+        pageToken = res?.page_token;
+        if (res?.items) {
+            members.push(...res.items.map(item => ({
+                chat_id,
+                union_id: item.member_id!,
+            })));
+            users.push(...res.items.map(item => ({
+                union_id: item.member_id!,
+                user_id: item.member_id!,
+                name: item.name!,
+            })))
+        }
+        if (!res?.has_more) {
+            break;
+        }
+    }
+
+    return {
+        members,
+        users,
     }
 }

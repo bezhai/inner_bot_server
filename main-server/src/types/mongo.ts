@@ -71,8 +71,8 @@ export interface LarkSelfChatInfo extends LarkBaseChatInfo {
 export interface LarkGroupMember {
   chat_id: string; // 群聊 ID
   union_id: string; // 用户 ID
-  is_owner: boolean; // 是否是群主
-  is_manager: boolean; // 是否是管理员
+  is_owner?: boolean; // 是否是群主
+  is_manager?: boolean; // 是否是管理员
 }
 
 export interface LarkUser {

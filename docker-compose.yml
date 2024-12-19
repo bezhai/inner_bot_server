@@ -1,15 +1,17 @@
 version: '3.8'
 
 services:
+  # AI 服务
   ai-app:
     build:
-      context: ./ai-service 
+      context: ./ai-service
     ports:
       - "8000:8000"
     volumes:
       - .env:/app/.env
     restart: on-failure 
 
+  # MongoDB 服务
   mongo:
     image: "mongo"
     ports:
@@ -21,6 +23,7 @@ services:
       - mongo_data:/data/db
     restart: on-failure
 
+  # Main Server 服务
   app:
     build:
       context: ./main-server
@@ -33,17 +36,31 @@ services:
       - .env
     restart: on-failure
 
+  # Redis 服务
   redis:
-    image: "redis:6.2"         # 使用 Redis 官方镜像
+    image: "redis:6.2"
     ports:
       - "6379:6379"
     environment:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
-      - redis-data:/data       # 持久化 Redis 数据
+      - redis-data:/data
+    restart: always
+
+  postgres:
+    image: postgres:17.2-bookworm
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     restart: always
 
 volumes:
   redis-data:
   mongo_data:
+  postgres_data:

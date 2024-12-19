@@ -131,3 +131,28 @@ export async function getChatInfo(chat_id: string) {
       throw e;
     });
 }
+
+export async function searchAllMembers(chat_id: string, page_token?: string) {
+  return await client.im.chatMembers
+   .get({
+      path: {
+        chat_id,
+      },
+      params: {
+        page_size: 50,
+        page_token,
+        member_id_type: "union_id",
+      },
+    })
+   .then((res) => {
+      if (res.code!== 0) {
+        console.error(JSON.stringify(res, null, 4));
+        throw new Error(res.msg);
+      }
+      return res.data;
+    })
+   .catch((e) => {
+      console.error(JSON.stringify(e.response.data, null, 4));
+      throw e;
+    });
+}
