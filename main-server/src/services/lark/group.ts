@@ -48,7 +48,8 @@ export async function searchLarkChatInfo(chat_id: string) {
             chat_mode: chatInfo.chat_mode as 'topic' | 'group',
             has_main_bot: process.env.IS_DEV === "true" ? undefined : true,
             has_dev_bot: process.env.IS_DEV === "true" ? true : undefined,
-        }
+        },
+        is_leave: false,
     };
 
     const members: LarkGroupMember[] = [{
