@@ -29,7 +29,7 @@ export async function replyText(
       return {
         role: "user",
         content: `${msg.senderName}: ${msg.clearText()}`,
-        name: `user_${userNameList.indexOf(msg.sender) + 1}`,
+        name: `user${userNameList.indexOf(msg.sender) + 1}`,
       };
     }
   });
