@@ -17,13 +17,13 @@ export async function replyText(
       return {
         role: "assistant",
         content: msg.text(),
-        name: "赤尾小助手",
+        // name: "赤尾小助手",
       };
     } else {
       return {
         role: "user",
         content: msg.clearText(),
-        // name: msg.senderName,
+        name: msg.senderName,
       };
     }
   });
