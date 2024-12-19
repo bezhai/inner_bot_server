@@ -21,6 +21,8 @@ import {
   updateRobotMessageText,
 } from "../messageStore/store";
 import { CommonMessage } from "../../types/receiveMessage";
+import { UserRepository } from "../../dal/repositories/repositories";
+import { In } from "typeorm";
 
 async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
@@ -113,9 +115,30 @@ async function makeCardReply(commonMessage: CommonMessage) {
   const searchMessagesPromise = searchMessageByRootId(commonMessage.rootId!);
 
   // 等待 V2Card 和消息搜索完成后再保存机器人消息
-  const [v2Card, mongoMessages] = await Promise.all([v2CardPromise, searchMessagesPromise]);
+  const [v2Card, mongoMessages] = await Promise.all([
+    v2CardPromise,
+    searchMessagesPromise,
+  ]);
 
-  const contextMessages = mongoMessages.map((msg) => CommonMessage.fromMessage(msg));
+  const contextMessages = mongoMessages.map((msg) =>
+    CommonMessage.fromMessage(msg)
+  );
+
+  const userIds = contextMessages
+    .filter((msg) => !msg.isRobotMessage)
+    .map((msg) => msg.sender);
+
+  if (userIds.length > 0) {
+    const userInfos = await UserRepository.findBy({user_id: In(userIds)})
+    const userMap = new Map(userInfos.map(user => [user.user_id, user.name]));
+    contextMessages.forEach(msg => {
+      if (msg.isRobotMessage) {
+        msg.senderName = "赤尾小助手";
+      } else {
+        msg.senderName = userMap.get(msg.sender) || undefined;
+      }
+    })
+  }
 
   // 保存机器人消息
   await saveRobotMessage(
