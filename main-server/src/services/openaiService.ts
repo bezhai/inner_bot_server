@@ -12,18 +12,24 @@ export async function replyText(
   nonStreamUpdateAPI: UpdateTextFunction,
   endOfReply?: (fullText: string) => void
 ) {
+  const userNameList: string[] = []; // TODO: 这里暂时使用数组标识用户, 需要优化
+
   const customMessages: Message[] = text.map((msg) => {
     if (msg.isRobotMessage) {
       return {
         role: "assistant",
         content: msg.text(),
-        // name: "赤尾小助手",
       };
     } else {
+
+      if (!userNameList.includes(msg.sender)) {
+        userNameList.push(msg.sender);
+      }
+
       return {
         role: "user",
-        content: msg.clearText(),
-        name: "user11",
+        content: `${msg.senderName}: ${msg.clearText()}`,
+        name: `user_${userNameList.indexOf(msg.sender) + 1}`,
       };
     }
   });
