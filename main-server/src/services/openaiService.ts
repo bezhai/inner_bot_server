@@ -28,9 +28,9 @@ export async function replyText(
 
       return {
         role: "user",
-        // content: `${msg.senderName}: ${msg.clearText()}`,
-        // name: `user${userNameList.indexOf(msg.sender) + 1}`,
-        content: msg.clearText(),
+        content: `${msg.senderName}: ${msg.clearText()}`,
+        name: `user${userNameList.indexOf(msg.sender) + 1}`,
+        // content: msg.clearText(),
       };
     }
   });
