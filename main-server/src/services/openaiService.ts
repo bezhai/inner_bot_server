@@ -23,7 +23,7 @@ export async function replyText(
       return {
         role: "user",
         content: msg.clearText(),
-        name: "ゆうてんじにゃむ",
+        name: "user1",
       };
     }
   });
