@@ -46,8 +46,8 @@ export async function searchLarkChatInfo(chat_id: string) {
         baseChatInfo: {
             chat_id,
             chat_mode: chatInfo.chat_mode as 'topic' | 'group',
-            has_main_bot: chatInfo.bot_manager_id_list?.includes(process.env.MAIN_BOT_APP_ID!) ?? false,
-            has_dev_bot: chatInfo.bot_manager_id_list?.includes(process.env.DEV_BOT_APP_ID!) ?? false,
+            has_main_bot: process.env.IS_DEV === "true" ? undefined : true,
+            has_dev_bot: process.env.IS_DEV === "true" ? true : undefined,
         }
     };
 

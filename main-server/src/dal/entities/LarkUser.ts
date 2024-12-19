@@ -14,6 +14,6 @@ export class LarkUser {
   @Column({ type: 'text', nullable: true })
   avatar_origin?: string; // 用户头像 URL
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean', nullable: true })
   is_admin?: boolean; // 是否超级管理员
 }

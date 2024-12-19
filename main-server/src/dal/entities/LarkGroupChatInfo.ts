@@ -36,4 +36,7 @@ export class LarkGroupChatInfo {
 
   @Column({ type: 'int' })
   user_count!: number; // 群聊人数
+
+  @Column({ type: 'boolean', default: false })
+  is_leave?: boolean; // 是否在群聊中
 }
