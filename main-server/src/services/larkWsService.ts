@@ -1,6 +1,7 @@
 import * as Lark from "@larksuiteoapi/node-sdk";
 import { handleMessageReceive } from "./larkEvent/messageReceive";
 import { handleMessageRecalled } from "./larkEvent/messageRecalled";
+import { handleChatMemberAdd, handleChatMemberRemove } from "./larkEvent/groupEvent";
 
 const wsClient = new Lark.WSClient({
   appId:
@@ -39,6 +40,9 @@ export function startLarkWebSocket() {
     }).register({
       "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
       "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
+      "im.chat.member.user.added_v1": createVoidDecorator(handleChatMemberAdd),
+      "im.chat.member.user.deleted_v1": createVoidDecorator(handleChatMemberRemove),
+      "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
     }),
   });
 

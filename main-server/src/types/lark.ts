@@ -67,3 +67,17 @@ export interface LarkRecalledMessage {
   recall_time?: string;
   recall_type?: "message_owner" | "group_owner" | "group_manager" | "enterprise_manager";
 }
+
+export interface LarkReceiveUser{
+  name?: string;
+  user_id?: {
+      union_id?: string;
+      user_id?: string;
+      open_id?: string;
+  };
+}
+
+export interface LarkGroupMemberChangeInfo {
+  users?: Array<LarkReceiveUser>;
+  chat_id?: string;
+}

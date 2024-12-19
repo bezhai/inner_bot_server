@@ -6,7 +6,7 @@ export class LarkGroupChatInfo {
   @PrimaryColumn()
   chat_id!: string; // 对话 ID，与 LarkBaseChatInfo 共享
 
-  @OneToOne(() => LarkBaseChatInfo)
+  @OneToOne(() => LarkBaseChatInfo, { cascade: true })
   @JoinColumn({ name: 'chat_id' })
   baseChatInfo?: LarkBaseChatInfo; // 关联 LarkBaseChatInfo 实体
 
