@@ -1,4 +1,4 @@
-import { MessageCollection } from "../../dal/mongo/client";
+import { LarkChatCollection } from "../../dal/mongo/client";
 import { searchAllLarkGroup, searchLarkChatInfo } from "../lark/group";
 
 export async function upsertAllChatInfo() {
@@ -7,6 +7,6 @@ export async function upsertAllChatInfo() {
     for (const chatId of chatList) {
         console.info(`upsert chat ${chatId}`);
         const chatInfo = await searchLarkChatInfo(chatId);
-        await MessageCollection.updateOne({ chat_id: chatId }, chatInfo, { upsert: true });
+        await LarkChatCollection.updateOne({ chat_id: chatId }, chatInfo, { upsert: true });
     }
 }
