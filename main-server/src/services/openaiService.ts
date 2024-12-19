@@ -22,8 +22,8 @@ export async function replyText(
     } else {
       return {
         role: "user",
-        content: "@" + msg.senderName + "：" + msg.clearText(),
-        name: msg.senderName,
+        content: msg.clearText(),
+        // name: msg.senderName,
       };
     }
   });
