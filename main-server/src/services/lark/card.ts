@@ -1,6 +1,6 @@
 import { LarkV2Card } from "feishu-card";
-import { sendReq, send as basicSend, reply } from "./larkClient";
-import { incr } from "../../config/redis";
+import { sendReq, send as basicSend, reply } from "../../dal/larkClient";
+import { incr } from "../../dal/redis";
 
 export class V2card {
   private card: LarkV2Card;

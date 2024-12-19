@@ -1,6 +1,6 @@
 import { LarkCard } from "feishu-card";
 import { PostContent } from "../../types/receiveMessage";
-import { reply, send } from "./larkClient";
+import { reply, send } from "../../dal/larkClient";
 
 export async function sendMsg(chat_id: string, message: string) {
   await send(chat_id, { text: message }, "text");

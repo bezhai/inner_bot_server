@@ -1,4 +1,4 @@
-import { send } from "../services/larkClient/larkClient";
+import { send } from "../dal/larkClient";
 import { LarkMention, LarkMessage, LarkReceiveMessage } from "./lark";
 import { LarkMessageMetaInfo } from "./mongo";
 

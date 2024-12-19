@@ -7,11 +7,10 @@ import {
   withElementId,
 } from "feishu-card";
 import { LarkReceiveMessage } from "../../types/lark";
-import { V2card } from "../larkClient/card";
+import { V2card } from "../lark/card";
 import { replyText } from "../openaiService";
 import { MessageFactory } from "./messageFactory";
 import {
-  LarkMessageMetaInfo,
   LarkRobotMessageMetaInfo,
   LarkUserMessageMetaInfo,
 } from "../../types/mongo";
@@ -21,7 +20,7 @@ import {
   searchMessageByRootId,
   updateRobotMessageText,
 } from "../messageStore/store";
-import { CommonMessage, TextContent } from "../../types/receiveMessage";
+import { CommonMessage } from "../../types/receiveMessage";
 
 async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
@@ -81,7 +80,7 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
   if (
     commonMessage.isTextMessage() &&
     (commonMessage.isP2P() ||
-      commonMessage.hasMention(process.env.ROBOT_OPEN_ID!))
+      commonMessage.hasMention(process.env.ROBOT_OPEN_ID!)) // TODO: 这里需要适配多bot
   ) {
     await makeCardReply(commonMessage);
   }

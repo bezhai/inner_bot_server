@@ -1,24 +1,20 @@
-import { getMessageCollection } from "../../mongo/client";
+import { MessageCollection } from "../../dal/mongo/client";
 import { LarkMessageMetaInfo } from "../../types/mongo";
 
 export async function saveMessage(message: LarkMessageMetaInfo) {
-  const collection = await getMessageCollection();
-  return collection.insertOne(message);
+  return MessageCollection.insertOne(message);
 }
 
 export async function getMessage(messageId: string) {
-  const collection = await getMessageCollection();
-  return collection.findOne({ message_id: messageId });
+  return MessageCollection.findOne({ message_id: messageId });
 }
 
 export async function recallMessage(messageId: string) {
-  const collection = await getMessageCollection();
-  return collection.updateOne({ message_id: messageId }, { is_delete: true });
+  return MessageCollection.updateOne({ message_id: messageId }, { is_delete: true });
 }
 
 export async function updateRobotMessageText(messageId: string, text: string) {
-  const collection = await getMessageCollection();
-  return collection.updateOne({ message_id: messageId }, { robot_text: text });
+  return MessageCollection.updateOne({ message_id: messageId }, { robot_text: text });
 }
 
 export async function searchMessageByRootId(
@@ -26,8 +22,7 @@ export async function searchMessageByRootId(
   messageType = "text",
   limit = 8
 ) {
-  const collection = await getMessageCollection();
-  return collection.find(
+  return MessageCollection.find(
     {
       root_id: rootId,
       $or: [{ message_type: messageType }, { is_from_robot: true }],
