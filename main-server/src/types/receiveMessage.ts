@@ -46,7 +46,7 @@ class BaseMessage {
     return new this({
       messageId: event.message.message_id,
       chatId: event.message.chat_id,
-      sender: event.sender.sender_id?.user_id ?? "unknown_sender",
+      sender: event.sender.sender_id?.union_id ?? "unknown_sender",
       parentMessageId: event.message.parent_id,
       mentions: BaseMessage.addMentions(event.message.mentions),
       chatType: event.message.chat_type,
@@ -128,7 +128,7 @@ export class CommonMessage extends BaseMessage {
     this.mentions.forEach((mention, index) => {
       text = text.replace(
         `@_user_${index + 1}`,
-        `<at user_id="${mention}"></at>`
+        `<at union_id="${mention}"></at>`
       );
     });
     return text;

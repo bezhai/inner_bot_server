@@ -14,7 +14,6 @@ export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
     const users: LarkUser[] = data.users?.map(user => {
         return {
             union_id: user.user_id?.union_id!,
-            user_id: user.user_id?.user_id!,
             name: user.name!,
         }
     }) || [];

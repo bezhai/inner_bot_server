@@ -6,9 +6,6 @@ export class LarkUser {
   union_id!: string; // 用户唯一标识
 
   @Column()
-  user_id!: string; // 用户 ID
-
-  @Column()
   name!: string; // 用户名称
 
   @Column({ type: 'text', nullable: true })

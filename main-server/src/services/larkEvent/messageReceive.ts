@@ -38,7 +38,7 @@ async function saveLarkMessage(params: LarkReceiveMessage) {
     is_from_robot: false,
     mentions: params.message.mentions || [],
     message_type: params.message.message_type,
-    sender: params.sender.sender_id?.user_id!,
+    sender: params.sender.sender_id?.union_id!,
     update_time: dayjs(Number(params.message.create_time)).toDate(),
   };
 
@@ -129,8 +129,8 @@ async function makeCardReply(commonMessage: CommonMessage) {
     .map((msg) => msg.sender);
 
   if (userIds.length > 0) {
-    const userInfos = await UserRepository.findBy({user_id: In(userIds)})
-    const userMap = new Map(userInfos.map(user => [user.user_id, user.name]));
+    const userInfos = await UserRepository.findBy({union_id: In(userIds)})
+    const userMap = new Map(userInfos.map(user => [user.union_id, user.name]));
     contextMessages.forEach(msg => {
       if (msg.isRobotMessage) {
         msg.senderName = "赤尾小助手";
