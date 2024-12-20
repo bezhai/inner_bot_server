@@ -18,7 +18,7 @@ export async function replyText(
     if (msg.isRobotMessage) {
       return {
         role: "assistant",
-        content: msg.text() === "抱歉，我无法满足这个请求。" ? "好的" : msg.text(),
+        content: msg.text(),
       };
     } else {
 

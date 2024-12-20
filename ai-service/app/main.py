@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from app.ai import get_ai_response
+from app.ollama import get_ollama_ai_response
 
 app = FastAPI()
 
@@ -24,6 +25,16 @@ async def chat_completion(request: ChatRequest):
     :param request: 请求体，包含模型、消息、温度、是否流式等参数
     :return: 生成对话响应
     """
+    
+    if request.model == "hf.co/MaziyarPanahi/Mistral-Nemo-Instruct-2407-GGUF:Q4_K_M":
+        event_generator = await get_ollama_ai_response(
+            model=request.model,
+            messages=request.messages,
+            temperature=request.temperature,
+            stream=True
+        )
+        return StreamingResponse(event_generator, media_type="application/json")
+    
     try:
         # 调用 AI 模型获取响应
         if request.stream:
