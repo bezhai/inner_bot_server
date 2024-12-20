@@ -31,7 +31,6 @@ async def chat_completion(request: ChatRequest):
             model=request.model,
             messages=request.messages,
             temperature=request.temperature,
-            stream=True
         )
         return StreamingResponse(event_generator, media_type="application/json")
     
