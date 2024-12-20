@@ -70,7 +70,12 @@ export interface StreamedCompletionChunk {
   service_tier?: string | null; // 服务等级，通常为 null
   system_fingerprint?: string | null; // 系统指纹，通常为 null
   usage?: any; // 使用情况，通常为 null
+  message?: TempMessage; // 有些模型没有choices, 临时用这个
 }
+
+export interface TempMessage {
+  content: string;
+} 
 
 // 非流式响应中的完整 Message 对象
 export interface RespMessage {

@@ -58,6 +58,11 @@ async function handleStreamResponse(
                   fullResponse += deltaContent;
                 }
               }
+
+              // TODO: 统一模型输出
+              if (chunk.message && chunk.message.content) {
+                fullResponse += chunk.message.content;
+              }
             } catch (err) {
               console.error("解析流式数据时出错:", err, "原始数据", line);
             }
@@ -93,19 +98,21 @@ export async function getCompletion(
   payload: CompletionRequest,
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
-  endOfReply?: (fullText: string) => void,
+  endOfReply?: (fullText: string) => void
 ): Promise<void> {
   try {
-
     console.info("请求参数:", payload);
 
-    const response = await fetch(`http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    const response = await fetch(
+      `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/chat`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`请求失败，状态码：${response.status}`);
