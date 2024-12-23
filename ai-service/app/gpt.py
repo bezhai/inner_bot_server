@@ -179,10 +179,8 @@ class OpenAIChatModel(BaseChatModel):
         """
         调用 OpenAI 模型进行对话。
         """
-        
-        print(chat_request.model_dump())
-        
-        completion = self.client.completions.create(**chat_request.model_dump())
+                
+        completion = self.client.chat.completions.create(**chat_request.model_dump())
         
         if chat_request.stream:       
             async def event_generator():
