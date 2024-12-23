@@ -1,8 +1,8 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    dashscope_api_key: str
-    openai_api_key: str
+    redis_ip: str
+    redis_password: str
 
     class Config:
         env_file = ".env"
