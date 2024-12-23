@@ -59,10 +59,6 @@ async function handleStreamResponse(
                 }
               }
 
-              // TODO: 统一模型输出
-              if (chunk.message && chunk.message.content) {
-                fullResponse += chunk.message.content;
-              }
             } catch (err) {
               console.error("解析流式数据时出错:", err, "原始数据", line);
             }
