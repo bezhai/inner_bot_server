@@ -211,45 +211,6 @@ class ChatRequest(BaseModel):
         description="请求超时时间。可以是秒数或 `httpx.Timeout` 对象。"
     )
     
-    class Config:
-        schema_extra = {
-            "example": {
-                "model": "gpt-4",
-                "messages": [
-                    {"role": "system", "content": "你是一个帮助用户的助手。"},
-                    {"role": "user", "content": "你好，帮我写一个 Python 程序吧。"}
-                ],
-                "temperature": 0.7,
-                "max_tokens": 100,
-                "top_p": 1.0,
-                "n": 1,
-                "stream": False,
-                "stop": None,
-                "presence_penalty": 0.0,
-                "frequency_penalty": 0.0,
-                "logit_bias": None,
-                "user": "unique_user_id",
-                "functions": [
-                    {
-                        "name": "calculate_sum",
-                        "description": "计算两个数字的和。",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "a": {"type": "number"},
-                                "b": {"type": "number"}
-                            },
-                            "required": ["a", "b"]
-                        }
-                    }
-                ],
-                "function_call": {
-                    "name": "calculate_sum",
-                    "arguments": {"a": 5, "b": 10}
-                }
-            }
-        }
-
 
 class SingletonMeta(type):
     """
