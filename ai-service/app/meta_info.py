@@ -1,7 +1,7 @@
 import json
 from typing import Dict
 from redis.asyncio import Redis, ConnectionPool
-from config import settings
+from app.config import settings
 
 class AsyncRedisClient:
     """

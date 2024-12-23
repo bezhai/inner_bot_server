@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, JSONResponse
-from service import get_ai_response
+from app.service import get_ai_response
 
 
 app = FastAPI()

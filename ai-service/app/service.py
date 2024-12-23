@@ -1,7 +1,5 @@
-import openai
-import json
-from meta_info import get_model_setting
-from gpt import ChatModelFactory
+from app.meta_info import get_model_setting
+from app.gpt import ChatModelFactory
 
 async def get_ai_response(model: str, **kwargs):
     """
