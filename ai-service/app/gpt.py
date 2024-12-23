@@ -23,6 +23,50 @@ class Message(BaseModel):
     name: Optional[str] = None  # 可选：函数名（如果 role 是 "function"）
     tool_call_id: Optional[str] = None  # 可选：工具调用 ID（如果 role 是 "tool"）
 
+class FunctionCall(BaseModel):
+    """函数调用参数。"""
+    name: Optional[str] = None
+    arguments: Optional[Dict[str, Any]] = None
+
+class Function(BaseModel):
+    """函数定义参数。"""
+    name: str
+    description: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+class ChatCompletionModality(BaseModel):
+    """聊天完成的模态类型。"""
+    modality: str
+    content: Any
+
+class ChatCompletionAudioParam(BaseModel):
+    """音频参数。"""
+    format: str
+    data: bytes
+
+class ChatCompletionPredictionContentParam(BaseModel):
+    """预测内容参数。"""
+    type: str
+    content: Any
+
+class ChatCompletionStreamOptionsParam(BaseModel):
+    """流式传输选项参数。"""
+    some_option: Optional[str] = None  # 根据实际需求定义
+
+class ChatCompletionToolParam(BaseModel):
+    """工具参数。"""
+    tool_name: str
+    tool_config: Dict[str, Any]
+
+class ChatCompletionToolChoiceOptionParam(BaseModel):
+    """工具选择配置。"""
+    choice: Optional[str] = None
+
+class ResponseFormat(BaseModel):
+    """响应格式配置。"""
+    format_type: str
+    options: Optional[Dict[str, Any]] = None
+
 class ChatRequest(BaseModel):
     """
     与 OpenAI Chat Completion API 完全对齐的请求参数模型。
@@ -44,6 +88,7 @@ class ChatRequest(BaseModel):
     )
     n: Optional[int] = Field(
         1, 
+        ge=1,
         description="生成的聊天回复数量。"
     )
     stream: Optional[bool] = Field(
@@ -54,9 +99,15 @@ class ChatRequest(BaseModel):
         None, 
         description="停止生成的字符串或字符串列表。"
     )
+    max_tokens: Optional[int] = Field(
+        None, 
+        ge=1,
+        description="生成的最大 token 数量。默认为无限制。"
+    )
     max_completion_tokens: Optional[int] = Field(
         None, 
-        description="生成的最大 token 数量。默认为无限制。"
+        ge=1,
+        description="生成的最大 completion token 数量。"
     )
     presence_penalty: Optional[float] = Field(
         0.0, 
@@ -78,19 +129,88 @@ class ChatRequest(BaseModel):
         None, 
         description="用于区分用户的唯一标识符。"
     )
-    response_format: Optional[Dict[str, Any]] = Field(
+    response_format: Optional[ResponseFormat] = Field(
         None,
         description="响应格式配置。"
     )
-    tools: Optional[List[Dict[str, Any]]] = Field(
+    tools: Optional[List[ChatCompletionToolParam]] = Field(
         None,
         description="工具列表，用于工具调用。"
     )
-    tool_choice: Optional[Dict[str, Any]] = Field(
+    tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = Field(
         None,
         description="工具选择配置。"
     )
-
+    audio: Optional[ChatCompletionAudioParam] = Field(
+        None,
+        description="音频输入参数。"
+    )
+    function_call: Optional[FunctionCall] = Field(
+        None,
+        description="函数调用参数。"
+    )
+    functions: Optional[List[Function]] = Field(
+        None,
+        description="可用的函数列表，用于助手调用。"
+    )
+    logprobs: Optional[bool] = Field(
+        None,
+        description="是否返回 token 的对数概率。"
+    )
+    metadata: Optional[Dict[str, str]] = Field(
+        None,
+        description="附加的元数据。"
+    )
+    modalities: Optional[List[ChatCompletionModality]] = Field(
+        None,
+        description="模态列表。"
+    )
+    parallel_tool_calls: Optional[bool] = Field(
+        None,
+        description="是否并行调用工具。"
+    )
+    prediction: Optional[ChatCompletionPredictionContentParam] = Field(
+        None,
+        description="预测内容参数。"
+    )
+    seed: Optional[int] = Field(
+        None,
+        description="用于随机性的种子值。"
+    )
+    service_tier: Optional[Literal["auto", "default"]] = Field(
+        None,
+        description="服务层级，支持 'auto' 或 'default'。"
+    )
+    store: Optional[bool] = Field(
+        None,
+        description="是否存储生成的内容。"
+    )
+    stream_options: Optional[ChatCompletionStreamOptionsParam] = Field(
+        None,
+        description="流式传输的选项配置。"
+    )
+    top_logprobs: Optional[int] = Field(
+        None,
+        ge=1,
+        description="返回 top N 个候选的对数概率。"
+    )
+    extra_headers: Optional[Dict[str, Any]] = Field(
+        None,
+        description="传递给 API 的额外头信息。"
+    )
+    extra_query: Optional[Dict[str, Any]] = Field(
+        None,
+        description="传递给 API 的额外查询参数。"
+    )
+    extra_body: Optional[Dict[str, Any]] = Field(
+        None,
+        description="传递给 API 的额外请求体参数。"
+    )
+    timeout: Optional[Union[float, Any]] = Field(
+        None,
+        description="请求超时时间。可以是秒数或 `httpx.Timeout` 对象。"
+    )
+    
     class Config:
         schema_extra = {
             "example": {
@@ -108,7 +228,25 @@ class ChatRequest(BaseModel):
                 "presence_penalty": 0.0,
                 "frequency_penalty": 0.0,
                 "logit_bias": None,
-                "user": "unique_user_id"
+                "user": "unique_user_id",
+                "functions": [
+                    {
+                        "name": "calculate_sum",
+                        "description": "计算两个数字的和。",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "a": {"type": "number"},
+                                "b": {"type": "number"}
+                            },
+                            "required": ["a", "b"]
+                        }
+                    }
+                ],
+                "function_call": {
+                    "name": "calculate_sum",
+                    "arguments": {"a": 5, "b": 10}
+                }
             }
         }
 
