@@ -20,7 +20,7 @@ export async function updateRobotMessageText(messageId: string, text: string) {
 export async function searchMessageByRootId(
   rootId: string,
   messageType = "text",
-  limit = 14
+  limit = 6
 ) {
   return MessageCollection.find(
     {
