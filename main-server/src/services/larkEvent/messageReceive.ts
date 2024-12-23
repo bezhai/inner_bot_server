@@ -160,8 +160,8 @@ async function makeCardReply(commonMessage: CommonMessage) {
   };
 
   // 模型信息
-  const model = "gpt-4o-mini";
-  // const model = "hf.co/MaziyarPanahi/Mistral-Nemo-Instruct-2407-GGUF:Q4_K_M";
+  // const model = "gpt-4o-mini";
+  const model = "nemo";
 
   // 并行执行 replyText
   await replyText(
