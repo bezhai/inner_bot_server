@@ -49,10 +49,6 @@ class ChatCompletionPredictionContentParam(BaseModel):
     type: str
     content: Any
 
-class ChatCompletionStreamOptionsParam(BaseModel):
-    """流式传输选项参数。"""
-    some_option: Optional[str] = None  # 根据实际需求定义
-
 class ChatCompletionToolParam(BaseModel):
     """工具参数。"""
     tool_name: str
@@ -184,10 +180,6 @@ class ChatRequest(BaseModel):
     store: Optional[bool] = Field(
         None,
         description="是否存储生成的内容。"
-    )
-    stream_options: Optional[ChatCompletionStreamOptionsParam] = Field(
-        None,
-        description="流式传输的选项配置。"
     )
     top_logprobs: Optional[int] = Field(
         None,
