@@ -7,7 +7,7 @@ const AppDataSource = new DataSource({
   username: process.env.POSTGRES_USER!,
   password: process.env.POSTGRES_PASSWORD!,
   database: process.env.POSTGRES_DB!,
-  synchronize: true,
+  synchronize: false, // 是否自动同步数据库结构,
   logging: true, // 是否启用日志
   entities: [`${__dirname}/dal/entities/*.{ts,js}`], // 实体文件路径
   migrations: [`${__dirname}/migrations/*.{ts,js}`], // （可选）迁移文件路径

@@ -5,9 +5,11 @@ import { startLarkWebSocket } from "./services/larkEvent/service";
 import { botInitialization } from "./services/initialize/main";
 import { mongoInitPromise } from "./dal/mongo/client";
 import AppDataSource from "./ormconfig";
+import { getBotAppId } from "./utils/botVar";
 
 (async () => {
   try {
+    console.log('Start initialization with bot', getBotAppId())
     await mongoInitPromise();
     await AppDataSource.initialize();
     console.log('Database connection established!');
