@@ -1,5 +1,5 @@
 # Stage 1: 构建依赖并安装
-FROM python:3.10.16-slim AS builder
+FROM library/python:3.10-slim AS builder
 
 # 设置工作目录
 WORKDIR /app
@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt -i https://mirrors.aliyu
 COPY ./app /app/app
 
 # Stage 2: 创建生产镜像
-FROM python:3.10-slim
+FROM library/python:3.10-slim
 
 # 设置工作目录
 WORKDIR /app
