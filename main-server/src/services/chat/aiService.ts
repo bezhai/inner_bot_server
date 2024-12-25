@@ -3,7 +3,7 @@ import {
   StreamedCompletionChunk,
   NonStreamedCompletion,
   CompletionRequest,
-} from "../types/ai";
+} from "../../types/ai";
 
 export type UpdateTextFunction = (updatedText: string) => Promise<void>;
 

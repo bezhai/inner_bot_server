@@ -1,4 +1,4 @@
-import { LarkBaseChatInfo, LarkGroupChatInfo, LarkGroupMember, LarkUser } from "../../dal/entities";
+import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from "../../dal/entities";
 import { getChatInfo, getChatList, searchAllMembers } from "../../dal/larkClient";
 
 // 从飞书获取所有群聊列表

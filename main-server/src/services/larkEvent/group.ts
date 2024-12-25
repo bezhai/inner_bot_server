@@ -2,7 +2,7 @@ import { In } from "typeorm";
 import { LarkGroupMember, LarkUser } from "../../dal/entities";
 import { GroupChatInfoRepository, GroupMemberRepository, UserRepository } from "../../dal/repositories/repositories";
 import { LarkGroupMemberChangeInfo } from "../../types/lark";
-import { searchLarkChatInfo, searchLarkChatMember } from "../lark/group";
+import { searchLarkChatInfo, searchLarkChatMember } from "../larkBasic/group";
 
 export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
     const updateUsers: LarkGroupMember[] = data.users?.map(user => {

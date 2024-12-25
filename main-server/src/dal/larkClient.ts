@@ -12,147 +12,86 @@ const client = new lark.Client({
 });
 
 interface LarkResp<T> {
-  code: number;
-  msg: string;
-  data: T;
+  code?: number;
+  msg?: string;
+  data?: T;
 }
 
-// 发送消息
+async function handleResponse<T>(promise: Promise<LarkResp<T>>): Promise<T> {
+  try {
+    const res = await promise;
+    if (res.code !== 0) {
+      throw new Error(res.msg);
+    }
+    return res.data!;
+  } catch (e: any) {
+    console.error(JSON.stringify(e.response?.data || e, null, 4));
+    throw e;
+  }
+}
+
 export async function send(chat_id: string, content: any, msgType: string) {
-  return await client.im.message
-    .create({
-      params: {
-        receive_id_type: "chat_id",
-      },
+  return handleResponse(
+    client.im.message.create({
+      params: { receive_id_type: "chat_id" },
       data: {
         receive_id: chat_id,
         content: JSON.stringify(content),
         msg_type: msgType,
       },
     })
-    .then((res) => {
-      if (res.code !== 0) {
-        throw new Error(res.msg);
-      }
-      return res.data;
-    })
-    .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-    });
+  );
 }
 
-// 回复消息
 export async function reply(messageId: string, content: any, msgType: string) {
-  return await client.im.message
-    .reply({
-      path: {
-        message_id: messageId,
-      },
-      data: {
-        content: JSON.stringify(content),
-        msg_type: msgType,
-      },
+  return handleResponse(
+    client.im.message.reply({
+      path: { message_id: messageId },
+      data: { content: JSON.stringify(content), msg_type: msgType },
     })
-    .then((res) => {
-      if (res.code !== 0) {
-        throw new Error(res.msg);
-      }
-      return res.data;
-    })
-    .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-    });
+  );
 }
 
-// 发送请求, 主要用于sdk不支持的接口
 export async function sendReq<T>(url: string, data: any, method: string) {
-  return await client
-    .request<LarkResp<T>>({
+  return handleResponse(
+    client.request<LarkResp<T>>({
       url,
       method,
       data,
     })
-    .then((res) => {
-      if (res.code !== 0) {
-        console.error(JSON.stringify(res, null, 4));
-        throw new Error(res.msg);
-      }
-      return res.data;
-    })
-    .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-      throw e;
-    });
+  );
 }
 
-// 获取群聊列表
 export async function getChatList(page_token?: string) {
-  return await client.im.chat
-    .list({
-      params: {
-        page_size: 100,
-        page_token,
-        sort_type: "ByCreateTimeAsc",
-      },
+  return handleResponse(
+    client.im.chat.list({
+      params: { page_size: 100, page_token, sort_type: "ByCreateTimeAsc" },
     })
-    .then((res) => {
-      if (res.code !== 0) {
-        console.error(JSON.stringify(res, null, 4));
-        throw new Error(res.msg);
-      }
-      return res.data;
-    })
-    .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-      throw e;
-    });
+  );
 }
 
-// 查看群聊信息
 export async function getChatInfo(chat_id: string) {
-  return await client.im.chat
-    .get({
-      path: {
-        chat_id,
-      },
-      params: {
-        user_id_type: "union_id",
-      },
+  return handleResponse(
+    client.im.chat.get({
+      path: { chat_id },
+      params: { user_id_type: "union_id" },
     })
-    .then((res) => {
-      if (res.code !== 0) {
-        console.error(JSON.stringify(res, null, 4));
-        throw new Error(res.msg);
-      }
-      return res.data;
-    })
-    .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-      throw e;
-    });
+  );
 }
 
 export async function searchAllMembers(chat_id: string, page_token?: string) {
-  return await client.im.chatMembers
-   .get({
-      path: {
-        chat_id,
-      },
-      params: {
-        page_size: 50,
-        page_token,
-        member_id_type: "union_id",
-      },
+  return handleResponse(
+    client.im.chatMembers.get({
+      path: { chat_id },
+      params: { page_size: 50, page_token, member_id_type: "union_id" },
     })
-   .then((res) => {
-      if (res.code!== 0) {
-        console.error(JSON.stringify(res, null, 4));
-        throw new Error(res.msg);
-      }
-      return res.data;
+  );
+}
+
+export async function getMessageInfo(message_id: string) {
+  return handleResponse(
+    client.im.message.get({
+      path: { message_id },
     })
-   .catch((e) => {
-      console.error(JSON.stringify(e.response.data, null, 4));
-      throw e;
-    });
+  );
 }

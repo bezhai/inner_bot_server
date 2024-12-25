@@ -15,7 +15,7 @@ import {
   searchAllLarkGroup,
   searchLarkChatInfo,
   searchLarkChatMember,
-} from "../lark/group";
+} from "../larkBasic/group";
 import { setTimeout } from "timers/promises";
 
 export async function upsertAllChatInfo() {

@@ -57,6 +57,7 @@ class BaseMessage {
   }
 
   protected static addMentions(mentions: LarkMention[] | undefined): string[] {
+    console.log("mentions", mentions);
     return mentions ? mentions.map((m) => m.id.open_id!) : [];
   }
 

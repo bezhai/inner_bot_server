@@ -1,7 +1,7 @@
 import * as Lark from "@larksuiteoapi/node-sdk";
-import { handleMessageReceive } from "./larkEvent/messageReceive";
-import { handleMessageRecalled } from "./larkEvent/messageRecalled";
-import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./larkEvent/groupEvent";
+import { handleMessageReceive } from "./receive";
+import { handleMessageRecalled } from "./recalled";
+import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./group";
 
 const wsClient = new Lark.WSClient({
   appId:

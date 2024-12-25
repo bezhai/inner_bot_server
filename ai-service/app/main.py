@@ -1,7 +1,7 @@
 import traceback
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
-from app.service import get_ai_response
+from app.service import ai_chat
 from app.gpt import ChatRequest
 
 app = FastAPI()
@@ -21,7 +21,7 @@ async def chat_completion(request: ChatRequest):
     :return: 生成对话响应
     """
     try:
-        completion = await get_ai_response(request)
+        completion = await ai_chat(request)
         if request.stream:
             # 如果需要流式响应，返回 StreamingResponse
             return StreamingResponse(completion, media_type="application/json")

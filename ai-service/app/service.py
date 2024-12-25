@@ -1,7 +1,7 @@
 from app.meta_info import get_model_setting
 from app.gpt import ChatModelFactory, ChatRequest
 
-async def get_ai_response(request: ChatRequest):
+async def ai_chat(request: ChatRequest):
     """
     调用 AI 模型并返回响应或流式响应。
     
