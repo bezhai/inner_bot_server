@@ -60,6 +60,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
+  meme:
+    image: meetwq/meme-generator:latest
+    restart: always
+    ports:
+      - "2233"
+
 volumes:
   redis-data:
   mongo_data:

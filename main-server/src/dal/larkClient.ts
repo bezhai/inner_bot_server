@@ -1,14 +1,9 @@
 import * as lark from "@larksuiteoapi/node-sdk";
+import { getBotAppId, getBotAppSecret } from "../utils/botVar";
 
 const client = new lark.Client({
-  appId:
-    process.env.IS_DEV === "true"
-      ? process.env.DEV_BOT_APP_ID!
-      : process.env.MAIN_BOT_APP_ID!,
-  appSecret:
-    process.env.IS_DEV === "true"
-      ? process.env.DEV_BOT_APP_SECRET!
-      : process.env.MAIN_BOT_APP_SECRET!,
+  appId: getBotAppId(),
+  appSecret: getBotAppSecret(),
 });
 
 interface LarkResp<T> {
@@ -92,6 +87,15 @@ export async function getMessageInfo(message_id: string) {
   return handleResponse(
     client.im.message.get({
       path: { message_id },
+      params: { user_id_type: "union_id" },
     })
   );
+}
+
+export async function deleteMessage(message_id: string) {
+  return handleResponse(
+    client.im.message.delete({
+      path: { message_id },
+    })
+  )
 }

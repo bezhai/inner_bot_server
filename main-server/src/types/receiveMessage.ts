@@ -1,5 +1,6 @@
-import { send } from "../dal/larkClient";
-import { LarkMention, LarkMessage, LarkReceiveMessage } from "./lark";
+import { LarkBaseChatInfo, LarkGroupChatInfo, LarkUser } from "../dal/entities";
+import { BaseChatInfoRepository, GroupChatInfoRepository, UserRepository } from "../dal/repositories/repositories";
+import { LarkMention, LarkReceiveMessage } from "./lark";
 import { LarkMessageMetaInfo } from "./mongo";
 
 class BaseMessage {
@@ -13,6 +14,9 @@ class BaseMessage {
   mentions: string[];
   chatType: string;
   isRobotMessage: boolean;
+  basicChatInfo?: LarkBaseChatInfo;
+  groupChatInfo?: LarkGroupChatInfo;
+  senderInfo?: LarkUser;
 
   // 私有构造函数，强制使用工厂方法创建实例
   constructor(init: {
@@ -26,6 +30,9 @@ class BaseMessage {
     chatType: string;
     isRobotMessage: boolean;
     senderName?: string;
+    basicChatInfo?: LarkBaseChatInfo;
+    groupChatInfo?: LarkGroupChatInfo;
+    senderInfo?: LarkUser; 
   }) {
     this.rootId = init.rootId;
     this.threadId = init.threadId;
@@ -37,12 +44,55 @@ class BaseMessage {
     this.chatType = init.chatType;
     this.isRobotMessage = init.isRobotMessage;
     this.senderName = init.senderName;
+    this.basicChatInfo = init.basicChatInfo;
+    this.groupChatInfo = init.groupChatInfo;
+    this.senderInfo = init.senderInfo;
   }
 
-  static fromLarkEvent<T extends BaseMessage>(
+  static async fromLarkEvent<T extends BaseMessage>(
     this: new (...args: any[]) => T,
     event: LarkReceiveMessage
-  ): T {
+  ): Promise<T> {
+    // 初始化异步任务
+    const basicChatInfoPromise =
+      event.message.chat_type === "p2p"
+        ? BaseChatInfoRepository.findOne({
+            where: {
+              chat_id: event.message.chat_id,
+            },
+          })
+        : null;
+  
+    const groupChatInfoPromise =
+      event.message.chat_type !== "p2p"
+        ? GroupChatInfoRepository.findOne({
+            where: {
+              chat_id: event.message.chat_id,
+            },
+            relations: ['baseChatInfo'],
+          })
+        : null;
+  
+    const senderInfoPromise = event.sender.sender_id?.union_id
+      ? UserRepository.findOne({
+          where: {
+            union_id: event.sender.sender_id.union_id,
+          },
+        })
+      : null;
+  
+    // 并行执行异步任务
+    const [basicChatInfo, groupChatInfo, senderInfo] = await Promise.all([
+      basicChatInfoPromise,
+      groupChatInfoPromise,
+      senderInfoPromise,
+    ]);
+  
+    // 如果是群聊，basicChatInfo 从 groupChatInfo 提取
+    const finalBasicChatInfo =
+      event.message.chat_type !== "p2p" ? groupChatInfo?.baseChatInfo ?? null : basicChatInfo;
+  
+    // 构造并返回新实例
     return new this({
       messageId: event.message.message_id,
       chatId: event.message.chat_id,
@@ -53,12 +103,15 @@ class BaseMessage {
       rootId: event.message.root_id || event.message.message_id,
       threadId: event.message.thread_id,
       isRobotMessage: false,
+      basicChatInfo: finalBasicChatInfo,
+      groupChatInfo,
+      senderInfo,
     });
   }
 
   protected static addMentions(mentions: LarkMention[] | undefined): string[] {
     console.log("mentions", mentions);
-    return mentions ? mentions.map((m) => m.id.open_id!) : [];
+    return mentions ? mentions.map((m) => m.id.union_id!) : [];
   }
 
   isP2P(): boolean {

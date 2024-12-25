@@ -22,6 +22,10 @@ export async function set(key: string, value: string) {
   return redis.set(key, value);
 }
 
+export async function setWithExpire(key: string, value: string, seconds: number) {
+  return redis.set(key, value, 'EX', seconds);
+}
+
 export async function get(key: string): Promise<string | null> {
   return redis.get(key);
 }

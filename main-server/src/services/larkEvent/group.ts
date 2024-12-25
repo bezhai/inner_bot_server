@@ -33,7 +33,7 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
         }
     }) || [];
     
-    console.log("remveUsers", updateUsers);
+    console.log("removeUsers", updateUsers);
 
     await GroupMemberRepository.save(updateUsers);
 }

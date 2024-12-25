@@ -1,11 +1,11 @@
 declare namespace NodeJS {
   interface ProcessEnv {
-    DASHSCOPE_API_KEY: string;
     DEV_VERIFICATION_TOKEN: string;
     DEV_ENCRYPT_KEY: string;
     MAIN_VERIFICATION_TOKEN: string;
     MAIN_ENCRYPT_KEY: string;
-    ROBOT_OPEN_ID: string;
+    MAIN_ROBOT_UNION_ID: string;
+    DEV_ROBOT_UNION_ID: string;
     REDIS_PASSWORD: string;
     REDIS_IP: string;
     MONGO_INITDB_ROOT_PASSWORD: string;

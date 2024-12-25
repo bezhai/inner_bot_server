@@ -25,7 +25,7 @@ export class MessageFactory {
 }
 
 interface MessageHandler {
-  build(): CommonMessage | null;
+  build(): Promise<CommonMessage | null>;
 }
 
 class TextMessageFactory implements MessageHandler {
@@ -35,8 +35,8 @@ class TextMessageFactory implements MessageHandler {
     this.event = event;
   }
 
-  build(): CommonMessage | null {
-    const msg = CommonMessage.fromLarkEvent(this.event);
+  async build(): Promise<CommonMessage | null> {
+    const msg = await CommonMessage.fromLarkEvent(this.event);
     try {
       const content: TextContent = JSON.parse(this.event.message.content);
       msg.addText(content.text);
@@ -55,8 +55,8 @@ class ImageMessageFactory implements MessageHandler {
     this.event = event;
   }
 
-  build(): CommonMessage | null {
-    const msg = CommonMessage.fromLarkEvent(this.event);
+  async build(): Promise<CommonMessage | null> {
+    const msg = await CommonMessage.fromLarkEvent(this.event);
     try {
       const content: ImageContent = JSON.parse(this.event.message.content);
       msg.addImage(content.image_key);
@@ -75,8 +75,8 @@ class StickerMessageFactory implements MessageHandler {
     this.event = event;
   }
 
-  build(): CommonMessage | null {
-    const msg = CommonMessage.fromLarkEvent(this.event);
+  async build(): Promise<CommonMessage | null> {
+    const msg = await CommonMessage.fromLarkEvent(this.event);
     try {
       const content: StickerContent = JSON.parse(this.event.message.content);
       msg.addSticker(content.file_key);
@@ -95,8 +95,8 @@ class PostMessageFactory implements MessageHandler {
     this.event = event;
   }
 
-  build(): CommonMessage | null {
-    const msg = CommonMessage.fromLarkEvent(this.event);
+  async build(): Promise<CommonMessage | null> {
+    const msg = await CommonMessage.fromLarkEvent(this.event);
     try {
       const content: PostContent = JSON.parse(this.event.message.content);
       content.content.forEach((row) => {
@@ -123,7 +123,7 @@ class OtherMessageFactory implements MessageHandler {
     this.event = event;
   }
 
-  build(): CommonMessage | null {
+  async build(): Promise<CommonMessage | null> {
     return null;
   }
 }
