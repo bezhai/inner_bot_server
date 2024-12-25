@@ -1,5 +1,5 @@
 # Stage 1: 构建依赖并安装
-FROM python:3.10-slim AS builder
+FROM python:3.10.16-slim AS builder
 
 # 设置工作目录
 WORKDIR /app
