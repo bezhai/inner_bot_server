@@ -7,7 +7,7 @@ import {
   getChatInfo,
   getChatList,
   searchAllMembers,
-} from "../../dal/larkClient";
+} from "../../dal/lark-client";
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {

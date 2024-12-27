@@ -1,5 +1,5 @@
 import * as lark from "@larksuiteoapi/node-sdk";
-import { getBotAppId, getBotAppSecret } from "../utils/botVar";
+import { getBotAppId, getBotAppSecret } from "../utils/bot-var";
 
 const client = new lark.Client({
   appId: getBotAppId(),
@@ -38,11 +38,20 @@ export async function send(chat_id: string, content: any, msgType: string) {
   );
 }
 
-export async function reply(messageId: string, content: any, msgType: string) {
+export async function reply(
+  messageId: string,
+  content: any,
+  msgType: string,
+  replyInThread?: boolean
+) {
   return handleResponse(
     client.im.message.reply({
       path: { message_id: messageId },
-      data: { content: JSON.stringify(content), msg_type: msgType },
+      data: {
+        content: JSON.stringify(content),
+        msg_type: msgType,
+        reply_in_thread: replyInThread,
+      },
     })
   );
 }
@@ -97,5 +106,5 @@ export async function deleteMessage(message_id: string) {
     client.im.message.delete({
       path: { message_id },
     })
-  )
+  );
 }

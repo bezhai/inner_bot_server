@@ -1,6 +1,6 @@
-import { deleteMessage, getMessageInfo } from "../../../dal/larkClient";
-import { CommonMessage } from "../../../types/receiveMessage";
-import { getBotAppId } from "../../../utils/botVar";
+import { deleteMessage, getMessageInfo } from "../../../dal/lark-client";
+import { CommonMessage } from "../../../models/common-message";
+import { getBotAppId } from "../../../utils/bot-var";
 import { replyMessage } from "../../larkBasic/message";
 
 export async function deleteBotMessage(message: CommonMessage) {
@@ -29,6 +29,6 @@ export async function deleteBotMessage(message: CommonMessage) {
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : "未知错误";
     console.error(e);
-    replyMessage(message.messageId, `撤回失败: ${errorMessage}`);
+    replyMessage(message.messageId, `撤回失败: ${errorMessage}`, true);
   }
 }

@@ -6,16 +6,16 @@ import {
   Summary,
   withElementId,
 } from "feishu-card";
-import { CommonMessage } from "../../../types/receiveMessage";
 import {
   searchMessageByRootId,
   updateRobotMessageText,
 } from "../../messageStore/basic";
 import { UserRepository } from "../../../dal/repositories/repositories";
 import { In } from "typeorm";
-import { replyText } from "../openaiService";
+import { replyText } from "../openai-service";
 import { V2card } from "../../larkBasic/card";
 import { saveRobotMessage } from "../../messageStore/service";
+import { CommonMessage } from "../../../models/common-message";
 
 export async function makeCardReply(commonMessage: CommonMessage) {
   // 异步任务：创建 V2Card 并进行回复

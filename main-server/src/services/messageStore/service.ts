@@ -4,8 +4,8 @@ import {
   LarkRobotMessageMetaInfo,
   LarkUserMessageMetaInfo,
 } from "../../types/mongo";
-import { CommonMessage } from "../../types/receiveMessage";
 import { saveMessage } from "./basic";
+import { CommonMessage } from "../../models/common-message";
 
 export async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {

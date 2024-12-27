@@ -2,7 +2,7 @@ import * as Lark from "@larksuiteoapi/node-sdk";
 import { handleMessageReceive } from "./receive";
 import { handleMessageRecalled } from "./recalled";
 import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./group";
-import { getBotAppId, getBotAppSecret, getEncryptKey, getVerificationToken } from "../../utils/botVar";
+import { getBotAppId, getBotAppSecret, getEncryptKey, getVerificationToken } from "../../utils/bot-var";
 import { handleCardAction } from "./card";
 
 const wsClient = new Lark.WSClient({

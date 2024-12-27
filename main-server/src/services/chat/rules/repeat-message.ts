@@ -1,8 +1,8 @@
 import { createHash } from "crypto";
 import { get, setWithExpire } from "../../../dal/redis";
-import { CommonMessage } from "../../../types/receiveMessage";
 import { replyMessage, sendMsg, sendSticker } from "../../larkBasic/message";
 import { BaseChatInfoRepository } from "../../../dal/repositories/repositories";
+import { CommonMessage } from "../../../models/common-message";
 
 interface RepeatMsg {
   chatId: string;
@@ -91,6 +91,6 @@ export function changeRepeatStatus(
           replyMessage(message.messageId, `复读功能已关闭`);
         }
       })
-      .catch(() => replyMessage(message.messageId, `操作失败`));
+      .catch(() => replyMessage(message.messageId, `操作失败`, true));
   };
 }

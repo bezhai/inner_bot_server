@@ -1,11 +1,6 @@
+import { CommonMessage } from "../../models/common-message";
+import { TextContent, ImageContent, StickerContent, PostContent } from "../../types/content-types";
 import { LarkReceiveMessage } from "../../types/lark";
-import {
-  CommonMessage,
-  ImageContent,
-  PostContent,
-  StickerContent,
-  TextContent,
-} from "../../types/receiveMessage";
 
 export class MessageFactory {
   static create(event: LarkReceiveMessage): MessageHandler {

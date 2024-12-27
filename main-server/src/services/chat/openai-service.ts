@@ -1,9 +1,9 @@
 import Handlebars from "handlebars";
-import { AssistantMessage, Message } from "../../types/ai";
-import { CommonMessage } from "../../types/receiveMessage";
-import { getCompletion, UpdateTextFunction } from "./aiService";
+import { Message } from "../../types/ai";
+import { getCompletion, UpdateTextFunction } from "./ai-service";
 import dayjs from "dayjs";
 import { get } from "../../dal/redis";
+import { CommonMessage } from "../../models/common-message";
 
 export async function replyText(
   model: string,

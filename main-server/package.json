@@ -11,6 +11,7 @@
   "author": "Chiwei",
   "license": "MIT",
   "devDependencies": {
+    "@types/lodash": "^4.17.13",
     "@types/node": "^18.0.0",
     "clinic": "^13.0.0",
     "ts-node": "^10.0.0",
@@ -24,6 +25,7 @@
     "handlebars": "^4.7.8",
     "ioredis": "^5.4.1",
     "mongodb": "^5.8.0",
+    "nodejieba": "^3.4.4",
     "pg": "^8.13.1",
     "saslprep": "^1.0.3",
     "typeorm": "^0.3.20"
