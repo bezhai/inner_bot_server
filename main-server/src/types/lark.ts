@@ -81,3 +81,28 @@ export interface LarkGroupMemberChangeInfo {
   users?: Array<LarkReceiveUser>;
   chat_id?: string;
 }
+
+export interface CardActionTrigger {
+  operator?: {
+    union_id?: string;
+  }; // 回调触发者信息
+  token?: string; // 更新卡片用的凭证
+  action?: {
+    tag?: string; // 交互组件的标签
+    value?: {
+      [key: string]: any;
+    } | string; // 交互组件绑定的开发者自定义回传数据，对应组件中的 value 属性。类型为 string 或 object，可由开发者指定
+    name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
+    form_value?: {
+      [key: string]: any;
+    }; // 表单容器内用户提交的数据
+    input_value?: string; // 当输入框组件未内嵌在表单容器中时，用户在输入框中提交的数据
+    option?: string; // 当折叠按钮组、下拉选择-单选、人员选择-单选、日期选择器、时间选择器、日期时间选择器组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
+    options?: string[]; // 当下拉选择-多选组件和人员选择-多选组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
+    checked?: boolean; // 当勾选器组件未内嵌在表单容器中时，勾选器组件的回调数据
+    context?: {
+      open_message_id?: string;
+      open_chat_id?: string;
+    }
+  };
+}

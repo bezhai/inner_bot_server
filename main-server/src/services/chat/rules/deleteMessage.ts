@@ -22,6 +22,7 @@ export async function deleteBotMessage(message: CommonMessage) {
     const parentMessage = parentMessageInfo.items[0];
 
     if (parentMessage?.sender?.id !== getBotUnionId()) {
+      console.log('recallIds', parentMessage.sender?.id, getBotUnionId());
       throw new Error("只能撤回机器人自己发送的消息");
     }
 
@@ -29,6 +30,6 @@ export async function deleteBotMessage(message: CommonMessage) {
   } catch (e) {
     const errorMessage = e instanceof Error ? e.message : "未知错误";
     console.error(e);
-    replyMessage(message.messageId, `删除失败: ${errorMessage}`);
+    replyMessage(message.messageId, `撤回失败: ${errorMessage}`);
   }
 }

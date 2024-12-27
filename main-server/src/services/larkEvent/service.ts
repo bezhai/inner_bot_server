@@ -3,6 +3,8 @@ import { handleMessageReceive } from "./receive";
 import { handleMessageRecalled } from "./recalled";
 import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./group";
 import { getBotAppId, getBotAppSecret, getEncryptKey, getVerificationToken } from "../../utils/botVar";
+import { IHandles } from "@larksuiteoapi/node-sdk";
+import { handleCardAction } from "./card";
 
 const wsClient = new Lark.WSClient({
   appId: getBotAppId(),
@@ -22,19 +24,24 @@ function createVoidDecorator<T>(
 }
 
 export function startLarkWebSocket() {
+
+  const eventDispatcher = new Lark.EventDispatcher({
+    verificationToken: getVerificationToken(),
+    encryptKey: getEncryptKey(),
+  }).register({
+    "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
+    "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
+    "im.chat.member.user.added_v1": createVoidDecorator(handleChatMemberAdd),
+    "im.chat.member.user.deleted_v1": createVoidDecorator(handleChatMemberRemove),
+    "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
+    "im.chat.member.bot.added_v1": createVoidDecorator(handleChatRobotAdd),
+    "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
+  });
+
+  eventDispatcher.handles.set("card.action.trigger", handleCardAction); // 注册卡片回调, sdk本身不支持
+
   wsClient.start({
-    eventDispatcher: new Lark.EventDispatcher({
-      verificationToken: getVerificationToken(),
-      encryptKey: getEncryptKey(),
-    }).register({
-      "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
-      "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
-      "im.chat.member.user.added_v1": createVoidDecorator(handleChatMemberAdd),
-      "im.chat.member.user.deleted_v1": createVoidDecorator(handleChatMemberRemove),
-      "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
-      "im.chat.member.bot.added_v1": createVoidDecorator(handleChatRobotAdd),
-      "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
-    }),
+    eventDispatcher,
   });
 
   console.log("Feishu WebSocket client started.");
