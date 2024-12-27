@@ -1,6 +1,7 @@
 import { set } from "../../../dal/redis";
 import { CommonMessage } from "../../../models/common-message";
 import { replyMessage } from "../../larkBasic/message";
+import { getModelList } from "../ai-service";
 import { combineRule, RegexpMatch } from "./rule";
 
 const commandRules = [
@@ -28,10 +29,17 @@ const commandRules = [
         return;
       }
 
-      const model = new RegExp(`^/model (\\w+)`).exec(message.clearText())?.[1];
+      const model = new RegExp(`^/model ([\\w-.]+)`).exec(message.clearText())?.[1];
 
       if (!model) {
         replyMessage(message.messageId, "参数错误", true);
+        return;
+      }
+
+      const models = await getModelList();
+
+      if (!models.includes(model)) {
+        replyMessage(message.messageId, "模型不存在", true);
         return;
       }
 

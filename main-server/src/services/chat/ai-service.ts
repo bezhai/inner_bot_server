@@ -1,4 +1,3 @@
-import dayjs from "dayjs";
 import {
   StreamedCompletionChunk,
   NonStreamedCompletion,
@@ -129,4 +128,23 @@ export async function getCompletion(
   } catch (error) {
     console.error("请求出错:", error);
   }
+}
+
+export async function getModelList(): Promise<string[]> {
+  const response = await fetch(
+    `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/model/list`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status code: ${response.status}`);
+  }
+
+  const modelList: string[] = await response.json();
+  return modelList;
 }
