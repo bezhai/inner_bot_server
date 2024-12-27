@@ -1,6 +1,6 @@
 import { deleteMessage, getMessageInfo } from "../../../dal/larkClient";
 import { CommonMessage } from "../../../types/receiveMessage";
-import { getBotUnionId } from "../../../utils/botVar";
+import { getBotAppId } from "../../../utils/botVar";
 import { replyMessage } from "../../larkBasic/message";
 
 export async function deleteBotMessage(message: CommonMessage) {
@@ -21,8 +21,7 @@ export async function deleteBotMessage(message: CommonMessage) {
 
     const parentMessage = parentMessageInfo.items[0];
 
-    if (parentMessage?.sender?.id !== getBotUnionId()) {
-      console.log('recallIds', parentMessage.sender?.id, getBotUnionId());
+    if (parentMessage?.sender?.id !== getBotAppId()) { // 这里拿到的不是union_id, 而是app_id
       throw new Error("只能撤回机器人自己发送的消息");
     }
 
