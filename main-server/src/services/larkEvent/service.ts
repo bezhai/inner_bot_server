@@ -3,7 +3,6 @@ import { handleMessageReceive } from "./receive";
 import { handleMessageRecalled } from "./recalled";
 import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./group";
 import { getBotAppId, getBotAppSecret, getEncryptKey, getVerificationToken } from "../../utils/botVar";
-import { IHandles } from "@larksuiteoapi/node-sdk";
 import { handleCardAction } from "./card";
 
 const wsClient = new Lark.WSClient({
