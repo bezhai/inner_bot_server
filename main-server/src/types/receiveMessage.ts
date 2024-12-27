@@ -182,7 +182,7 @@ export class CommonMessage extends BaseMessage {
     this.mentions.forEach((mention, index) => {
       text = text.replace(
         `@_user_${index + 1}`,
-        `<at union_id="${mention}"></at>`
+        `<at user_id="${mention}"></at>`
       );
     });
     return text;

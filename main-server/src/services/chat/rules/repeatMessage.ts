@@ -56,23 +56,41 @@ async function addRepeatMsgAndCheck(
 }
 
 export async function repeatMessage(message: CommonMessage) {
-  if (message.isTextMessage() && (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))) {
+  if (
+    message.isTextMessage() &&
+    (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))
+  ) {
     sendMsg(message.chatId, message.withMentionText());
-  } else if (message.isStickerMessage() && (await addRepeatMsgAndCheck(message.chatId, message.sticker()))) {
+  } else if (
+    message.isStickerMessage() &&
+    (await addRepeatMsgAndCheck(message.chatId, message.sticker()))
+  ) {
     sendSticker(message.chatId, message.sticker());
   }
 }
 
-export function changeRepeatStatus(open_repeat_message: boolean): (message: CommonMessage) => Promise<void> {
+export function changeRepeatStatus(
+  open_repeat_message: boolean
+): (message: CommonMessage) => Promise<void> {
   return async function (message: CommonMessage) {
-    BaseChatInfoRepository.update({
-      chat_id: message.chatId,
-    }, {
-      open_repeat_message,
-    }).then(
-      () => replyMessage(message.messageId, `已${open_repeat_message ? "开启" : "关闭"}复读`),
-    ).catch(
-      () => replyMessage(message.messageId, `操作失败`)
-    );
+    BaseChatInfoRepository.update(
+      {
+        chat_id: message.chatId,
+      },
+      {
+        open_repeat_message,
+      }
+    )
+      .then(() => {
+        if (open_repeat_message) {
+          replyMessage(
+            message.messageId,
+            `复读功能已开启，当群聊中连续出现相同的三次文本/表情消息，我就会复读`
+          );
+        } else {
+          replyMessage(message.messageId, `复读功能已关闭`);
+        }
+      })
+      .catch(() => replyMessage(message.messageId, `操作失败`));
   };
 }
