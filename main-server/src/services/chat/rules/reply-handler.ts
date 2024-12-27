@@ -16,6 +16,7 @@ import { replyText } from "../openai-service";
 import { V2card } from "../../larkBasic/card";
 import { saveRobotMessage } from "../../messageStore/service";
 import { CommonMessage } from "../../../models/common-message";
+import { get } from "../../../dal/redis";
 
 export async function makeCardReply(commonMessage: CommonMessage) {
   // 异步任务：创建 V2Card 并进行回复
@@ -43,10 +44,13 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   // 异步任务：搜索消息
   const searchMessagesPromise = searchMessageByRootId(commonMessage.rootId!);
 
+  const chatModelPromise = get(`lark_chat_model:${commonMessage.chatId}`);
+
   // 等待 V2Card 和消息搜索完成后再保存机器人消息
-  const [v2Card, mongoMessages] = await Promise.all([
+  const [v2Card, mongoMessages, chatModel] = await Promise.all([
     v2CardPromise,
     searchMessagesPromise,
+    chatModelPromise,
   ]);
 
   const contextMessages = mongoMessages.map((msg) =>
@@ -90,13 +94,11 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     ]);
   };
 
-  // 模型信息
-  const model = "gpt-4o-mini";
   // const model = "nemo";
 
   // 并行执行 replyText
   await replyText(
-    model,
+    chatModel ?? "qwen-plus",
     contextMessages,
     streamSendMsg,
     streamSendMsg,
