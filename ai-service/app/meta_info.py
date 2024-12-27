@@ -1,5 +1,5 @@
 import json
-from typing import Dict
+from typing import Dict, List
 from redis.asyncio import Redis, ConnectionPool
 from app.config import settings
 
@@ -41,3 +41,14 @@ async def get_model_setting(model_name: str) -> Dict:
             }
 
     return None
+
+async def get_model_list() -> List[str]:
+    client = AsyncRedisClient.get_instance()
+    str_settings = await client.get('model_setting')
+    settings = json.loads(str_settings)
+    
+    # 遍历配置列表，查找包含目标模型的配置
+    model_list = []
+    for setting in settings:
+        model_list.extend(setting["model_index"].keys())
+    return model_list

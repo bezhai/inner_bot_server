@@ -36,3 +36,13 @@ async def chat_completion(request: ChatRequest):
             status_code=500, 
             content={"error": "Internal Server Error", "details": str(e)}
         )
+        
+@app.get("/model/list")
+async def get_model_list():
+    """
+    获取所有可用的模型列表。
+    :return: 模型列表
+    """
+    from app.meta_info import get_model_list
+    model_list = await get_model_list()
+    return JSONResponse(content=model_list)
