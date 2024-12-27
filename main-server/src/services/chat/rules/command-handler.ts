@@ -1,3 +1,4 @@
+import { set } from "../../../dal/redis";
 import { CommonMessage } from "../../../models/common-message";
 import { replyMessage } from "../../larkBasic/message";
 import { combineRule, RegexpMatch } from "./rule";
@@ -19,10 +20,34 @@ const commandRules = [
       }
     },
   },
+  {
+    key: "model",
+    handler: async (message: CommonMessage) => {
+      if (!message.senderInfo?.is_admin) {
+        replyMessage(message.messageId, "当前用户无权限", true);
+        return;
+      }
+
+      const model = new RegExp(`^/model (\\w+)`).exec(message.clearText())?.[1];
+
+      if (!model) {
+        replyMessage(message.messageId, "参数错误", true);
+        return;
+      }
+
+      set(`lark_chat_model:${message.chatId}`, model)
+        .then(() => {
+          replyMessage(message.messageId, `模型已切换为${model}`, true);
+        })
+        .catch(() => {
+          replyMessage(message.messageId, "切换模型失败", true);
+        });
+    },
+  },
 ];
 
 export const { rule: CommandRule, handler: CommandHandler } =
   combineRule<string>(
     commandRules,
-    (key) => (message) => RegexpMatch(`^/${key}$`)(message)
+    (key) => (message) => RegexpMatch(`^/${key}`)(message)
   );

@@ -88,7 +88,7 @@ export const RegexpMatch =
   (pattern: string): Rule =>
   (message) => {
     try {
-      return new RegExp(pattern).test(message.text());
+      return new RegExp(pattern).test(message.clearText());
     } catch {
       return false;
     }
