@@ -3,7 +3,7 @@ import { CommonMessage } from "../../types/receiveMessage";
 import { getBotUnionId } from "../../utils/botVar";
 import { replyTemplate } from "../larkBasic/message";
 import { deleteBotMessage } from "./rules/deleteMessage";
-import { repeatMessage } from "./rules/repeatMessage";
+import { changeRepeatStatus, repeatMessage } from "./rules/repeatMessage";
 import { makeCardReply } from "./rules/replyHandler";
 
 // 定义规则函数类型
@@ -82,6 +82,14 @@ const chatRules: RuleConfig[] = [
   {
     rules: [ContainKeyword("撤回"), TextMessageLimit, NeedRobotMention],
     handler: deleteBotMessage,
+  },
+  {
+    rules: [ContainKeyword("开启复读"), TextMessageLimit, NeedRobotMention, OnlyGroup],
+    handler: changeRepeatStatus(true),
+  },
+  {
+    rules: [ContainKeyword("关闭复读"), TextMessageLimit, NeedRobotMention, OnlyGroup],
+    handler: changeRepeatStatus(false),
   },
   {
     rules: [TextMessageLimit, NeedRobotMention],

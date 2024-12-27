@@ -1,7 +1,8 @@
 import { createHash } from "crypto";
 import { get, setWithExpire } from "../../../dal/redis";
 import { CommonMessage } from "../../../types/receiveMessage";
-import { sendMsg, sendSticker } from "../../larkBasic/message";
+import { replyMessage, sendMsg, sendSticker } from "../../larkBasic/message";
+import { BaseChatInfoRepository } from "../../../dal/repositories/repositories";
 
 interface RepeatMsg {
   chatId: string;
@@ -60,4 +61,18 @@ export async function repeatMessage(message: CommonMessage) {
   } else if (message.isStickerMessage() && (await addRepeatMsgAndCheck(message.chatId, message.sticker()))) {
     sendSticker(message.chatId, message.sticker());
   }
+}
+
+export function changeRepeatStatus(open_repeat_message: boolean): (message: CommonMessage) => Promise<void> {
+  return async function (message: CommonMessage) {
+    BaseChatInfoRepository.update({
+      chat_id: message.chatId,
+    }, {
+      open_repeat_message,
+    }).then(
+      () => replyMessage(message.messageId, `已${open_repeat_message ? "开启" : "关闭"}复读`),
+    ).catch(
+      () => replyMessage(message.messageId, `操作失败`)
+    );
+  };
 }
