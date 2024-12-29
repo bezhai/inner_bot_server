@@ -1,8 +1,6 @@
 import { LarkCard } from "feishu-card";
 import { getMessageList, reply, send } from "../../dal/lark-client";
 import { PostContent } from "../../types/content-types";
-import { Dayjs } from "dayjs";
-import { LarkHistoryMessage } from "../../types/lark";
 import { CommonMessage } from "../../models/common-message";
 import { RateLimiter } from "../../utils/rate-limiter";
 
@@ -66,7 +64,7 @@ export async function searchGroupMessage(
     if (res?.items) {
       messageList.push(
         ...res.items
-          .filter((item) => !item.deleted)
+          .filter((item) => !item.deleted && item.msg_type !== "merge_forward")
           .map((item) => CommonMessage.fromHistoryMessage(item))
       );
     }

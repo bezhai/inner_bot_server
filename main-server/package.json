@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.41.0",
+    "async-mutex": "^0.5.0",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "feishu-card": "^0.0.13",

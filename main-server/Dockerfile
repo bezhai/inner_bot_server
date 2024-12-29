@@ -1,6 +1,4 @@
-FROM node:20-alpine AS builder
-
-RUN apk add --no-cache make g++ python3
+FROM node:20 AS builder
 
 WORKDIR /usr/src/app
 
