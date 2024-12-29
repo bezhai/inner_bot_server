@@ -56,7 +56,7 @@ async def extract_batch_api(request: BatchExtractRequest):
     :return: 提取的实体列表
     """
     try:
-        entities = await extract_batch(request)
+        entities = extract_batch(request)
         return JSONResponse(content=entities)
     except Exception as e:
         return JSONResponse(
