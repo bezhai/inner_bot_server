@@ -1,5 +1,7 @@
 FROM node:20-alpine AS builder
 
+RUN apk add --no-cache make g++ python3
+
 WORKDIR /usr/src/app
 
 COPY package*.json ./

@@ -131,8 +131,12 @@ export class CommonMessage extends BaseMessage {
       isRobotMessage: message.sender?.id_type === "app_id",
     });
     baseMessage.createTime = message.create_time;
-    const content = JSON.parse(message.body?.content ?? "{}");
-    baseMessage.addText(content.text ?? "");
+    try {
+      const content = JSON.parse(message.body?.content ?? "{}");
+      baseMessage.addText(content.text ?? "");
+    } catch (e) {
+      console.warn("CommonMessage.fromHistoryMessage", e, message);
+    }
     return baseMessage;
   }
 }

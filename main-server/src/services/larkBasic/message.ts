@@ -59,15 +59,15 @@ export async function searchGroupMessage(
   const messageList: CommonMessage[] = [];
 
   while (true) {
-
     await minuteLimiter.waitForAllowance(60 * 1000);
     await secondLimiter.waitForAllowance(10 * 1000);
 
     const res = await getMessageList(chat_id, start_time, end_time, pageToken);
     if (res?.items) {
-      console.log(res.items);
       messageList.push(
-        ...res.items.map((item) => CommonMessage.fromHistoryMessage(item))
+        ...res.items
+          .filter((item) => !item.deleted)
+          .map((item) => CommonMessage.fromHistoryMessage(item))
       );
     }
 
