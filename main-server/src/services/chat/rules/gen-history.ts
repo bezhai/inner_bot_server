@@ -130,14 +130,14 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
   // 我们还需要一个词云, 需要先换成去除emoji后的消息
   const clearTexts = messages
     .map((message) => message.withoutEmojiText())
-    .filter((text) => text.length > 0);
+    .filter((text) => text.length > 0 && !text.includes("https://"));
 
-  // const wordCloudMap = buildWeeklyWordCloud(clearTexts);
+  const wordCloudMap = await buildWeeklyWordCloud(clearTexts);
 
   // 对 wordCloudMap 进行排序，按照权重降序排列, 取前100个
-  // const sortedWordCloudMap = Object.entries(wordCloudMap)
-  //   .sort((a, b) => b[1] - a[1])
-  //   .slice(0, 100);
+  const sortedWordCloudMap = Object.entries(wordCloudMap)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 100);
 
   // 构建词云的图表
   const wordCloudChart = new ChartElement(
@@ -145,9 +145,9 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
   );
 
   // 添加数据到词云
-  // sortedWordCloudMap.forEach(([name, value]) => {
-  //   wordCloudChart.chart_spec.addWordCloudData(name, value);
-  // });
+  sortedWordCloudMap.forEach(([name, value]) => {
+    wordCloudChart.chart_spec.addWordCloudData(name, value);
+  });
 
   const card = new LarkCard(new CardHeader("七天水群趋势").color("green"));
   card.addElements(activeChart, personChart, wordCloudChart);
