@@ -52,7 +52,7 @@ export async function searchGroupMessage(
   start_time: number,
   end_time: number
 ) {
-  const pageToken: string | undefined = undefined;
+  let pageToken: string | undefined = undefined;
 
   const messageList: CommonMessage[] = [];
 
@@ -67,6 +67,7 @@ export async function searchGroupMessage(
           .filter((item) => !item.deleted && item.msg_type !== "merge_forward")
           .map((item) => CommonMessage.fromHistoryMessage(item))
       );
+      pageToken = res?.page_token;
     }
 
     if (!res?.has_more) {
