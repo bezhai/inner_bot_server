@@ -10,6 +10,7 @@ h11==0.14.0
 httpcore==1.0.7
 httpx==0.27.2
 idna==3.10
+jieba==0.42.1
 jiter==0.7.1
 ollama==0.4.4
 openai==1.54.4

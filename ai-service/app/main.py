@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
 from app.service import ai_chat
 from app.gpt import ChatRequest
+from app.split_word import extract_batch, BatchExtractRequest
 
 app = FastAPI()
 
@@ -46,3 +47,19 @@ async def get_model_list():
     from app.meta_info import get_model_list
     model_list = await get_model_list()
     return JSONResponse(content=model_list)
+
+@app.post("/extract_batch")
+async def extract_batch_api(request: BatchExtractRequest):
+    """
+    批量提取文本中的实体。
+    :param request: 请求体，包含模型、文本列表等参数
+    :return: 提取的实体列表
+    """
+    try:
+        entities = await extract_batch(request)
+        return JSONResponse(content=entities)
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal Server Error", "details": str(e)}
+        )
