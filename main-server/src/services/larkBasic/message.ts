@@ -1,6 +1,10 @@
 import { LarkCard } from "feishu-card";
-import { reply, send } from "../../dal/lark-client";
+import { getMessageList, reply, send } from "../../dal/lark-client";
 import { PostContent } from "../../types/content-types";
+import { Dayjs } from "dayjs";
+import { LarkHistoryMessage } from "../../types/lark";
+import { CommonMessage } from "../../models/common-message";
+import { RateLimiter } from "../../utils/rate-limiter";
 
 export async function sendMsg(chat_id: string, message: string) {
   await send(chat_id, { text: message }, "text");
@@ -26,6 +30,10 @@ export async function sendCard(chat_id: string, card: LarkCard) {
   await send(chat_id, card, "interactive");
 }
 
+export async function replyCard(messageId: string, card: LarkCard) {
+  await reply(messageId, card, "interactive");
+}
+
 export async function replyTemplate(
   messageId: string,
   template_id: string,
@@ -36,4 +44,37 @@ export async function replyTemplate(
     { type: "template", data: { template_id, template_variable } },
     "interactive"
   );
+}
+
+const minuteLimiter = new RateLimiter(800, 60 * 1000); // 每分钟限制800次
+const secondLimiter = new RateLimiter(40, 1000); // 每秒限制40次
+
+export async function searchGroupMessage(
+  chat_id: string,
+  start_time: number,
+  end_time: number
+) {
+  const pageToken: string | undefined = undefined;
+
+  const messageList: CommonMessage[] = [];
+
+  while (true) {
+
+    await minuteLimiter.waitForAllowance(60 * 1000);
+    await secondLimiter.waitForAllowance(10 * 1000);
+
+    const res = await getMessageList(chat_id, start_time, end_time, pageToken);
+    if (res?.items) {
+      console.log(res.items);
+      messageList.push(
+        ...res.items.map((item) => CommonMessage.fromHistoryMessage(item))
+      );
+    }
+
+    if (!res?.has_more) {
+      break;
+    }
+  }
+
+  return messageList;
 }

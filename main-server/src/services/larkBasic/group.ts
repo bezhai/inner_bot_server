@@ -3,11 +3,13 @@ import {
   LarkGroupMember,
   LarkUser,
 } from "../../dal/entities";
+import { LarkUserOpenId } from "../../dal/entities/LarkUserOpenId";
 import {
   getChatInfo,
   getChatList,
   searchAllMembers,
 } from "../../dal/lark-client";
+import { getBotAppId } from "../../utils/bot-var";
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {
@@ -95,10 +97,11 @@ export async function searchLarkChatInfo(chat_id: string) {
 export async function searchLarkChatMember(chat_id: string) {
   const members: LarkGroupMember[] = [];
   const users: LarkUser[] = [];
+  const openIdUsers: LarkUserOpenId[] = [];
   let pageToken: string | undefined = undefined;
 
   while (true) {
-    const res = await searchAllMembers(chat_id, pageToken);
+    const res = await searchAllMembers(chat_id, pageToken, "union_id");
     pageToken = res?.page_token;
     if (res?.items) {
       members.push(
@@ -110,8 +113,25 @@ export async function searchLarkChatMember(chat_id: string) {
       users.push(
         ...res.items.map((item) => ({
           union_id: item.member_id!,
-          user_id: item.member_id!,
           name: item.name!,
+        }))
+      );
+    }
+    if (!res?.has_more) {
+      break;
+    }
+  }
+
+  pageToken = undefined;
+  while (true) {
+    const res = await searchAllMembers(chat_id, pageToken, "open_id");
+    pageToken = res?.page_token;
+    if (res?.items) {
+      openIdUsers.push(
+        ...res.items.map((item) => ({
+          name: item.name!,
+          appId: getBotAppId(),
+          openId: item.member_id!,
         }))
       );
     }
@@ -123,5 +143,6 @@ export async function searchLarkChatMember(chat_id: string) {
   return {
     members,
     users,
+    openIdUsers,
   };
 }

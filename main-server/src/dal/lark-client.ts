@@ -1,5 +1,6 @@
 import * as lark from "@larksuiteoapi/node-sdk";
 import { getBotAppId, getBotAppSecret } from "../utils/bot-var";
+import { Dayjs } from "dayjs";
 
 const client = new lark.Client({
   appId: getBotAppId(),
@@ -83,11 +84,15 @@ export async function getChatInfo(chat_id: string) {
   );
 }
 
-export async function searchAllMembers(chat_id: string, page_token?: string) {
+export async function searchAllMembers(
+  chat_id: string,
+  page_token?: string,
+  member_id_type: "user_id" | "union_id" | "open_id" = "union_id"
+) {
   return handleResponse(
     client.im.chatMembers.get({
       path: { chat_id },
-      params: { page_size: 50, page_token, member_id_type: "union_id" },
+      params: { page_size: 50, page_token, member_id_type },
     })
   );
 }
@@ -105,6 +110,27 @@ export async function deleteMessage(message_id: string) {
   return handleResponse(
     client.im.message.delete({
       path: { message_id },
+    })
+  );
+}
+
+export async function getMessageList(
+  chatId: string,
+  startTime?: number,
+  endTime?: number,
+  pageToken?: string
+) {
+  return handleResponse(
+    client.im.message.list({
+      params: {
+        page_size: 50,
+        page_token: pageToken,
+        start_time: startTime?.toString(),
+        end_time: endTime?.toString(),
+        container_id_type: "chat",
+        container_id: chatId,
+        sort_type: "ByCreateTimeAsc",
+      },
     })
   );
 }

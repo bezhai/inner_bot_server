@@ -2,6 +2,7 @@ import { CommonMessage } from "../../models/common-message";
 import { replyTemplate } from "../larkBasic/message";
 import { CommandHandler, CommandRule } from "./rules/command-handler";
 import { deleteBotMessage } from "./rules/delete-message";
+import { genHistoryCard } from "./rules/gen-history";
 import { changeRepeatStatus, repeatMessage } from "./rules/repeat-message";
 import { makeCardReply } from "./rules/reply-handler";
 import {
@@ -17,7 +18,11 @@ import {
 export async function runRules(message: CommonMessage) {
   for (const { rules, handler, fallthrough } of chatRules) {
     if (rules.every((rule) => rule(message))) {
-      await handler(message);
+      try {
+        await handler(message);
+      } catch (e) {
+        console.error(e);
+      }
       if (!fallthrough) break;
     }
   }
@@ -45,6 +50,11 @@ const chatRules: RuleConfig[] = [
     rules: [ContainKeyword("撤回"), TextMessageLimit, NeedRobotMention],
     handler: deleteBotMessage,
     comment: "撤回消息",
+  },
+  {
+    rules: [ContainKeyword("水群"), TextMessageLimit, NeedRobotMention],
+    handler: genHistoryCard,
+    comment: "生成水群历史卡片",
   },
   {
     rules: [

@@ -1,7 +1,9 @@
 import { upsertAllChatInfo } from "./group";
 
 export async function botInitialization() {
-    await Promise.all([
-        upsertAllChatInfo(),
-    ]);
+  if (process.env.NEED_INIT !== "true") {
+    return;
+  }
+
+  await Promise.all([upsertAllChatInfo()]);
 }

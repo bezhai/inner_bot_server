@@ -21,6 +21,7 @@ export class BaseMessage {
   basicChatInfo?: LarkBaseChatInfo;
   groupChatInfo?: LarkGroupChatInfo;
   senderInfo?: LarkUser;
+  createTime?: string; // 毫秒时间戳
 
   constructor(init: {
     rootId?: string;

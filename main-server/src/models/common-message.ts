@@ -2,6 +2,7 @@ import { BaseMessage } from "./base-message";
 import { TextUtils } from "../utils/text-utils";
 import { MentionUtils } from "../utils/mention-utils";
 import { LarkMessageMetaInfo } from "../types/mongo";
+import { LarkHistoryMessage } from "../types/lark";
 
 enum ItemType {
   Text = 1,
@@ -115,5 +116,23 @@ export class CommonMessage extends BaseMessage {
       baseMessage.addText(content.text ?? "");
       return baseMessage;
     }
+  }
+
+  static fromHistoryMessage(message: LarkHistoryMessage): CommonMessage {
+    const baseMessage = new CommonMessage({
+      messageId: message.message_id!,
+      chatId: message.chat_id!,
+      sender: message.sender?.id ?? "unknown",
+      parentMessageId: message.parent_id,
+      mentions: (message.mentions ?? []).map((m) => m.id),
+      chatType: "group",
+      rootId: message.root_id,
+      threadId: message.thread_id,
+      isRobotMessage: message.sender?.id_type === "app_id",
+    });
+    baseMessage.createTime = message.create_time;
+    const content = JSON.parse(message.body?.content ?? "{}");
+    baseMessage.addText(content.text ?? "");
+    return baseMessage;
   }
 }

@@ -13,7 +13,7 @@ import { getBotAppId } from "./utils/bot-var";
     await mongoInitPromise();
     await AppDataSource.initialize();
     console.log('Database connection established!');
-    // await botInitialization();
+    await botInitialization();
     console.log("Bot initialized successfully!");
     startLarkWebSocket();
   } catch (error) {

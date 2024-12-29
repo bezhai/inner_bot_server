@@ -106,3 +106,35 @@ export interface CardActionTrigger {
     }
   };
 }
+
+export interface LarkHistoryMessage {
+  message_id?: string;
+  root_id?: string;
+  parent_id?: string;
+  create_time?: string;
+  update_time?: string;
+  chat_id?: string;
+  thread_id?: string;
+  msg_type?: string;
+  deleted?: boolean;
+  updated?: boolean;
+  body?: {content: string};
+  mentions?: {
+    key: string;
+    id: string;
+    id_type: string;
+    name: string;
+    tenant_key?: string;
+  }[];
+  sender?: {
+    id?: string;
+    id_type?: string;
+    sender_type?: string; // app_id or open_id
+  }
+}
+
+export interface LarkHistoryMessageResp {
+  has_more?: boolean;
+  items?: Array<LarkHistoryMessage>;
+  page_token?: string;
+}
