@@ -1,6 +1,3 @@
-import * as fs from "fs";
-import * as path from "path";
-
 function loadWordList(): string[] {
   const words = `$
   0
