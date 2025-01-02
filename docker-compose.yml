@@ -64,7 +64,7 @@ services:
     image: meetwq/meme-generator:latest
     restart: always
     ports:
-      - "2233"
+      - "2233:2233"
 
 volumes:
   redis-data:
