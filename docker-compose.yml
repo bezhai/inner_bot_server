@@ -61,7 +61,7 @@ services:
     restart: always
 
   meme:
-    image: meetwq/meme-generator:latest
+    image: chiwiio/meme-generator:main
     restart: always
     ports:
       - "2233:2233"
