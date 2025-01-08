@@ -9,10 +9,12 @@ import {
   ContainKeyword,
   NeedRobotMention,
   OnlyGroup,
+  RegexpMatch,
   RuleConfig,
   TextMessageLimit,
   WhiteGroupCheck,
 } from "./rules/rule";
+import { sendPhoto } from "./rules/send-photo";
 
 // 工具函数：执行规则链
 export async function runRules(message: CommonMessage) {
@@ -78,6 +80,11 @@ const chatRules: RuleConfig[] = [
     rules: [CommandRule, TextMessageLimit, NeedRobotMention],
     handler: CommandHandler,
     comment: "指令处理",
+  },
+  {
+    rules: [RegexpMatch("^发"), TextMessageLimit, NeedRobotMention],
+    handler: sendPhoto,
+    comment: "发送图片",
   },
   {
     rules: [TextMessageLimit, NeedRobotMention],
