@@ -23,5 +23,6 @@ declare namespace NodeJS {
     POSTGRES_DB: string;
     POSTGRES_HOST: string;
     NEED_INIT: string; // true or false
+    HTTP_SECRET: string;
   }
 }
