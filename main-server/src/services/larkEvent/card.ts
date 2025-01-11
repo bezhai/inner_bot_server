@@ -1,9 +1,11 @@
 import {
+  AuthorDownloadRequest,
   FetchPhotoDetails,
   LarkCallbackInfo,
   UpdateDailyPhotoCard,
   UpdatePhotoCard,
 } from "../../types/lark";
+import { startDownloadByAuthor } from "../callback/download-photo";
 import { fetchAndSendPhotoDetail } from "../callback/fetch-photo-detail";
 import { handleUpdateDailyPhotoCard } from "../callback/update-daily-photo";
 import { handleUpdatePhotoCard } from "../callback/update-photo";
@@ -18,6 +20,9 @@ export async function handleCardAction(data: LarkCallbackInfo) {
       break;
     case UpdateDailyPhotoCard:
       handleUpdateDailyPhotoCard(data, data.action.value.start_time);
+      break;
+    case AuthorDownloadRequest:
+      startDownloadByAuthor(data);
       break;
   }
 }
