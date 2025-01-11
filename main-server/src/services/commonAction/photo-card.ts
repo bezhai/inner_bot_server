@@ -98,26 +98,26 @@ export async function getPhotoDetailCard(pixivAddrs: string[]) {
 
   const card = new LarkCard().addElements(
     ...images.map((image) => {
-      const tags = image.multi_tag
+      const tags = image.multi_tags
         ?.filter((tag) => !!tag.translation && tag.visible)
         .map((tag) => tag.translation)
-        .join(", ");
+        .join("、");
 
       return new ColumnSet()
         .addColumn(
           new Column()
             .addElements(
               new MarkdownComponent(`
-  **图片标签**：${tags}
-  **作者**：${image.author}
-  **PixivId**：${image.pixiv_addr}
+**图片标签**：${tags}
+**作者**：${image.author}
+**PixivId**：${image.pixiv_addr}
   `)
             )
             .setWidth("weighted", 1)
         )
         .addColumn(
           new Column().addElements(
-            new ImgComponent(image.image_key!, image.pixiv_addr)
+            new ImgComponent(image.image_key!, image.pixiv_addr).setSize("medium")
           )
         );
     })

@@ -79,7 +79,7 @@ export interface ImageForLark {
   pixiv_addr: string;
   width?: number;
   height?: number;
-  multi_tag?: MultiTag[];
+  multi_tags?: MultiTag[];
 }
 
 export interface BaseResponse<T> {
