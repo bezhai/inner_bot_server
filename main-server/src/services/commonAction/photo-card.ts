@@ -107,11 +107,9 @@ export async function getPhotoDetailCard(pixivAddrs: string[]) {
         .addColumn(
           new Column()
             .addElements(
-              new MarkdownComponent(`
-**图片标签**：${tags}
+              new MarkdownComponent(`**图片标签**：${tags}
 **作者**：${image.author}
-**PixivId**：${image.pixiv_addr}
-  `)
+**PixivId**：${image.pixiv_addr}`)
             )
             .setWidth("weighted", 1)
         )
