@@ -117,7 +117,9 @@ export async function getPhotoDetailCard(pixivAddrs: string[]) {
         )
         .addColumn(
           new Column().addElements(
-            new ImgComponent(image.image_key!, image.pixiv_addr).setSize("medium")
+            new ImgComponent(image.image_key!, image.pixiv_addr)
+              .setSize("medium")
+              .setScaleType("crop_center")
           )
         );
     })
