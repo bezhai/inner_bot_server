@@ -5,7 +5,7 @@ import { CommonMessage } from "../../../models/common-message";
 export async function checkMeme(message: CommonMessage): Promise<boolean> {
   try {
     const response: AxiosResponse<BaseResponse<void>> = await axios.post(
-      `${process.env.MEME_HOST}/check`,
+      `${process.env.MEME_HOST}/api/check`,
       {
         text: message.clearText(),
         image_num: message.imageKeys().length,
@@ -22,7 +22,7 @@ export async function checkMeme(message: CommonMessage): Promise<boolean> {
 export async function genMeme(message: CommonMessage) {
   try {
     await axios.post(
-      `${process.env.MEME_HOST}/gen`,
+      `${process.env.MEME_HOST}/api/gen`,
       {
         text: message.clearText(),
         image_keys: message.imageKeys(),
