@@ -16,7 +16,6 @@ import {
   TextMessageLimit,
   WhiteGroupCheck,
 } from "./rules/rule";
-import { sendDownloadCard } from "./rules/send-download-card";
 import { sendPhoto } from "./rules/send-photo";
 
 // 工具函数：执行规则链
@@ -65,11 +64,6 @@ const chatRules: RuleConfig[] = [
     rules: [ContainKeyword("撤回"), TextMessageLimit, NeedRobotMention],
     handler: deleteBotMessage,
     comment: "撤回消息",
-  },
-  {
-    rules: [ContainKeyword("作者下载"), TextMessageLimit, NeedRobotMention, IsAdmin],
-    handler: sendDownloadCard,
-    comment: "作者下载",
   },
   {
     rules: [ContainKeyword("水群"), TextMessageLimit, NeedRobotMention],

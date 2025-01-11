@@ -159,7 +159,7 @@ export async function searchAndBuildDailyPhotoCard(
 
   const { chunks, weights } = calcBestChunks(images);
 
-  const card = new LarkCard(new CardHeader("今日新图"))
+  const card = new LarkCard(new CardHeader("今日新图").color("green"))
     .addElements(
       new ColumnSet()
         .setHorizontalSpacing("small")
