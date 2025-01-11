@@ -37,6 +37,7 @@ export interface CompletionRequest {
   messages: Message[]; // 消息数组
   temperature?: number; // 温度参数，控制生成文本的随机性
   presence_penalty?: number; // 控制模型生成的多样性
+  frequency_penalty?: number; // 控制模型生成的多样性
   stream?: boolean; // 是否流式传输
   stream_options?: {
     include_usage?: boolean; // 是否包含 Token 消耗信息

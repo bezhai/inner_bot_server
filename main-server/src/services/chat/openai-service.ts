@@ -52,6 +52,7 @@ export async function replyText(
       ],
       temperature: 0.8,
       presence_penalty: 1.8,
+      frequency_penalty: 1.0,
       stream: true,
     },
     streamUpdateAPI,
