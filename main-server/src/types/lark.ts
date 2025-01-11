@@ -141,10 +141,16 @@ export interface LarkHistoryMessageResp {
 
 export const UpdatePhotoCard = "update-photo-card";
 export const FetchPhotoDetails = "fetch-photo-details";
+export const UpdateDailyPhotoCard = "update-daily-photo-card";
 
 export interface UpdatePhotoCardCallback {
   type: typeof UpdatePhotoCard;
   tags: string[];
+}
+
+export interface UpdateDailyPhotoCardCallback {
+  type: typeof UpdateDailyPhotoCard;
+  start_time: number;
 }
 
 export interface FetchPhotoDetailsCallback {
@@ -155,7 +161,7 @@ export interface FetchPhotoDetailsCallback {
 export interface LarkCallbackInfo {
   action: {
     tag: string; // 交互组件的标签
-    value?: UpdatePhotoCardCallback | FetchPhotoDetailsCallback;
+    value?: UpdatePhotoCardCallback | FetchPhotoDetailsCallback | UpdateDailyPhotoCardCallback;
     name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
     form_value?: {
       [key: string]: any;
