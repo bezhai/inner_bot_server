@@ -10,6 +10,7 @@ export async function replyText(
   text: CommonMessage[],
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
+  prompt?: string,
   endOfReply?: (fullText: string) => void
 ) {
   const userNameList: string[] = []; // TODO: 这里暂时使用数组标识用户, 需要优化
@@ -37,8 +38,7 @@ export async function replyText(
 
   customMessages.reverse();
 
-  const defaultPrompt = await get("default_prompt");
-  const compiled = Handlebars.compile(defaultPrompt);
+  const compiled = Handlebars.compile(prompt);
 
   const currDate = dayjs().add(8, "hour").format("YYYY年MM月DD日"); // 这里手动调一下东八区
   const currTime = dayjs().add(8, "hour").format("HH点mm分");

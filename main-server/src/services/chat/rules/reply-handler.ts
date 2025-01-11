@@ -46,12 +46,19 @@ export async function makeCardReply(commonMessage: CommonMessage) {
 
   const chatModelPromise = get(`lark_chat_model:${commonMessage.chatId}`);
 
+  const defaultPromptPromise = get("default_prompt");
+
+  const chatPromptPromise = get(`lark_chat_prompt:${commonMessage.chatId}`);
+
   // 等待 V2Card 和消息搜索完成后再保存机器人消息
-  const [v2Card, mongoMessages, chatModel] = await Promise.all([
-    v2CardPromise,
-    searchMessagesPromise,
-    chatModelPromise,
-  ]);
+  const [v2Card, mongoMessages, chatModel, defaultPrompt, chatPrompt] =
+    await Promise.all([
+      v2CardPromise,
+      searchMessagesPromise,
+      chatModelPromise,
+      defaultPromptPromise,
+      chatPromptPromise,
+    ]);
 
   const contextMessages = mongoMessages.map((msg) =>
     CommonMessage.fromMessage(msg)
@@ -94,16 +101,12 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     ]);
   };
 
-  // const model = "nemo";
-
-  // 并行执行 replyText
   await replyText(
     chatModel ?? "qwen-plus",
     contextMessages,
     streamSendMsg,
     streamSendMsg,
+    chatPrompt ?? defaultPrompt ?? "",
     endOfReply
   );
-
-  console.log("所有任务都已完成");
 }
