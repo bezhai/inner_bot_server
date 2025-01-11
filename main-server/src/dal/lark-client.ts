@@ -1,6 +1,5 @@
 import * as lark from "@larksuiteoapi/node-sdk";
 import { getBotAppId, getBotAppSecret } from "../utils/bot-var";
-import { Dayjs } from "dayjs";
 
 const client = new lark.Client({
   appId: getBotAppId(),

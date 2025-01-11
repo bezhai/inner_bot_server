@@ -67,11 +67,19 @@ export interface PaginationResponse<T> {
   data: T[];
 }
 
+export interface MultiTag {
+  name: string;
+  translation?: string;
+  visible?: boolean;
+}
+
 export interface ImageForLark {
+  author?: string;
   image_key?: string;
   pixiv_addr: string;
   width?: number;
   height?: number;
+  multi_tag?: MultiTag[];
 }
 
 export interface BaseResponse<T> {
@@ -95,6 +103,7 @@ export interface ListPixivImageDto {
   random_mode: boolean;
   start_time?: number;
   tags?: string[];
+  pixiv_addrs?: string[];
 }
 
 export interface UploadImageToLarkDto {

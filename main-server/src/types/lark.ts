@@ -138,3 +138,43 @@ export interface LarkHistoryMessageResp {
   items?: Array<LarkHistoryMessage>;
   page_token?: string;
 }
+
+export const UpdatePhotoCard = "update-photo-card";
+export const FetchPhotoDetails = "fetch-photo-details";
+
+export interface UpdatePhotoCardCallback {
+  type: typeof UpdatePhotoCard;
+  tags: string[];
+}
+
+export interface FetchPhotoDetailsCallback {
+  type: typeof FetchPhotoDetails;
+  images: string[];
+}
+
+export interface LarkCallbackInfo {
+  action: {
+    tag: string; // 交互组件的标签
+    value?: UpdatePhotoCardCallback | FetchPhotoDetailsCallback;
+    name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
+    form_value?: {
+      [key: string]: any;
+    }; // 表单容器内用户提交的数据
+    input_value?: string; // 当输入框组件未内嵌在表单容器中时，用户在输入框中提交的数据
+    option?: string; // 当折叠按钮组、下拉选择-单选、人员选择-单选、日期选择器、时间选择器、日期时间选择器组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
+    options?: string[]; // 当下拉选择-多选组件和人员选择-多选组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
+    checked?: boolean; // 当勾选器组件未内嵌在表单容器中时，勾选器组件的回调数据
+  };
+  host: string; // 卡片展示场景, 已知有im_message
+  context: {
+    open_message_id: string;
+    open_chat_id: string;
+  }
+  operator: {
+    union_id: string;
+    user_id: string;
+    open_id: string;
+  }
+  token: string; // 更新卡片用的凭证
+}
+

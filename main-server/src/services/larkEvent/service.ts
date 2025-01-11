@@ -37,7 +37,7 @@ export function startLarkWebSocket() {
     "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
   });
 
-  eventDispatcher.handles.set("card.action.trigger", handleCardAction); // 注册卡片回调, sdk本身不支持
+  eventDispatcher.handles.set("card.action.trigger", createVoidDecorator(handleCardAction)); // 注册卡片回调, sdk本身不支持
 
   wsClient.start({
     eventDispatcher,

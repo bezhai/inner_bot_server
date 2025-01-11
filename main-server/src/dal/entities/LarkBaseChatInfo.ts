@@ -22,4 +22,7 @@ export class LarkBaseChatInfo {
 
   @Column({ type: "boolean", nullable: true })
   has_dev_bot?: boolean; // 是否包含开发机器人
+
+  @Column({ type: "boolean", nullable: true })
+  allow_send_limit_photo?: boolean; // 是否允许发送限制图片
 }
