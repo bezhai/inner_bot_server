@@ -25,5 +25,6 @@ declare namespace NodeJS {
     NEED_INIT: string; // true or false
     HTTP_SECRET: string;
     PROXY_HOST: string;
+    MEME_HOST: string;
   }
 }

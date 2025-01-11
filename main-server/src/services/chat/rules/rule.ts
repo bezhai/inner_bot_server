@@ -5,6 +5,8 @@ import { getBotUnionId } from "../../../utils/bot-var";
 // 定义规则函数类型
 type Rule = (message: CommonMessage) => boolean;
 
+type AsyncRule = (message: CommonMessage) => Promise<boolean>;
+
 // 定义权限函数类型
 type Handler = (message: CommonMessage) => Promise<void>;
 
@@ -68,6 +70,7 @@ export const combineRule = <T>(
 // 定义规则和对应处理逻辑的结构
 export interface RuleConfig {
   rules: Rule[];
+  async_rules?: AsyncRule[];
   handler: Handler;
   fallthrough?: boolean;
   comment?: string;

@@ -19,7 +19,6 @@ import { CommonMessage } from "../../../models/common-message";
 import { get } from "../../../dal/redis";
 
 export async function makeCardReply(commonMessage: CommonMessage) {
-  // 异步任务：创建 V2Card 并进行回复
   const v2CardPromise = (async () => {
     const v2Card = await V2card.create(
       new LarkV2Card()
@@ -41,7 +40,6 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     return v2Card;
   })();
 
-  // 异步任务：搜索消息
   const searchMessagesPromise = searchMessageByRootId(commonMessage.rootId!);
 
   const chatModelPromise = get(`lark_chat_model:${commonMessage.chatId}`);

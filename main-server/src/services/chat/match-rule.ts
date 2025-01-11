@@ -3,6 +3,7 @@ import { replyTemplate } from "../larkBasic/message";
 import { CommandHandler, CommandRule } from "./rules/command-handler";
 import { deleteBotMessage } from "./rules/delete-message";
 import { genHistoryCard } from "./rules/gen-history";
+import { checkMeme, genMeme } from "./rules/meme";
 import { changeRepeatStatus, repeatMessage } from "./rules/repeat-message";
 import { makeCardReply } from "./rules/reply-handler";
 import {
@@ -18,13 +19,23 @@ import { sendPhoto } from "./rules/send-photo";
 
 // 工具函数：执行规则链
 export async function runRules(message: CommonMessage) {
-  for (const { rules, handler, fallthrough } of chatRules) {
-    if (rules.every((rule) => rule(message))) {
+  for (const { rules, handler, fallthrough, async_rules } of chatRules) {
+    // 检查同步规则
+    const syncRulesPass = rules.every((rule) => rule(message));
+
+    // 检查异步规则
+    const asyncRulesPass = async_rules
+      ? (await Promise.all(async_rules.map((rule) => rule(message)))).every((result) => result)
+      : true;
+
+    // 如果所有规则（同步和异步）都通过
+    if (syncRulesPass && asyncRulesPass) {
       try {
-        await handler(message);
+        await handler(message); 
       } catch (e) {
-        console.error(e);
+        console.error(e); 
       }
+
       if (!fallthrough) break;
     }
   }
@@ -82,9 +93,15 @@ const chatRules: RuleConfig[] = [
     comment: "指令处理",
   },
   {
-    rules: [RegexpMatch("^发"), TextMessageLimit, NeedRobotMention],
+    rules: [RegexpMatch("^发图"), TextMessageLimit, NeedRobotMention],
     handler: sendPhoto,
     comment: "发送图片",
+  },
+  {
+    rules: [NeedRobotMention],
+    async_rules: [checkMeme],
+    handler: genMeme,
+    comment: "Meme",
   },
   {
     rules: [TextMessageLimit, NeedRobotMention],
