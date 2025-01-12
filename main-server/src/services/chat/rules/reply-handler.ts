@@ -17,6 +17,7 @@ import { V2card } from "../../larkBasic/card";
 import { saveRobotMessage } from "../../messageStore/service";
 import { CommonMessage } from "../../../models/common-message";
 import { get } from "../../../dal/redis";
+import { CompletionRequest } from "../../../types/ai";
 
 export async function makeCardReply(commonMessage: CommonMessage) {
   const v2CardPromise = (async () => {
@@ -48,14 +49,17 @@ export async function makeCardReply(commonMessage: CommonMessage) {
 
   const chatPromptPromise = get(`lark_chat_prompt:${commonMessage.chatId}`);
 
+  const modelParamsPromise = get(`model_params`)
+
   // 等待 V2Card 和消息搜索完成后再保存机器人消息
-  const [v2Card, mongoMessages, chatModel, defaultPrompt, chatPrompt] =
+  const [v2Card, mongoMessages, chatModel, defaultPrompt, chatPrompt, modelParams] =
     await Promise.all([
       v2CardPromise,
       searchMessagesPromise,
       chatModelPromise,
       defaultPromptPromise,
       chatPromptPromise,
+      modelParamsPromise
     ]);
 
   const contextMessages = mongoMessages.map((msg) =>
@@ -105,6 +109,7 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     streamSendMsg,
     streamSendMsg,
     chatPrompt ?? defaultPrompt ?? "",
+    JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
     endOfReply
   );
 }

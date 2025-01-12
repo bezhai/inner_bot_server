@@ -1,5 +1,5 @@
 import Handlebars from "handlebars";
-import { Message } from "../../types/ai";
+import { CompletionRequest, Message } from "../../types/ai";
 import { getCompletion, UpdateTextFunction } from "./ai-service";
 import dayjs from "dayjs";
 import { get } from "../../dal/redis";
@@ -11,6 +11,7 @@ export async function replyText(
   streamUpdateAPI: UpdateTextFunction,
   nonStreamUpdateAPI: UpdateTextFunction,
   prompt?: string,
+  chatParams?: Partial<CompletionRequest>,
   endOfReply?: (fullText: string) => void
 ) {
   const userNameList: string[] = []; // TODO: 这里暂时使用数组标识用户, 需要优化
@@ -50,10 +51,12 @@ export async function replyText(
         { role: "system", content: compiled({ currDate, currTime }) },
         ...customMessages,
       ],
-      temperature: 0.3,
-      // presence_penalty: 1.8,
+      // temperature: 0.3,
+      // presence_penalty: 1,
       // frequency_penalty: 1.0,
       stream: true,
+      // max_tokens: 4096,
+      ...chatParams,
     },
     streamUpdateAPI,
     nonStreamUpdateAPI,

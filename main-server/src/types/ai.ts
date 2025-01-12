@@ -42,6 +42,11 @@ export interface CompletionRequest {
   stream_options?: {
     include_usage?: boolean; // 是否包含 Token 消耗信息
   };
+  top_p?: number; // 采样概率，控制生成文本的多样性
+  max_tokens?: number; // 最大 Token 数，控制生成文本的长度
+  extra_body?: {
+    [key: string]: any; // 其他自定义参数
+  };
 }
 
 // Delta 对象，表示流式返回的部分内容
