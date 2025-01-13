@@ -6,7 +6,7 @@ export async function sendPhoto(message: CommonMessage) {
   try {
     const tags = message
       .clearText()
-      .replace(/^发/, "")
+      .replace(/^发图/, "")
       .trim()
       .split(/\s+/)
       .filter((tag) => tag.length > 0);
