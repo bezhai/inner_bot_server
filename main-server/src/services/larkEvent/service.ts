@@ -16,6 +16,9 @@ function createVoidDecorator<T>(
 ): (params: T) => void {
   return function (params: T): void {
     // 异步调用原函数，但不等待结果
+
+    console.log("receive event_type: " + (params as { event_type: string })["event_type"]);
+
     asyncFn(params).catch((err) => {
       console.error("Error in async operation:", err);
     });
