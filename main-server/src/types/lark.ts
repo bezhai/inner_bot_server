@@ -199,3 +199,21 @@ export interface LarkCallbackInfo {
   token: string; // 更新卡片用的凭证
 }
 
+export interface LarkOperateReactionInfo {
+  message_id?: string;
+  reaction_type?: {
+    emoji_type?: string;
+  };
+  event_id?: string;
+  event_type?: string;
+  operator_type?: {
+    open_id?: string;
+  }
+  user_id?: {
+    union_id?: string;
+    user_id?: string;
+    open_id?: string;
+  }
+  app_id?: string;
+  action_time?: string; 
+}

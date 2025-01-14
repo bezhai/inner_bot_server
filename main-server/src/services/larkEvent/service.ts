@@ -4,6 +4,7 @@ import { handleMessageRecalled } from "./recalled";
 import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from "./group";
 import { getBotAppId, getBotAppSecret, getEncryptKey, getVerificationToken } from "../../utils/bot-var";
 import { handleCardAction } from "./card";
+import { handleReaction } from "./reaction";
 
 const wsClient = new Lark.WSClient({
   appId: getBotAppId(),
@@ -38,6 +39,8 @@ export function startLarkWebSocket() {
     "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
     "im.chat.member.bot.added_v1": createVoidDecorator(handleChatRobotAdd),
     "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
+    "im.message.reaction.created_v1": createVoidDecorator(handleReaction),
+    "im.message.reaction.deleted_v1": createVoidDecorator(handleReaction),
   });
 
   eventDispatcher.handles.set("card.action.trigger", createVoidDecorator(handleCardAction)); // 注册卡片回调, sdk本身不支持

@@ -1,12 +1,14 @@
 import { MongoClient } from "mongodb";
 import { MongoCollection } from "./collection";
 import { LarkMessageMetaInfo } from "../../types/mongo";
+import { LarkOperateReactionInfo } from "../../types/lark";
 
 // MongoDB 客户端实例
 let db: MongoClient;
 
 // 定义 MongoDB 集合实例
 export let MessageCollection: MongoCollection<LarkMessageMetaInfo>;
+export let ReactionCollection: MongoCollection<LarkOperateReactionInfo>;
 
 export const mongoInitPromise = async () => {
   try {
@@ -21,6 +23,10 @@ export const mongoInitPromise = async () => {
     MessageCollection = new MongoCollection<LarkMessageMetaInfo>(
       database.collection("lark_message")
     );
+
+    ReactionCollection = new MongoCollection<LarkOperateReactionInfo>(
+      database.collection("lark_reaction")
+    )
 
     console.log("MongoDB initialization completed.");
   } catch (err) {
