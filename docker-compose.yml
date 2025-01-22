@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - .env:/app/.env
-    restart: on-failure 
+    restart: always
 
   # MongoDB 服务
   mongo:
@@ -21,7 +21,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - mongo_data:/data/db
-    restart: on-failure
+    restart: always
 
   # Main Server 服务
   app:
@@ -34,7 +34,7 @@ services:
       - PORT=3000
     env_file:
       - .env
-    restart: on-failure
+    restart: always
 
   # Redis 服务
   redis:
