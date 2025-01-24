@@ -97,9 +97,11 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   };
 
   const endOfReply = async (fullText: string) => {
+    // 这里临时针对 deepseek r1 模型的输出做处理, 保存时不要有思维链
+    const removeThinkText = fullText.replace(/<think>.*?<\/think>/g, '');
     await Promise.allSettled([
       v2Card.closeUpdate(fullText),
-      updateRobotMessageText(v2Card.getMessageId()!, fullText),
+      updateRobotMessageText(v2Card.getMessageId()!, removeThinkText),
     ]);
   };
 
