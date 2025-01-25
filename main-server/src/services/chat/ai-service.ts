@@ -4,7 +4,7 @@ import {
   CompletionRequest,
 } from "../../types/ai";
 
-export type UpdateTextFunction = (updatedText: string) => Promise<void>;
+export type UpdateTextFunction = (text: string) => Promise<void>;
 
 async function handleStreamResponse(
   response: Response,
@@ -22,9 +22,9 @@ async function handleStreamResponse(
 
   const intervalId = setInterval(async () => {
     if (fullResponse) {
-      await updateTextAPI(fullResponse); // 调用API更新文本
+      await updateTextAPI(fullResponse);
     }
-  }, 500);
+  }, 600);
 
   try {
     while (!done) {
