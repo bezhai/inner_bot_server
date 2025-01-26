@@ -1,8 +1,8 @@
 import { LarkCard } from "feishu-card";
 import { LarkCallbackInfo } from "../../types/lark";
-import { searchAndBuildDailyPhotoCard, searchAndBuildPhotoCard } from "../commonAction/photo-card";
 import { BaseChatInfoRepository } from "../../dal/repositories/repositories";
 import { sendReq } from "../../dal/lark-client";
+import { searchAndBuildDailyPhotoCard } from "../media/photo/photo-card";
 
 interface DelayUpdatedCard extends LarkCard {
   open_ids?: string[];

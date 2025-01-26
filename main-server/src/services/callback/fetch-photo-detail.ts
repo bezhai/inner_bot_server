@@ -1,8 +1,8 @@
 import { sendReq } from "../../dal/lark-client";
 import { BaseChatInfoRepository, UserRepository } from "../../dal/repositories/repositories";
 import { LarkCallbackInfo } from "../../types/lark";
-import { getPhotoDetailCard } from "../commonAction/photo-card";
-import { replyCard } from "../larkBasic/message";
+import { replyCard } from "../lark/basic/message";
+import { getPhotoDetailCard } from "../media/photo/photo-card";
 
 export async function fetchAndSendPhotoDetail(
   data: LarkCallbackInfo,

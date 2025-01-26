@@ -1,14 +1,13 @@
 import { CommonMessage } from "../../models/common-message";
-import { replyTemplate } from "../larkBasic/message";
-import { CommandHandler, CommandRule } from "./rules/command-handler";
-import { deleteBotMessage } from "./rules/delete-message";
-import { genHistoryCard } from "./rules/gen-history";
-import { checkMeme, genMeme } from "./rules/meme";
-import { changeRepeatStatus, repeatMessage } from "./rules/repeat-message";
-import { makeCardReply } from "./rules/reply-handler";
+import { replyTemplate } from "../lark/basic/message";
+import { CommandHandler, CommandRule } from "./rules/admin/command-handler";
+import { deleteBotMessage } from "./rules/admin/delete-message";
+import { genHistoryCard } from "./rules/general/gen-history";
+import { checkMeme, genMeme } from "../media/meme/meme";
+import { changeRepeatStatus, repeatMessage } from "./rules/group/repeat-message";
+import { makeCardReply } from "./rules/general/reply-handler";
 import {
   ContainKeyword,
-  IsAdmin,
   NeedRobotMention,
   OnlyGroup,
   RegexpMatch,
@@ -16,7 +15,7 @@ import {
   TextMessageLimit,
   WhiteGroupCheck,
 } from "./rules/rule";
-import { sendPhoto } from "./rules/send-photo";
+import { sendPhoto } from "../media/photo/send-photo";
 
 // 工具函数：执行规则链
 export async function runRules(message: CommonMessage) {

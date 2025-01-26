@@ -50,9 +50,21 @@ export interface CompletionRequest {
 }
 
 // Delta 对象，表示流式返回的部分内容
+// 函数调用相关类型
+export interface FunctionCall {
+  name: string;
+  arguments: string;
+}
+
+// 流式响应动作类型
+export type StreamAction = 
+  | { type: 'text'; content: string }
+  | { type: 'think'; content: string }
+  | { type: 'function_call'; function: FunctionCall };
+
 export interface Delta {
   content?: string; // 生成的部分内容
-  function_call?: any; // 如果有函数调用
+  function_call?: FunctionCall; // 如果有函数调用
   refusal?: any; // 是否拒绝响应
   role?: string; // 角色信息，通常为 "assistant"
   tool_calls?: any; // 工具调用信息

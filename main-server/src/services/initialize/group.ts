@@ -1,4 +1,3 @@
-import { In } from "typeorm";
 import { LarkGroupChatInfo, LarkGroupMember } from "../../dal/entities";
 import {
   GroupChatInfoRepository,
@@ -6,12 +5,8 @@ import {
   LarkUserOpenIdRepository,
   UserRepository,
 } from "../../dal/repositories/repositories";
-import {
-  searchAllLarkGroup,
-  searchLarkChatInfo,
-  searchLarkChatMember,
-} from "../larkBasic/group";
 import { setTimeout } from "timers/promises";
+import { searchAllLarkGroup, searchLarkChatInfo, searchLarkChatMember } from "../lark/basic/group";
 
 export async function upsertAllChatInfo() {
   const chatList = await searchAllLarkGroup();

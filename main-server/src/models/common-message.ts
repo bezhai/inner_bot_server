@@ -1,8 +1,8 @@
 import { BaseMessage } from "./base-message";
-import { TextUtils } from "../utils/text-utils";
 import { MentionUtils } from "../utils/mention-utils";
 import { LarkMessageMetaInfo } from "../types/mongo";
 import { LarkHistoryMessage } from "../types/lark";
+import { TextUtils } from "../utils/text/text-utils";
 
 enum ItemType {
   Text = 1,

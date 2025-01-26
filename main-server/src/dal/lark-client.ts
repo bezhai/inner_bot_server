@@ -1,5 +1,5 @@
 import * as lark from "@larksuiteoapi/node-sdk";
-import { getBotAppId, getBotAppSecret } from "../utils/bot-var";
+import { getBotAppId, getBotAppSecret } from "../utils/bot/bot-var";
 
 const client = new lark.Client({
   appId: getBotAppId(),
