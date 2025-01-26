@@ -56,7 +56,7 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     );
 
     // 这里给思维链先hardcode一下
-    if (chatModel === "ds-local") {
+    if (chatModel === "ds-local" || chatModel === "deepseek-r1") {
       larkCard.addElements(
         withElementId(
           new CollapsiblePanelComponent(
