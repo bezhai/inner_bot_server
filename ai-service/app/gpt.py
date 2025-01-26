@@ -16,11 +16,47 @@ from typing import (
 from pydantic import BaseModel, Field
 
 
+class TextMessageContent(BaseModel):
+    """文本消息内容。"""
+    type: Literal["text"]
+    text: str
+    
+
+class ImageUrl(BaseModel):
+    """图片 URL 信息。"""
+    url: str
+    detail: Optional[str] = None
+
+class ImageMessageContent(BaseModel):
+    """图片消息内容。"""
+    type: Literal["image_url"]
+    image_url: ImageUrl
+    
+
+class AudioUrl(BaseModel):
+    """音频 URL 信息。"""
+    data: str
+    format: str
+
+
+class AudioMessageContent(BaseModel):
+    """音频消息内容。"""
+    type: Literal["audio_url"]
+    audio_url: AudioUrl
+
+
+class AssistantToolCall(BaseModel):
+    """助手函数调用。"""
+    id: str
+    type: str
+    function: Dict[str, Any]
+
 class Message(BaseModel):
     """单条对话消息，符合 OpenAI 的 `messages` 参数格式。"""
-    role: Literal["system", "user", "assistant", "tool"]
-    content: Optional[Union[str, List[Dict[str, str]]]] = None  # 消息内容
+    role: Literal["system", "user", "assistant", "tool", "developer"]
+    content: Optional[Union[str, List[Union[TextMessageContent, ImageMessageContent, AudioMessageContent]]]] = None  # 消息内容
     name: Optional[str] = None  # 可选：函数名（如果 role 是 "function"）
+    tool_calls: Optional[List[AssistantToolCall]] = None  # 可选：助手函数调用列表（如果 role 是 "assistant"）
     tool_call_id: Optional[str] = None  # 可选：工具调用 ID（如果 role 是 "tool"）
 
 class FunctionCall(BaseModel):
@@ -49,14 +85,23 @@ class ChatCompletionPredictionContentParam(BaseModel):
     type: str
     content: Any
 
+
+class ToolFunction(BaseModel):
+    """工具函数参数。"""
+    name: str
+    description: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+    strict: Optional[bool] = None
+
 class ChatCompletionToolParam(BaseModel):
     """工具参数。"""
-    tool_name: str
-    tool_config: Dict[str, Any]
-
+    type: str
+    function: ToolFunction
+    
 class ChatCompletionToolChoiceOptionParam(BaseModel):
     """工具选择配置。"""
-    choice: Optional[str] = None
+    type: str
+    function: Optional[ToolFunction] = None
 
 class ResponseFormat(BaseModel):
     """响应格式配置。"""
@@ -133,7 +178,7 @@ class ChatRequest(BaseModel):
         None,
         description="工具列表，用于工具调用。"
     )
-    tool_choice: Optional[ChatCompletionToolChoiceOptionParam] = Field(
+    tool_choice: Optional[Union[str, ChatCompletionToolChoiceOptionParam]] = Field(
         None,
         description="工具选择配置。"
     )
