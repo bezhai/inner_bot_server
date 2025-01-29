@@ -305,7 +305,7 @@ class OpenAIChatModel(BaseChatModel):
         :param api_key: OpenAI API 的密钥
         :param base_url: OpenAI API 的基础 URL（默认为官方地址）
         """
-        self.client = openai.OpenAI(
+        self.client = openai.AsyncOpenAI(
             api_key=api_key,
             base_url=base_url,
         )
@@ -316,11 +316,11 @@ class OpenAIChatModel(BaseChatModel):
         调用 OpenAI 模型进行对话。
         """
                 
-        completion = self.client.chat.completions.create(**chat_request.model_dump())
+        completion = await self.client.chat.completions.create(**chat_request.model_dump())
         
         if chat_request.stream:       
             async def event_generator():
-                for chunk in completion:
+                async for chunk in completion:
                     yield json.dumps(chunk.model_dump()) + "\n"
             return event_generator()
         else:

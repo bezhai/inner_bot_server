@@ -23,7 +23,7 @@ export class FeishuCardUpdater implements ICardUpdater {
     const removeThinkText = fullText.replace(/<think>[\s\S]*?<\/think>/g, "");
 
     await Promise.allSettled([
-      this.v2Card.closeUpdate(fullText),
+      this.v2Card.closeUpdate(removeThinkText),
       updateRobotMessageText(this.v2Card.getMessageId()!, removeThinkText),
     ]);
   }
