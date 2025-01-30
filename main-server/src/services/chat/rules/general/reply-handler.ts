@@ -7,6 +7,7 @@ import {
   CollapsiblePanelComponent,
   CollapsiblePanelHeader,
   MarkdownComponent,
+  HrComponent,
 } from "feishu-card";
 import { In } from "typeorm";
 import { UserRepository } from "../../../../dal/repositories/repositories";
@@ -41,6 +42,7 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     ]);
 
   const v2Card = await (async () => {
+    // 创建一个简单的卡片，只包含基本配置
     const larkCard = new LarkV2Card().withConfig(
       new Config()
         .withStreamingMode(
@@ -53,23 +55,11 @@ export async function makeCardReply(commonMessage: CommonMessage) {
         .withSummary(new Summary("少女回复中"))
     );
 
-    // 这里给思维链先hardcode一下
-    if (chatModel === "ds-local" || chatModel === "deepseek-r1") {
-      larkCard.addElements(
-        withElementId(
-          new CollapsiblePanelComponent(
-            new CollapsiblePanelHeader("赤尾的内心思考").setBackgroundColor(
-              "grey-100"
-            )
-          )
-            .setBorder("grey-100")
-            .addElement(withElementId(new MarkdownComponent(""), "reason_md")),
-          "collapse"
-        )
-      );
-    }
-
-    larkCard.addElements(withElementId(new MarkdownComponent(""), "md"));
+    // 添加分割线和思考中提示
+    larkCard.addElements(
+      withElementId(new HrComponent(), "hr"),
+      withElementId(new MarkdownComponent("赤尾思考中..."), "thinking_placeholder")
+    );
 
     const v2Card = await V2card.create(larkCard);
 
@@ -109,12 +99,17 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   // 创建卡片更新器
   const cardUpdater = new FeishuCardUpdater(v2Card);
 
-  await replyText(
-    chatModel ?? "qwen-plus",
-    contextMessages,
-    cardUpdater.createActionHandler(),
-    chatPrompt ?? defaultPrompt ?? "",
-    JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
-    cardUpdater.closeUpdate.bind(cardUpdater)
-  );
+  try {
+    await replyText(
+      chatModel ?? "qwen-plus",
+      contextMessages,
+      cardUpdater.createActionHandler(),
+      chatPrompt ?? defaultPrompt ?? "",
+      JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
+      cardUpdater.closeUpdate.bind(cardUpdater)
+    );
+  } catch (error) {
+    // Error will be handled by closeUpdate through endOfReply callback
+    console.error("回复消息时出错:", error);
+  }
 }

@@ -12,7 +12,7 @@ export async function replyText(
   chatParams?: Partial<CompletionRequest>,
   endOfReply?: EndOfReplyHandler
 ) {
-  const userNameList: string[] = []; // TODO: 这里暂时使用数组标识用户, 需要优化
+  const userNameList: string[] = [];
 
   const customMessages: Message[] = text.map((msg) => {
     if (msg.isRobotMessage) {

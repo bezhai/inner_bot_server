@@ -1,3 +1,5 @@
+import { CardElementV2 } from "feishu-card";
+
 // 发送者相关信息
 export interface LarkSender {
   sender_id?: {
@@ -65,15 +67,19 @@ export interface LarkRecalledMessage {
   message_id?: string;
   chat_id?: string;
   recall_time?: string;
-  recall_type?: "message_owner" | "group_owner" | "group_manager" | "enterprise_manager";
+  recall_type?:
+    | "message_owner"
+    | "group_owner"
+    | "group_manager"
+    | "enterprise_manager";
 }
 
-export interface LarkReceiveUser{
+export interface LarkReceiveUser {
   name?: string;
   user_id?: {
-      union_id?: string;
-      user_id?: string;
-      open_id?: string;
+    union_id?: string;
+    user_id?: string;
+    open_id?: string;
   };
 }
 
@@ -89,9 +95,11 @@ export interface CardActionTrigger {
   token?: string; // 更新卡片用的凭证
   action?: {
     tag?: string; // 交互组件的标签
-    value?: {
-      [key: string]: any;
-    } | string; // 交互组件绑定的开发者自定义回传数据，对应组件中的 value 属性。类型为 string 或 object，可由开发者指定
+    value?:
+      | {
+          [key: string]: any;
+        }
+      | string; // 交互组件绑定的开发者自定义回传数据，对应组件中的 value 属性。类型为 string 或 object，可由开发者指定
     name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
     form_value?: {
       [key: string]: any;
@@ -103,7 +111,7 @@ export interface CardActionTrigger {
     context?: {
       open_message_id?: string;
       open_chat_id?: string;
-    }
+    };
   };
 }
 
@@ -118,7 +126,7 @@ export interface LarkHistoryMessage {
   msg_type?: string;
   deleted?: boolean;
   updated?: boolean;
-  body?: {content: string};
+  body?: { content: string };
   mentions?: {
     key: string;
     id: string;
@@ -130,7 +138,7 @@ export interface LarkHistoryMessage {
     id?: string;
     id_type?: string;
     sender_type?: string; // app_id or open_id
-  }
+  };
 }
 
 export interface LarkHistoryMessageResp {
@@ -190,12 +198,12 @@ export interface LarkCallbackInfo {
   context: {
     open_message_id: string;
     open_chat_id: string;
-  }
+  };
   operator: {
     union_id: string;
     user_id: string;
     open_id: string;
-  }
+  };
   token: string; // 更新卡片用的凭证
 }
 
@@ -208,12 +216,17 @@ export interface LarkOperateReactionInfo {
   event_type?: string;
   operator_type?: {
     open_id?: string;
-  }
+  };
   user_id?: {
     union_id?: string;
     user_id?: string;
     open_id?: string;
-  }
+  };
   app_id?: string;
-  action_time?: string; 
+  action_time?: string;
 }
+
+export type AddElementType =
+  | "insert_before" // 在目标组件前插入
+  | "insert_after" // 在目标组件后插入
+  | "append"; // 在卡片或容器组件末尾添加

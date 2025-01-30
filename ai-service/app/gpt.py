@@ -1,9 +1,11 @@
 import json
+import asyncio
 from typing import Any
 import openai
 import abc
 import threading
 from typing import Any
+from app.config import settings
 
 
 from typing import (
@@ -314,17 +316,31 @@ class OpenAIChatModel(BaseChatModel):
     async def chat(self, chat_request: ChatRequest) -> Any:
         """
         调用 OpenAI 模型进行对话。
+        支持流式响应和超时控制。
         """
+        # 如果没有设置timeout，使用默认的stream_timeout
+        if chat_request.stream and not chat_request.timeout:
+            chat_request.timeout = settings.stream_timeout
                 
-        completion = await self.client.chat.completions.create(**chat_request.model_dump())
-        
-        if chat_request.stream:       
-            async def event_generator():
-                async for chunk in completion:
-                    yield json.dumps(chunk.model_dump()) + "\n"
-            return event_generator()
-        else:
-            return completion
+        try:
+            completion = await self.client.chat.completions.create(**chat_request.model_dump())
+            
+            if chat_request.stream:       
+                async def event_generator():
+                    try:
+                        async for chunk in completion:
+                            yield json.dumps(chunk.model_dump()) + "\n"
+                    except asyncio.TimeoutError:
+                        yield json.dumps({"error": "Stream timeout after {} seconds".format(chat_request.timeout)}) + "\n"
+                        return
+                    except Exception as e:
+                        yield json.dumps({"error": str(e)}) + "\n"
+                        return
+                return event_generator()
+            else:
+                return completion
+        except asyncio.TimeoutError:
+            raise Exception("Request timeout after {} seconds".format(chat_request.timeout))
         
 
 class ChatModelFactory:

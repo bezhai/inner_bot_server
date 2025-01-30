@@ -49,6 +49,10 @@ export async function getCompletion(
     }
   } catch (error) {
     console.error("请求出错:", error);
+    if (endOfReply) {
+      await endOfReply(null, error instanceof Error ? error : new Error(String(error)));
+    }
+    throw error;
   }
 }
 

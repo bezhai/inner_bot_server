@@ -192,6 +192,9 @@ export async function handleStreamResponse(
     }
   } catch (error) {
     console.error("处理流式响应时出错:", error);
+    if (endOfReply) {
+      await endOfReply(null, error instanceof Error ? error : new Error(String(error))); 
+    }
     throw error;
   }
 }

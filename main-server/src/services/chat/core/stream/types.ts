@@ -33,13 +33,13 @@ export type StreamAction =
 export type ActionHandler = (action: StreamAction) => Promise<void>;
 
 // 响应完成回调
-export type EndOfReplyHandler = (fullText: string) => Promise<void>;
+export type EndOfReplyHandler = (fullText: string | null, error?: Error) => Promise<void>;
 
 // 卡片更新接口
 export interface ICardUpdater {
   updateThinking(content: string): Promise<void>;
   updateContent(content: string): Promise<void>;
-  closeUpdate(fullText: string): Promise<void>;
+  closeUpdate(fullText: string | null, error?: Error): Promise<void>;
 }
 
 // 流式响应的Delta类型
