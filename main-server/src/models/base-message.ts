@@ -85,7 +85,9 @@ export class BaseMessage {
     ]);
 
     const finalBasicChatInfo =
-      event.message.chat_type !== "p2p" ? groupChatInfo?.baseChatInfo ?? null : basicChatInfo;
+      event.message.chat_type !== "p2p"
+        ? groupChatInfo?.baseChatInfo ?? null
+        : basicChatInfo;
 
     return new this({
       messageId: event.message.message_id,

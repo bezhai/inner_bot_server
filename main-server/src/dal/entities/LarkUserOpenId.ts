@@ -1,11 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  PrimaryColumn,
-} from "typeorm";
-import { LarkUser } from "./LarkUser";
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
 @Entity("lark_user_open_id") // 表名
 export class LarkUserOpenId {

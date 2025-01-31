@@ -26,7 +26,7 @@ export const mongoInitPromise = async () => {
 
     ReactionCollection = new MongoCollection<LarkOperateReactionInfo>(
       database.collection("lark_reaction")
-    )
+    );
 
     console.log("MongoDB initialization completed.");
   } catch (err) {

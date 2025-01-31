@@ -1,20 +1,8 @@
-import {
-  LarkV2Card,
-  Config,
-  StreamConfig,
-  Summary,
-  withElementId,
-  CollapsiblePanelComponent,
-  CollapsiblePanelHeader,
-  MarkdownComponent,
-  HrComponent,
-} from "feishu-card";
 import { In } from "typeorm";
 import { UserRepository } from "../../../../dal/repositories/repositories";
 import { CommonMessage } from "../../../../models/common-message";
 import { CompletionRequest } from "../../../../types/ai";
-import { FeishuCardUpdater } from "../../../lark/adapters/feishu/card-updater";
-import { V2card } from "../../../lark/basic/card";
+import { CardManager } from "../../../lark/basic/card-manager";
 import { replyText } from "../../core/openai-service";
 import { get } from "../../../../dal/redis";
 import { searchMessageByRootId } from "../../../message-store/basic";
@@ -41,31 +29,8 @@ export async function makeCardReply(commonMessage: CommonMessage) {
       modelParamsPromise,
     ]);
 
-  const v2Card = await (async () => {
-    // 创建一个简单的卡片，只包含基本配置
-    const larkCard = new LarkV2Card().withConfig(
-      new Config()
-        .withStreamingMode(
-          true,
-          new StreamConfig()
-            .withPrintStrategy("fast")
-            .withPrintFrequency(20)
-            .withPrintStep(4)
-        )
-        .withSummary(new Summary("少女回复中"))
-    );
-
-    // 添加分割线和思考中提示
-    larkCard.addElements(
-      withElementId(new HrComponent(), "hr"),
-      withElementId(new MarkdownComponent("赤尾思考中..."), "thinking_placeholder")
-    );
-
-    const v2Card = await V2card.create(larkCard);
-
-    await v2Card.reply(commonMessage.messageId);
-    return v2Card;
-  })();
+  const cardManager = await CardManager.createReplyCard();
+  await cardManager.replyToMessage(commonMessage.messageId);
 
   const contextMessages = mongoMessages.map((msg) =>
     CommonMessage.fromMessage(msg)
@@ -92,21 +57,18 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   // 保存机器人消息
   await saveRobotMessage(
     commonMessage,
-    v2Card.getMessageId()!,
-    v2Card.getCardId()!
+    cardManager.getMessageId()!,
+    cardManager.getCardId()!
   );
-
-  // 创建卡片更新器
-  const cardUpdater = new FeishuCardUpdater(v2Card);
 
   try {
     await replyText(
       chatModel ?? "qwen-plus",
       contextMessages,
-      cardUpdater.createActionHandler(),
+      cardManager.createActionHandler(),
       chatPrompt ?? defaultPrompt ?? "",
       JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
-      cardUpdater.closeUpdate.bind(cardUpdater)
+      cardManager.closeUpdate.bind(cardManager)
     );
   } catch (error) {
     // Error will be handled by closeUpdate through endOfReply callback
