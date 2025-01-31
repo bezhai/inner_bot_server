@@ -3,35 +3,13 @@ import { UserRepository } from "../../../../dal/repositories/repositories";
 import { CommonMessage } from "../../../../models/common-message";
 import { CompletionRequest } from "../../../../types/ai";
 import { CardManager } from "../../../lark/basic/card-manager";
-import { replyText } from "../../core/openai-service";
+import { generateChatResponse } from "../../core/chat-service";
 import { get } from "../../../../dal/redis";
 import { searchMessageByRootId } from "../../../message-store/basic";
 import { saveRobotMessage } from "../../../message-store/service";
 
-export async function makeCardReply(commonMessage: CommonMessage) {
-  const searchMessagesPromise = searchMessageByRootId(commonMessage.rootId!);
-
-  const chatModelPromise = get(`lark_chat_model:${commonMessage.chatId}`);
-
-  const defaultPromptPromise = get("default_prompt");
-
-  const chatPromptPromise = get(`lark_chat_prompt:${commonMessage.chatId}`);
-
-  const modelParamsPromise = get(`model_params`);
-
-  // 等待 V2Card 和消息搜索完成后再保存机器人消息
-  const [mongoMessages, chatModel, defaultPrompt, chatPrompt, modelParams] =
-    await Promise.all([
-      searchMessagesPromise,
-      chatModelPromise,
-      defaultPromptPromise,
-      chatPromptPromise,
-      modelParamsPromise,
-    ]);
-
-  const cardManager = await CardManager.createReplyCard();
-  await cardManager.replyToMessage(commonMessage.messageId);
-
+async function prepareContextMessages(commonMessage: CommonMessage) {
+  const mongoMessages = await searchMessageByRootId(commonMessage.rootId!);
   const contextMessages = mongoMessages.map((msg) =>
     CommonMessage.fromMessage(msg)
   );
@@ -45,14 +23,44 @@ export async function makeCardReply(commonMessage: CommonMessage) {
     const userMap = new Map(
       userInfos.map((user) => [user.union_id, user.name])
     );
+
     contextMessages.forEach((msg) => {
-      if (msg.isRobotMessage) {
-        msg.senderName = "赤尾小助手";
-      } else {
-        msg.senderName = userMap.get(msg.sender) || undefined;
-      }
+      msg.senderName = msg.isRobotMessage
+        ? "赤尾小助手"
+        : userMap.get(msg.sender);
     });
   }
+
+  return contextMessages;
+}
+
+async function fetchChatConfig(chatId: string) {
+  const [chatModel, defaultPrompt, chatPrompt, modelParams] = await Promise.all(
+    [
+      get(`lark_chat_model:${chatId}`),
+      get("default_prompt"),
+      get(`lark_chat_prompt:${chatId}`),
+      get("model_params"),
+    ]
+  );
+
+  return {
+    model: chatModel ?? "qwen-plus",
+    prompt: chatPrompt ?? defaultPrompt ?? "",
+    params: JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
+  };
+}
+
+export async function makeCardReply(commonMessage: CommonMessage) {
+  // 创建回复卡片
+  const cardManager = await CardManager.createReplyCard();
+  await cardManager.replyToMessage(commonMessage.messageId);
+
+  // 准备上下文消息
+  const contextMessages = await prepareContextMessages(commonMessage);
+
+  // 获取聊天配置
+  const config = await fetchChatConfig(commonMessage.chatId);
 
   // 保存机器人消息
   await saveRobotMessage(
@@ -62,16 +70,16 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   );
 
   try {
-    await replyText(
-      chatModel ?? "qwen-plus",
+    await generateChatResponse(
+      config.model,
       contextMessages,
       cardManager.createActionHandler(),
-      chatPrompt ?? defaultPrompt ?? "",
-      JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
+      config.prompt,
+      config.params,
       cardManager.closeUpdate.bind(cardManager)
     );
   } catch (error) {
-    // Error will be handled by closeUpdate through endOfReply callback
     console.error("回复消息时出错:", error);
+    // Error will be handled by closeUpdate through endOfReply callback
   }
 }
