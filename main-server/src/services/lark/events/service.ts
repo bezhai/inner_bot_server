@@ -38,8 +38,8 @@ function createVoidDecorator<T>(
   };
 }
 
-export function startLarkWebSocket() {
-  const eventDispatcher = new Lark.EventDispatcher({
+export const eventRouter = Lark.adaptKoaRouter(
+  new Lark.EventDispatcher({
     verificationToken: getVerificationToken(),
     encryptKey: getEncryptKey(),
   }).register({
@@ -56,16 +56,21 @@ export function startLarkWebSocket() {
     "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
     "im.message.reaction.created_v1": createVoidDecorator(handleReaction),
     "im.message.reaction.deleted_v1": createVoidDecorator(handleReaction),
-  });
+  }),
+  {
+    autoChallenge: true,
+  }
+);
 
-  eventDispatcher.handles.set(
-    "card.action.trigger",
+export const cardActionRouter = Lark.adaptKoaRouter(
+  new Lark.CardActionHandler(
+    {
+      verificationToken: getVerificationToken(),
+      encryptKey: getEncryptKey(),
+    },
     createVoidDecorator(handleCardAction)
-  ); // 注册卡片回调, sdk本身不支持
-
-  wsClient.start({
-    eventDispatcher,
-  });
-
-  console.log("Feishu WebSocket client started.");
-}
+  ),
+  {
+    autoChallenge: true,
+  }
+);

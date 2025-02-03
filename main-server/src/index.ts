@@ -4,8 +4,11 @@ dotenv.config();
 import { botInitialization } from "./services/initialize/main";
 import { mongoInitPromise } from "./dal/mongo/client";
 import AppDataSource from "./ormconfig";
-import { startLarkWebSocket } from "./services/lark/events/service";
 import { getBotAppId } from "./utils/bot/bot-var";
+import Koa from "koa";
+import Router from "@koa/router";
+import koaBody from "koa-body";
+import { cardActionRouter, eventRouter } from "./services/lark/events/service";
 
 (async () => {
   try {
@@ -15,7 +18,13 @@ import { getBotAppId } from "./utils/bot/bot-var";
     console.log("Database connection established!");
     await botInitialization();
     console.log("Bot initialized successfully!");
-    startLarkWebSocket();
+    const server = new Koa();
+    const router = new Router();
+    server.use(koaBody());
+    router.post("/webhook/event", eventRouter);
+    router.post("/webhook/card", cardActionRouter);
+    server.use(router.routes());
+    server.listen(3000);
   } catch (error) {
     console.error("Error during initialization:", error);
     process.exit(1);
