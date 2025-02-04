@@ -1,4 +1,4 @@
-import { LarkMention } from "../types/lark";
+import { LarkMention } from '../types/lark';
 
 export class MentionUtils {
   static addMentions(mentions: LarkMention[] | undefined): string[] {

@@ -1,6 +1,4 @@
-export type LarkMessageMetaInfo =
-  | LarkUserMessageMetaInfo
-  | LarkRobotMessageMetaInfo;
+export type LarkMessageMetaInfo = LarkUserMessageMetaInfo | LarkRobotMessageMetaInfo;
 
 export interface LarkBaseMessageMetaInfo {
   message_id: string; // 消息 ID

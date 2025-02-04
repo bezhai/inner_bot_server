@@ -1,10 +1,5 @@
-import { StreamedCompletionChunk } from "../../../../types/ai";
-import {
-  ActionHandler,
-  StreamAction,
-  EndOfReplyHandler,
-  StreamDelta,
-} from "./types";
+import { StreamedCompletionChunk } from '../../../../types/ai';
+import { ActionHandler, StreamAction, EndOfReplyHandler, StreamDelta } from './types';
 
 // 从chunk中提取delta
 function extractDelta(chunk: StreamedCompletionChunk): StreamDelta | null {
@@ -29,10 +24,10 @@ function extractThinkContent(text: string): {
   }
 
   // 处理未闭合的思维链标签
-  if (text.startsWith("<think>")) {
+  if (text.startsWith('<think>')) {
     return {
       thinkContent: text.substring(7).trim(),
-      remainingText: "",
+      remainingText: '',
     };
   }
 
@@ -49,7 +44,7 @@ function extractActions(delta: StreamDelta): StreamAction[] {
   // 处理reasoning_content
   if (delta.reasoning_content?.trim()) {
     actions.push({
-      type: "think",
+      type: 'think',
       content: delta.reasoning_content.trim(),
     });
   }
@@ -60,14 +55,14 @@ function extractActions(delta: StreamDelta): StreamAction[] {
 
     if (thinkContent) {
       actions.push({
-        type: "think",
+        type: 'think',
         content: thinkContent,
       });
     }
 
     if (remainingText) {
       actions.push({
-        type: "text",
+        type: 'text',
         content: remainingText,
       });
     }
@@ -76,10 +71,10 @@ function extractActions(delta: StreamDelta): StreamAction[] {
   // 处理函数调用
   if (delta.function_call) {
     actions.push({
-      type: "function_call",
+      type: 'function_call',
       function: {
-        name: delta.function_call.name || "",
-        arguments: delta.function_call.arguments || "",
+        name: delta.function_call.name || '',
+        arguments: delta.function_call.arguments || '',
       },
     });
   }
@@ -91,17 +86,17 @@ function extractActions(delta: StreamDelta): StreamAction[] {
 export async function handleStreamResponse(
   response: Response,
   handleAction: ActionHandler,
-  endOfReply?: EndOfReplyHandler
+  endOfReply?: EndOfReplyHandler,
 ): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) {
-    throw new Error("无法读取响应流");
+    throw new Error('无法读取响应流');
   }
 
-  let fullContent = ""; // 用于保存普通文本内容
-  let fullThinkContent = ""; // 用于保存reasoning_content思维链内容
-  let fullTaggedContent = ""; // 用于保存带标签的完整内容
-  let buffer = "";
+  let fullContent = ''; // 用于保存普通文本内容
+  let fullThinkContent = ''; // 用于保存reasoning_content思维链内容
+  let fullTaggedContent = ''; // 用于保存带标签的完整内容
+  let buffer = '';
   let done = false;
   let lastProcessTime = Date.now();
   const processInterval = 500; // 500ms
@@ -115,8 +110,8 @@ export async function handleStreamResponse(
         const chunkText = new TextDecoder().decode(value);
         buffer += chunkText;
 
-        let lines = buffer.split("\n");
-        buffer = lines.pop() || "";
+        let lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
         for (let line of lines) {
           if (line.trim()) {
@@ -129,8 +124,7 @@ export async function handleStreamResponse(
                 // 处理普通文本和标签思维链
                 if (delta.content) {
                   fullTaggedContent += delta.content;
-                  const { thinkContent, remainingText } =
-                    extractThinkContent(fullTaggedContent);
+                  const { thinkContent, remainingText } = extractThinkContent(fullTaggedContent);
                   if (thinkContent) {
                     fullThinkContent = thinkContent; // 标签思维链覆盖reasoning_content
                     fullContent = remainingText;
@@ -141,7 +135,7 @@ export async function handleStreamResponse(
 
                 // 处理reasoning_content思维链
                 if (delta.reasoning_content) {
-                  if (!fullTaggedContent.includes("<think>")) {
+                  if (!fullTaggedContent.includes('<think>')) {
                     // 只在没有标签思维链时处理
                     fullThinkContent += delta.reasoning_content; // 累积reasoning_content
                   }
@@ -150,7 +144,7 @@ export async function handleStreamResponse(
                 // 处理actions
                 const actions = extractActions(delta);
                 for (const action of actions) {
-                  if (action.type === "function_call") {
+                  if (action.type === 'function_call') {
                     // 函数调用立即处理
                     await handleAction(action);
                   } else {
@@ -159,13 +153,13 @@ export async function handleStreamResponse(
                     if (now - lastProcessTime >= processInterval) {
                       if (fullThinkContent.trim()) {
                         await handleAction({
-                          type: "think",
+                          type: 'think',
                           content: fullThinkContent.trim(),
                         });
                       }
                       if (fullContent.trim()) {
                         await handleAction({
-                          type: "text",
+                          type: 'text',
                           content: fullContent.trim(),
                         });
                       }
@@ -175,7 +169,7 @@ export async function handleStreamResponse(
                 }
               }
             } catch (err) {
-              console.error("解析流式数据时出错:", err, "原始数据", line);
+              console.error('解析流式数据时出错:', err, '原始数据', line);
             }
           }
         }
@@ -185,13 +179,13 @@ export async function handleStreamResponse(
     // 处理最后的内容
     if (fullThinkContent.trim()) {
       await handleAction({
-        type: "think",
+        type: 'think',
         content: fullThinkContent.trim(),
       });
     }
     if (fullContent.trim()) {
       await handleAction({
-        type: "text",
+        type: 'text',
         content: fullContent.trim(),
       });
     }
@@ -201,12 +195,9 @@ export async function handleStreamResponse(
       await endOfReply(fullContent);
     }
   } catch (error) {
-    console.error("处理流式响应时出错:", error);
+    console.error('处理流式响应时出错:', error);
     if (endOfReply) {
-      await endOfReply(
-        null,
-        error instanceof Error ? error : new Error(String(error))
-      );
+      await endOfReply(null, error instanceof Error ? error : new Error(String(error)));
     }
     throw error;
   }

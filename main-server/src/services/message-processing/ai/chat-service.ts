@@ -1,11 +1,7 @@
-import { CompletionRequest } from "../../../types/ai";
-import { CommonMessage } from "../../../models/common-message";
-import {
-  processChatCompletion,
-  ActionHandler,
-  EndOfReplyHandler,
-} from "./chat-completion";
-import { formatMessages } from "./message-formatter";
+import { CompletionRequest } from '../../../types/ai';
+import { CommonMessage } from '../../../models/common-message';
+import { processChatCompletion, ActionHandler, EndOfReplyHandler } from './chat-completion';
+import { formatMessages } from './message-formatter';
 
 export async function generateChatResponse(
   model: string,
@@ -13,7 +9,7 @@ export async function generateChatResponse(
   handleAction: ActionHandler,
   systemPrompt?: string,
   chatParams?: Partial<CompletionRequest>,
-  endOfReply?: EndOfReplyHandler
+  endOfReply?: EndOfReplyHandler,
 ) {
   const formattedMessages = formatMessages(messages, systemPrompt);
 
@@ -25,9 +21,9 @@ export async function generateChatResponse(
       ...chatParams,
     },
     handleAction,
-    endOfReply
+    endOfReply,
   );
 }
 
-export { getAvailableModels } from "./chat-completion";
+export { getAvailableModels } from './chat-completion';
 export type { ActionHandler, EndOfReplyHandler };

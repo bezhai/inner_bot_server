@@ -1,14 +1,14 @@
-import { LarkGroupMember, LarkUser } from "../../../dal/entities";
-import { LarkUserOpenId } from "../../../dal/entities/LarkUserOpenId";
+import { LarkGroupMember, LarkUser } from '../../../dal/entities';
+import { LarkUserOpenId } from '../../../dal/entities/LarkUserOpenId';
 import {
   GroupMemberRepository,
   UserRepository,
   LarkUserOpenIdRepository,
   GroupChatInfoRepository,
-} from "../../../dal/repositories/repositories";
-import { LarkGroupMemberChangeInfo } from "../../../types/lark";
-import { getBotAppId } from "../../../utils/bot/bot-var";
-import { searchLarkChatInfo, searchLarkChatMember } from "../basic/group";
+} from '../../../dal/repositories/repositories';
+import { LarkGroupMemberChangeInfo } from '../../../types/lark';
+import { getBotAppId } from '../../../utils/bot/bot-var';
+import { searchLarkChatInfo, searchLarkChatMember } from '../basic/group';
 
 export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
   const updateUsers: LarkGroupMember[] =
@@ -34,8 +34,8 @@ export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
         name: user.name!,
       };
     }) || [];
-  console.log("users", users);
-  console.log("updateUsers", updateUsers);
+  console.log('users', users);
+  console.log('updateUsers', updateUsers);
 
   await Promise.all([
     GroupMemberRepository.save(updateUsers),
@@ -54,7 +54,7 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
       };
     }) || [];
 
-  console.log("removeUsers", updateUsers);
+  console.log('removeUsers', updateUsers);
 
   await GroupMemberRepository.save(updateUsers);
 }
@@ -62,15 +62,8 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
 export async function handleChatRobotAdd(data: LarkGroupMemberChangeInfo) {
   console.info(`upsert chat ${data.chat_id}`);
   const { groupInfo, members } = await searchLarkChatInfo(data.chat_id!);
-  await Promise.all([
-    GroupMemberRepository.save(members),
-    GroupChatInfoRepository.save(groupInfo),
-  ]);
-  const {
-    users,
-    members: newMembers,
-    openIdUsers,
-  } = await searchLarkChatMember(data.chat_id!);
+  await Promise.all([GroupMemberRepository.save(members), GroupChatInfoRepository.save(groupInfo)]);
+  const { users, members: newMembers, openIdUsers } = await searchLarkChatMember(data.chat_id!);
   await Promise.all([
     GroupMemberRepository.save(newMembers),
     UserRepository.save(users),

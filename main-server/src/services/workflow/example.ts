@@ -60,28 +60,28 @@ async function example() {
         id: 'start',
         type: NodeType.START,
         name: 'Start',
-        next: 'log-name'
+        next: 'log-name',
       },
       {
         id: 'log-name',
         type: NodeType.REGULAR,
         name: 'Log Name',
         handler: 'logName',
-        next: 'set-age'
+        next: 'set-age',
       },
       {
         id: 'set-age',
         type: NodeType.REGULAR,
         name: 'Set Age',
         handler: 'setAge',
-        next: 'set-income'
+        next: 'set-income',
       },
       {
         id: 'set-income',
         type: NodeType.REGULAR,
         name: 'Set Income',
         handler: 'setIncome',
-        next: 'check-customer-type'
+        next: 'check-customer-type',
       },
       {
         id: 'check-customer-type',
@@ -90,59 +90,59 @@ async function example() {
         branches: [
           {
             condition: 'isPremiumCustomer',
-            next: 'set-premium-status'
+            next: 'set-premium-status',
           },
           {
             condition: 'isPreferredCustomer',
-            next: 'set-preferred-status'
+            next: 'set-preferred-status',
           },
           {
             condition: 'isRegularCustomer',
-            next: 'set-regular-status'
-          }
+            next: 'set-regular-status',
+          },
         ],
-        default: 'set-basic-status'
+        default: 'set-basic-status',
       },
       {
         id: 'set-premium-status',
         type: NodeType.REGULAR,
         name: 'Set Premium Status',
         handler: 'setPremiumStatus',
-        next: 'end'
+        next: 'end',
       },
       {
         id: 'set-preferred-status',
         type: NodeType.REGULAR,
         name: 'Set Preferred Status',
         handler: 'setPreferredStatus',
-        next: 'end'
+        next: 'end',
       },
       {
         id: 'set-regular-status',
         type: NodeType.REGULAR,
         name: 'Set Regular Status',
         handler: 'setRegularStatus',
-        next: 'end'
+        next: 'end',
       },
       {
         id: 'set-basic-status',
         type: NodeType.REGULAR,
         name: 'Set Basic Status',
         handler: 'setBasicStatus',
-        next: 'end'
+        next: 'end',
       },
       {
         id: 'end',
         type: NodeType.END,
-        name: 'End'
-      }
+        name: 'End',
+      },
     ],
     initialContext: {
       name: 'John Doe',
       age: 0,
       income: 0,
-      status: 'Unknown'
-    }
+      status: 'Unknown',
+    },
   };
 
   try {
@@ -164,7 +164,7 @@ const createCustomerWorkflow = () => {
   // Return the workflow definition
   return {
     engine,
-    workflow
+    workflow,
   };
 };
 
@@ -226,28 +226,28 @@ const workflow: WorkflowDefinition<CustomerContext> = {
       id: 'start',
       type: NodeType.START,
       name: 'Start',
-      next: 'log-name'
+      next: 'log-name',
     },
     {
       id: 'log-name',
       type: NodeType.REGULAR,
       name: 'Log Name',
       handler: 'logName',
-      next: 'set-age'
+      next: 'set-age',
     },
     {
       id: 'set-age',
       type: NodeType.REGULAR,
       name: 'Set Age',
       handler: 'setAge',
-      next: 'set-income'
+      next: 'set-income',
     },
     {
       id: 'set-income',
       type: NodeType.REGULAR,
       name: 'Set Income',
       handler: 'setIncome',
-      next: 'check-customer-type'
+      next: 'check-customer-type',
     },
     {
       id: 'check-customer-type',
@@ -256,57 +256,57 @@ const workflow: WorkflowDefinition<CustomerContext> = {
       branches: [
         {
           condition: 'isPremiumCustomer',
-          next: 'set-premium-status'
+          next: 'set-premium-status',
         },
         {
           condition: 'isPreferredCustomer',
-          next: 'set-preferred-status'
+          next: 'set-preferred-status',
         },
         {
           condition: 'isRegularCustomer',
-          next: 'set-regular-status'
-        }
+          next: 'set-regular-status',
+        },
       ],
-      default: 'set-basic-status'
+      default: 'set-basic-status',
     },
     {
       id: 'set-premium-status',
       type: NodeType.REGULAR,
       name: 'Set Premium Status',
       handler: 'setPremiumStatus',
-      next: 'end'
+      next: 'end',
     },
     {
       id: 'set-preferred-status',
       type: NodeType.REGULAR,
       name: 'Set Preferred Status',
       handler: 'setPreferredStatus',
-      next: 'end'
+      next: 'end',
     },
     {
       id: 'set-regular-status',
       type: NodeType.REGULAR,
       name: 'Set Regular Status',
       handler: 'setRegularStatus',
-      next: 'end'
+      next: 'end',
     },
     {
       id: 'set-basic-status',
       type: NodeType.REGULAR,
       name: 'Set Basic Status',
       handler: 'setBasicStatus',
-      next: 'end'
+      next: 'end',
     },
     {
       id: 'end',
       type: NodeType.END,
-      name: 'End'
-    }
+      name: 'End',
+    },
   ],
   initialContext: {
     name: 'John Doe',
     age: 0,
     income: 0,
-    status: 'Unknown'
-  }
+    status: 'Unknown',
+  },
 };

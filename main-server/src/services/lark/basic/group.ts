@@ -1,15 +1,7 @@
-import {
-  LarkGroupChatInfo,
-  LarkGroupMember,
-  LarkUser,
-} from "../../../dal/entities";
-import { LarkUserOpenId } from "../../../dal/entities/LarkUserOpenId";
-import {
-  getChatList,
-  getChatInfo,
-  searchAllMembers,
-} from "../../../dal/lark-client";
-import { getBotAppId } from "../../../utils/bot/bot-var";
+import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from '../../../dal/entities';
+import { LarkUserOpenId } from '../../../dal/entities/LarkUserOpenId';
+import { getChatList, getChatInfo, searchAllMembers } from '../../../dal/lark-client';
+import { getBotAppId } from '../../../utils/bot/bot-var';
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {
@@ -23,11 +15,7 @@ export async function searchAllLarkGroup() {
     pageToken = res?.page_token;
 
     if (res?.items) {
-      chatIdList.push(
-        ...res.items
-          .filter((item) => item.chat_status == "normal")
-          .map((item) => item.chat_id!)
-      );
+      chatIdList.push(...res.items.filter((item) => item.chat_status == 'normal').map((item) => item.chat_id!));
     }
 
     if (!res?.has_more) {
@@ -51,23 +39,19 @@ export async function searchLarkChatInfo(chat_id: string) {
     description: chatInfo.description!,
     user_manager_id_list: chatInfo.user_manager_id_list!,
     chat_tag: chatInfo.chat_tag!,
-    group_message_type: chatInfo.group_message_type as
-      | "chat"
-      | "thread"
-      | undefined,
+    group_message_type: chatInfo.group_message_type as 'chat' | 'thread' | undefined,
     chat_status: chatInfo.chat_status!,
-    download_has_permission_setting: chatInfo.restricted_mode_setting
-      ?.download_has_permission_setting as
-      | "all_members"
-      | "not_anyone"
+    download_has_permission_setting: chatInfo.restricted_mode_setting?.download_has_permission_setting as
+      | 'all_members'
+      | 'not_anyone'
       | undefined,
     user_count: chatInfo.user_count ? Number(chatInfo.user_count) : 0,
     chat_id,
     baseChatInfo: {
       chat_id,
-      chat_mode: chatInfo.chat_mode as "topic" | "group",
-      has_main_bot: process.env.IS_DEV === "true" ? undefined : true,
-      has_dev_bot: process.env.IS_DEV === "true" ? true : undefined,
+      chat_mode: chatInfo.chat_mode as 'topic' | 'group',
+      has_main_bot: process.env.IS_DEV === 'true' ? undefined : true,
+      has_dev_bot: process.env.IS_DEV === 'true' ? true : undefined,
     },
     is_leave: false,
   };
@@ -85,7 +69,7 @@ export async function searchLarkChatInfo(chat_id: string) {
       chat_id,
       union_id,
       is_manager: true,
-    }))
+    })),
   );
 
   return {
@@ -101,20 +85,20 @@ export async function searchLarkChatMember(chat_id: string) {
   let pageToken: string | undefined = undefined;
 
   while (true) {
-    const res = await searchAllMembers(chat_id, pageToken, "union_id");
+    const res = await searchAllMembers(chat_id, pageToken, 'union_id');
     pageToken = res?.page_token;
     if (res?.items) {
       members.push(
         ...res.items.map((item) => ({
           chat_id,
           union_id: item.member_id!,
-        }))
+        })),
       );
       users.push(
         ...res.items.map((item) => ({
           union_id: item.member_id!,
           name: item.name!,
-        }))
+        })),
       );
     }
     if (!res?.has_more) {
@@ -124,7 +108,7 @@ export async function searchLarkChatMember(chat_id: string) {
 
   pageToken = undefined;
   while (true) {
-    const res = await searchAllMembers(chat_id, pageToken, "open_id");
+    const res = await searchAllMembers(chat_id, pageToken, 'open_id');
     pageToken = res?.page_token;
     if (res?.items) {
       openIdUsers.push(
@@ -132,7 +116,7 @@ export async function searchLarkChatMember(chat_id: string) {
           name: item.name!,
           appId: getBotAppId(),
           openId: item.member_id!,
-        }))
+        })),
       );
     }
     if (!res?.has_more) {

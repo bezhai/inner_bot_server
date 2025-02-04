@@ -1,11 +1,7 @@
-import { MentionUtils } from "../utils/mention-utils";
-import { LarkBaseChatInfo, LarkGroupChatInfo, LarkUser } from "../dal/entities";
-import {
-  BaseChatInfoRepository,
-  GroupChatInfoRepository,
-  UserRepository,
-} from "../dal/repositories/repositories";
-import { LarkReceiveMessage } from "../types/lark";
+import { MentionUtils } from '../utils/mention-utils';
+import { LarkBaseChatInfo, LarkGroupChatInfo, LarkUser } from '../dal/entities';
+import { BaseChatInfoRepository, GroupChatInfoRepository, UserRepository } from '../dal/repositories/repositories';
+import { LarkReceiveMessage } from '../types/lark';
 
 export class BaseMessage {
   rootId?: string;
@@ -55,20 +51,20 @@ export class BaseMessage {
 
   static async fromLarkEvent<T extends BaseMessage>(
     this: new (...args: any[]) => T,
-    event: LarkReceiveMessage
+    event: LarkReceiveMessage,
   ): Promise<T> {
     const basicChatInfoPromise =
-      event.message.chat_type === "p2p"
+      event.message.chat_type === 'p2p'
         ? BaseChatInfoRepository.findOne({
             where: { chat_id: event.message.chat_id },
           })
         : null;
 
     const groupChatInfoPromise =
-      event.message.chat_type !== "p2p"
+      event.message.chat_type !== 'p2p'
         ? GroupChatInfoRepository.findOne({
             where: { chat_id: event.message.chat_id },
-            relations: ["baseChatInfo"],
+            relations: ['baseChatInfo'],
           })
         : null;
 
@@ -85,14 +81,12 @@ export class BaseMessage {
     ]);
 
     const finalBasicChatInfo =
-      event.message.chat_type !== "p2p"
-        ? groupChatInfo?.baseChatInfo ?? null
-        : basicChatInfo;
+      event.message.chat_type !== 'p2p' ? (groupChatInfo?.baseChatInfo ?? null) : basicChatInfo;
 
     return new this({
       messageId: event.message.message_id,
       chatId: event.message.chat_id,
-      sender: event.sender.sender_id?.union_id ?? "unknown_sender",
+      sender: event.sender.sender_id?.union_id ?? 'unknown_sender',
       parentMessageId: event.message.parent_id,
       mentions: MentionUtils.addMentions(event.message.mentions),
       chatType: event.message.chat_type,
@@ -106,7 +100,7 @@ export class BaseMessage {
   }
 
   isP2P(): boolean {
-    return this.chatType === "p2p";
+    return this.chatType === 'p2p';
   }
 
   hasMention(openId: string): boolean {

@@ -1,6 +1,6 @@
-import { cloudSkipWords } from "./word-utils";
-import _ from "lodash";
-import axios from "axios";
+import { cloudSkipWords } from './word-utils';
+import _ from 'lodash';
+import axios from 'axios';
 
 /**
  * 检查一个词是否有意义
@@ -24,16 +24,19 @@ function isMeaningful(word: string): boolean {
  */
 async function extractBatchWithWeight(
   texts: string[],
-  topN: number
+  topN: number,
 ): Promise<{ text: string; keywords: { word: string; weight: number }[] }[]> {
   try {
-    const response = await axios.post(`http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`, {
-      texts,
-      top_n: topN,
-    });
+    const response = await axios.post(
+      `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
+      {
+        texts,
+        top_n: topN,
+      },
+    );
     return response.data;
   } catch (error) {
-    console.error("Error calling segmentation service:", error);
+    console.error('Error calling segmentation service:', error);
     return []; // 返回空数组以防止服务调用失败
   }
 }
@@ -60,7 +63,7 @@ function chunkArray<T>(array: T[], chunkSize: number): T[][] {
  */
 export async function buildWeeklyWordCloud(
   texts: string[],
-  batchSize: number = 50 // 默认批次大小为 50
+  batchSize: number = 50, // 默认批次大小为 50
 ) {
   const result = new Map<string, number>();
   const wordMap = new Set<string>(cloudSkipWords);
@@ -88,11 +91,7 @@ export async function buildWeeklyWordCloud(
       }
 
       for (const word of filteredWords) {
-        _.update(
-          result,
-          word.word,
-          (oldValue = 0) => oldValue + word.weight / totalWeight
-        );
+        _.update(result, word.word, (oldValue = 0) => oldValue + word.weight / totalWeight);
       }
     }
   }

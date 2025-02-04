@@ -1,11 +1,11 @@
-import { CommonMessage } from "../../models/common-message";
-import { replyTemplate } from "../lark/basic/message";
-import { CommandHandler, CommandRule } from "./rules/admin/command-handler";
-import { deleteBotMessage } from "./rules/admin/delete-message";
-import { genHistoryCard } from "./rules/general/gen-history";
-import { checkMeme, genMeme } from "../media/meme/meme";
-import { changeRepeatStatus, repeatMessage } from "./rules/group/repeat-message";
-import { makeCardReply } from "./rules/general/reply-workflow";
+import { CommonMessage } from '../../models/common-message';
+import { replyTemplate } from '../lark/basic/message';
+import { CommandHandler, CommandRule } from './rules/admin/command-handler';
+import { deleteBotMessage } from './rules/admin/delete-message';
+import { genHistoryCard } from './rules/general/gen-history';
+import { checkMeme, genMeme } from '../media/meme/meme';
+import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message';
+import { makeCardReply } from './rules/general/reply-workflow';
 import {
   ContainKeyword,
   NeedRobotMention,
@@ -14,8 +14,8 @@ import {
   RuleConfig,
   TextMessageLimit,
   WhiteGroupCheck,
-} from "./rules/rule";
-import { sendPhoto } from "../media/photo/send-photo";
+} from './rules/rule';
+import { sendPhoto } from '../media/photo/send-photo';
 
 // 工具函数：执行规则链
 export async function runRules(message: CommonMessage) {
@@ -31,9 +31,9 @@ export async function runRules(message: CommonMessage) {
     // 如果所有规则（同步和异步）都通过
     if (syncRulesPass && asyncRulesPass) {
       try {
-        await handler(message); 
+        await handler(message);
       } catch (e) {
-        console.error(e); 
+        console.error(e);
       }
 
       if (!fallthrough) break;
@@ -44,68 +44,55 @@ export async function runRules(message: CommonMessage) {
 // 定义规则和对应处理逻辑
 const chatRules: RuleConfig[] = [
   {
-    rules: [
-      OnlyGroup,
-      WhiteGroupCheck((chatInfo) => chatInfo.open_repeat_message ?? false),
-    ],
+    rules: [OnlyGroup, WhiteGroupCheck((chatInfo) => chatInfo.open_repeat_message ?? false)],
     handler: repeatMessage,
     fallthrough: true,
-    comment: "复读功能",
+    comment: '复读功能',
   },
   {
-    rules: [ContainKeyword("帮助"), TextMessageLimit, NeedRobotMention],
+    rules: [ContainKeyword('帮助'), TextMessageLimit, NeedRobotMention],
     handler: async (message) => {
-      replyTemplate(message.messageId, "ctp_AAYrltZoypBP", undefined);
+      replyTemplate(message.messageId, 'ctp_AAYrltZoypBP', undefined);
     },
-    comment: "给用户发送帮助信息",
+    comment: '给用户发送帮助信息',
   },
   {
-    rules: [ContainKeyword("撤回"), TextMessageLimit, NeedRobotMention],
+    rules: [ContainKeyword('撤回'), TextMessageLimit, NeedRobotMention],
     handler: deleteBotMessage,
-    comment: "撤回消息",
+    comment: '撤回消息',
   },
   {
-    rules: [ContainKeyword("水群"), TextMessageLimit, NeedRobotMention],
+    rules: [ContainKeyword('水群'), TextMessageLimit, NeedRobotMention],
     handler: genHistoryCard,
-    comment: "生成水群历史卡片",
+    comment: '生成水群历史卡片',
   },
   {
-    rules: [
-      ContainKeyword("开启复读"),
-      TextMessageLimit,
-      NeedRobotMention,
-      OnlyGroup,
-    ],
+    rules: [ContainKeyword('开启复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
     handler: changeRepeatStatus(true),
   },
   {
-    rules: [
-      ContainKeyword("关闭复读"),
-      TextMessageLimit,
-      NeedRobotMention,
-      OnlyGroup,
-    ],
+    rules: [ContainKeyword('关闭复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
     handler: changeRepeatStatus(false),
   },
   {
     rules: [CommandRule, TextMessageLimit, NeedRobotMention],
     handler: CommandHandler,
-    comment: "指令处理",
+    comment: '指令处理',
   },
   {
-    rules: [RegexpMatch("^发图"), TextMessageLimit, NeedRobotMention],
+    rules: [RegexpMatch('^发图'), TextMessageLimit, NeedRobotMention],
     handler: sendPhoto,
-    comment: "发送图片",
+    comment: '发送图片',
   },
   {
     rules: [NeedRobotMention],
     async_rules: [checkMeme],
     handler: genMeme,
-    comment: "Meme",
+    comment: 'Meme',
   },
   {
     rules: [TextMessageLimit, NeedRobotMention],
     handler: makeCardReply,
-    comment: "聊天",
+    comment: '聊天',
   },
 ];

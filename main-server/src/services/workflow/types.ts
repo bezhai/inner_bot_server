@@ -2,7 +2,7 @@ export enum NodeType {
   START = 'START',
   END = 'END',
   REGULAR = 'REGULAR',
-  CONDITION = 'CONDITION'
+  CONDITION = 'CONDITION',
 }
 
 export interface NodeConfig {

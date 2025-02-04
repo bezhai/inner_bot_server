@@ -1,7 +1,7 @@
-import { LarkCallbackInfo, UpdatePhotoCard, FetchPhotoDetails, UpdateDailyPhotoCard } from "../../../types/lark";
-import { fetchAndSendPhotoDetail } from "../../callback/fetch-photo-detail";
-import { handleUpdateDailyPhotoCard } from "../../callback/update-daily-photo";
-import { handleUpdatePhotoCard } from "../../callback/update-photo";
+import { LarkCallbackInfo, UpdatePhotoCard, FetchPhotoDetails, UpdateDailyPhotoCard } from '../../../types/lark';
+import { fetchAndSendPhotoDetail } from '../../callback/fetch-photo-detail';
+import { handleUpdateDailyPhotoCard } from '../../callback/update-daily-photo';
+import { handleUpdatePhotoCard } from '../../callback/update-photo';
 
 export async function handleCardAction(data: LarkCallbackInfo) {
   switch (data.action.value?.type) {
@@ -15,6 +15,6 @@ export async function handleCardAction(data: LarkCallbackInfo) {
       handleUpdateDailyPhotoCard(data, data.action.value.start_time);
       break;
     default:
-      console.log("unknown card action", data);
+      console.log('unknown card action', data);
   }
 }

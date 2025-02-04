@@ -1,12 +1,8 @@
-import { createHash } from "crypto";
-import { get, setWithExpire } from "../../../../dal/redis";
-import { BaseChatInfoRepository } from "../../../../dal/repositories/repositories";
-import { CommonMessage } from "../../../../models/common-message";
-import {
-  sendMsg,
-  sendSticker,
-  replyMessage,
-} from "../../../lark/basic/message";
+import { createHash } from 'crypto';
+import { get, setWithExpire } from '../../../../dal/redis';
+import { BaseChatInfoRepository } from '../../../../dal/repositories/repositories';
+import { CommonMessage } from '../../../../models/common-message';
+import { sendMsg, sendSticker, replyMessage } from '../../../lark/basic/message';
 
 interface RepeatMsg {
   chatId: string;
@@ -14,15 +10,12 @@ interface RepeatMsg {
   repeatTime: number;
 }
 
-async function addRepeatMsgAndCheck(
-  chatId: string,
-  msg: string
-): Promise<boolean> {
+async function addRepeatMsgAndCheck(chatId: string, msg: string): Promise<boolean> {
   // 消息体的 Redis 键名
   const redisKey = `repeat_msg:${chatId}`;
 
   // 对消息进行 MD5 哈希
-  const hashedMsg = createHash("md5").update(msg).digest("hex");
+  const hashedMsg = createHash('md5').update(msg).digest('hex');
 
   // 从 Redis 获取当前的消息记录
   const existingData = await get(redisKey);
@@ -60,22 +53,14 @@ async function addRepeatMsgAndCheck(
 }
 
 export async function repeatMessage(message: CommonMessage) {
-  if (
-    message.isTextMessage() &&
-    (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))
-  ) {
+  if (message.isTextMessage() && (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))) {
     sendMsg(message.chatId, message.withMentionText());
-  } else if (
-    message.isStickerMessage() &&
-    (await addRepeatMsgAndCheck(message.chatId, message.sticker()))
-  ) {
+  } else if (message.isStickerMessage() && (await addRepeatMsgAndCheck(message.chatId, message.sticker()))) {
     sendSticker(message.chatId, message.sticker());
   }
 }
 
-export function changeRepeatStatus(
-  open_repeat_message: boolean
-): (message: CommonMessage) => Promise<void> {
+export function changeRepeatStatus(open_repeat_message: boolean): (message: CommonMessage) => Promise<void> {
   return async function (message: CommonMessage) {
     BaseChatInfoRepository.update(
       {
@@ -83,14 +68,11 @@ export function changeRepeatStatus(
       },
       {
         open_repeat_message,
-      }
+      },
     )
       .then(() => {
         if (open_repeat_message) {
-          replyMessage(
-            message.messageId,
-            `复读功能已开启，当群聊中连续出现相同的三次文本/表情消息，我就会复读`
-          );
+          replyMessage(message.messageId, `复读功能已开启，当群聊中连续出现相同的三次文本/表情消息，我就会复读`);
         } else {
           replyMessage(message.messageId, `复读功能已关闭`);
         }

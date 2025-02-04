@@ -1,34 +1,20 @@
-import * as Lark from "@larksuiteoapi/node-sdk";
-import { handleMessageReceive } from "./receive";
-import { handleMessageRecalled } from "./recalled";
-import {
-  handleChatMemberAdd,
-  handleChatMemberRemove,
-  handleChatRobotAdd,
-  handleChatRobotRemove,
-} from "./group";
-import { handleCardAction } from "./card";
-import { handleReaction } from "./reaction";
-import {
-  getBotAppId,
-  getBotAppSecret,
-  getVerificationToken,
-  getEncryptKey,
-} from "../../../utils/bot/bot-var";
+import * as Lark from '@larksuiteoapi/node-sdk';
+import { handleMessageReceive } from './receive';
+import { handleMessageRecalled } from './recalled';
+import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handleChatRobotRemove } from './group';
+import { handleCardAction } from './card';
+import { handleReaction } from './reaction';
+import { getBotAppId, getBotAppSecret, getVerificationToken, getEncryptKey } from '../../../utils/bot/bot-var';
 
 // Helper function to create void decorators for async handlers
-function createVoidDecorator<T>(
-  asyncFn: (params: T) => Promise<void>
-): (params: T) => void {
+function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params: T) => void {
   return function (params: T): void {
     // 异步调用原函数，但不等待结果
 
-    console.log(
-      "receive event_type: " + (params as { event_type: string })["event_type"]
-    );
+    console.log('receive event_type: ' + (params as { event_type: string })['event_type']);
 
     asyncFn(params).catch((err) => {
-      console.error("Error in async operation:", err);
+      console.error('Error in async operation:', err);
     });
   };
 }
@@ -39,15 +25,15 @@ function createEventDispatcher() {
     verificationToken: getVerificationToken(),
     encryptKey: getEncryptKey(),
   }).register({
-    "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
-    "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
-    "im.chat.member.user.added_v1": createVoidDecorator(handleChatMemberAdd),
-    "im.chat.member.user.deleted_v1": createVoidDecorator(handleChatMemberRemove),
-    "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
-    "im.chat.member.bot.added_v1": createVoidDecorator(handleChatRobotAdd),
-    "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
-    "im.message.reaction.created_v1": createVoidDecorator(handleReaction),
-    "im.message.reaction.deleted_v1": createVoidDecorator(handleReaction),
+    'im.message.receive_v1': createVoidDecorator(handleMessageReceive),
+    'im.message.recalled_v1': createVoidDecorator(handleMessageRecalled),
+    'im.chat.member.user.added_v1': createVoidDecorator(handleChatMemberAdd),
+    'im.chat.member.user.deleted_v1': createVoidDecorator(handleChatMemberRemove),
+    'im.chat.member.user.withdrawn_v1': createVoidDecorator(handleChatMemberRemove),
+    'im.chat.member.bot.added_v1': createVoidDecorator(handleChatRobotAdd),
+    'im.chat.member.bot.deleted_v1': createVoidDecorator(handleChatRobotRemove),
+    'im.message.reaction.created_v1': createVoidDecorator(handleReaction),
+    'im.message.reaction.deleted_v1': createVoidDecorator(handleReaction),
   });
 }
 
@@ -59,12 +45,14 @@ export function initializeHttpMode() {
       verificationToken: getVerificationToken(),
       encryptKey: getEncryptKey(),
     },
-    createVoidDecorator(handleCardAction)
+    createVoidDecorator(handleCardAction),
   );
 
   return {
     eventRouter: Lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }),
-    cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, { autoChallenge: true }),
+    cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, {
+      autoChallenge: true,
+    }),
   };
 }
 
@@ -78,11 +66,8 @@ export function startLarkWebSocket() {
   });
 
   // Register card action handler for WebSocket mode
-  eventDispatcher.handles.set(
-    "card.action.trigger",
-    createVoidDecorator(handleCardAction)
-  );
+  eventDispatcher.handles.set('card.action.trigger', createVoidDecorator(handleCardAction));
 
   wsClient.start({ eventDispatcher });
-  console.log("Feishu WebSocket client started.");
+  console.log('Feishu WebSocket client started.');
 }

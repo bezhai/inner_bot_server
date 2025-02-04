@@ -1,4 +1,4 @@
-import { CardElementV2 } from "feishu-card";
+import { CardElementV2 } from 'feishu-card';
 
 // 发送者相关信息
 export interface LarkSender {
@@ -67,11 +67,7 @@ export interface LarkRecalledMessage {
   message_id?: string;
   chat_id?: string;
   recall_time?: string;
-  recall_type?:
-    | "message_owner"
-    | "group_owner"
-    | "group_manager"
-    | "enterprise_manager";
+  recall_type?: 'message_owner' | 'group_owner' | 'group_manager' | 'enterprise_manager';
 }
 
 export interface LarkReceiveUser {
@@ -147,10 +143,10 @@ export interface LarkHistoryMessageResp {
   page_token?: string;
 }
 
-export const UpdatePhotoCard = "update-photo-card";
-export const FetchPhotoDetails = "fetch-photo-details";
-export const UpdateDailyPhotoCard = "update-daily-photo-card";
-export const AuthorDownloadRequest = "author_download";
+export const UpdatePhotoCard = 'update-photo-card';
+export const FetchPhotoDetails = 'fetch-photo-details';
+export const UpdateDailyPhotoCard = 'update-daily-photo-card';
+export const AuthorDownloadRequest = 'author_download';
 
 export interface UpdatePhotoCardCallback {
   type: typeof UpdatePhotoCard;
@@ -227,6 +223,6 @@ export interface LarkOperateReactionInfo {
 }
 
 export type AddElementType =
-  | "insert_before" // 在目标组件前插入
-  | "insert_after" // 在目标组件后插入
-  | "append"; // 在卡片或容器组件末尾添加
+  | 'insert_before' // 在目标组件前插入
+  | 'insert_after' // 在目标组件后插入
+  | 'append'; // 在卡片或容器组件末尾添加

@@ -1,5 +1,5 @@
-import { LarkCard } from "feishu-card";
-import { PostContent, TextContent, ImageContent, StickerContent } from "./content-types";
+import { LarkCard } from 'feishu-card';
+import { PostContent, TextContent, ImageContent, StickerContent } from './content-types';
 
 export interface SendPostContent {
   zh_cn: PostContent; // 中文

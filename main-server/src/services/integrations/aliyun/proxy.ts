@@ -1,5 +1,5 @@
-import axios, { AxiosResponse } from "axios";
-import crypto from "crypto";
+import axios, { AxiosResponse } from 'axios';
+import crypto from 'crypto';
 import {
   ListPixivImageDto,
   ImageForLark,
@@ -7,14 +7,13 @@ import {
   PaginationResponse,
   UploadImageToLarkDto,
   UploadLarkResp,
-} from "../../../types/pixiv";
+} from '../../../types/pixiv';
 
 // 生成盐
 const generateSalt = (length: number): string => {
-  const letters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = crypto.randomBytes(length);
-  let salt = "";
+  let salt = '';
   for (let i = 0; i < length; i++) {
     salt += letters[bytes[i] % letters.length];
   }
@@ -23,7 +22,7 @@ const generateSalt = (length: number): string => {
 
 const generateToken = (salt: string, body: string, secret: string): string => {
   const data = salt + body + secret;
-  const hash = crypto.createHash("sha256").update(data).digest("hex");
+  const hash = crypto.createHash('sha256').update(data).digest('hex');
   return hash;
 };
 
@@ -33,43 +32,32 @@ const generateToken = (salt: string, body: string, secret: string): string => {
  * @param reqBody 请求体
  * @returns 响应体
  */
-async function sendAuthenticatedRequest<T>(
-  url: string,
-  reqBody: Record<string, any>
-): Promise<T> {
+async function sendAuthenticatedRequest<T>(url: string, reqBody: Record<string, any>): Promise<T> {
   const salt = generateSalt(10);
-  const token = generateToken(
-    salt,
-    JSON.stringify(reqBody),
-    process.env.HTTP_SECRET!
-  );
+  const token = generateToken(salt, JSON.stringify(reqBody), process.env.HTTP_SECRET!);
 
   try {
     const response: AxiosResponse<T> = await axios.post<T>(url, reqBody, {
       headers: {
-        "X-Salt": salt,
-        "X-Token": token,
-        "Content-Type": "application/json",
+        'X-Salt': salt,
+        'X-Token': token,
+        'Content-Type': 'application/json',
       },
     });
 
     return response.data;
   } catch (error: any) {
-    console.error("Error in sendAuthenticatedRequest:", error);
+    console.error('Error in sendAuthenticatedRequest:', error);
     throw new Error(`Request failed: ${error.message}`);
   }
 }
 
-export async function getPixivImages(
-  params: ListPixivImageDto
-): Promise<ImageForLark[]> {
+export async function getPixivImages(params: ListPixivImageDto): Promise<ImageForLark[]> {
   try {
     const url = `${process.env.PROXY_HOST}/api/v2/image-store/token-auth-list`;
 
     // 发送带有身份认证的请求
-    const response = await sendAuthenticatedRequest<
-      BaseResponse<PaginationResponse<ImageForLark>>
-    >(url, params);
+    const response = await sendAuthenticatedRequest<BaseResponse<PaginationResponse<ImageForLark>>>(url, params);
 
     // 检查响应的 code 字段
     if (response.code !== 0) {
@@ -78,21 +66,17 @@ export async function getPixivImages(
 
     return response.data.data;
   } catch (error: any) {
-    console.error("Error in getPixivImages:", error);
-    throw new Error(error.message || "Unknown error");
+    console.error('Error in getPixivImages:', error);
+    throw new Error(error.message || 'Unknown error');
   }
 }
 
-export async function uploadToLark(
-  params: UploadImageToLarkDto
-): Promise<UploadLarkResp> {
+export async function uploadToLark(params: UploadImageToLarkDto): Promise<UploadLarkResp> {
   try {
     const url = `${process.env.PROXY_HOST}/api/v2/image-store/upload-lark`;
 
     // 发送带有身份认证的请求
-    const response = await sendAuthenticatedRequest<
-      BaseResponse<UploadLarkResp>
-    >(url, params);
+    const response = await sendAuthenticatedRequest<BaseResponse<UploadLarkResp>>(url, params);
 
     // 检查响应的 code 字段
     if (response.code !== 0) {
@@ -101,7 +85,7 @@ export async function uploadToLark(
 
     return response.data;
   } catch (error: any) {
-    console.error("Error in getPixivImages:", error);
-    throw new Error(error.message || "Unknown error");
+    console.error('Error in getPixivImages:', error);
+    throw new Error(error.message || 'Unknown error');
   }
 }

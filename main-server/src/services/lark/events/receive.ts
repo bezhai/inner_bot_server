@@ -1,7 +1,7 @@
-import { LarkReceiveMessage } from "../../../types/lark";
-import { runRules } from "../../message-processing/rule-engine";
-import { saveLarkMessage } from "../../message-store/service";
-import { MessageFactory } from "./factory";
+import { LarkReceiveMessage } from '../../../types/lark';
+import { runRules } from '../../message-processing/rule-engine';
+import { saveLarkMessage } from '../../message-store/service';
+import { MessageFactory } from './factory';
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
   const [_, commonMessage] = await Promise.all([
@@ -13,7 +13,7 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
   ]);
 
   if (!commonMessage) {
-    console.error("Unsupported message type or failed to build message.");
+    console.error('Unsupported message type or failed to build message.');
     return;
   }
 

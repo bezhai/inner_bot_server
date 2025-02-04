@@ -1,11 +1,8 @@
-import dayjs from "dayjs";
-import { LarkReceiveMessage } from "../../types/lark";
-import {
-  LarkRobotMessageMetaInfo,
-  LarkUserMessageMetaInfo,
-} from "../../types/mongo";
-import { saveMessage } from "./basic";
-import { CommonMessage } from "../../models/common-message";
+import dayjs from 'dayjs';
+import { LarkReceiveMessage } from '../../types/lark';
+import { LarkRobotMessageMetaInfo, LarkUserMessageMetaInfo } from '../../types/mongo';
+import { saveMessage } from './basic';
+import { CommonMessage } from '../../models/common-message';
 
 export async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
@@ -28,11 +25,7 @@ export async function saveLarkMessage(params: LarkReceiveMessage) {
   await saveMessage(mongoMessage);
 }
 
-export async function saveRobotMessage(
-  message: CommonMessage,
-  messageId: string,
-  cardId: string
-) {
+export async function saveRobotMessage(message: CommonMessage, messageId: string, cardId: string) {
   const mongoMessage: LarkRobotMessageMetaInfo = {
     message_id: messageId,
     root_id: message.rootId,
@@ -43,7 +36,7 @@ export async function saveRobotMessage(
     create_time: dayjs().toDate(),
     is_delete: false,
     is_from_robot: true,
-    message_type: "interactive",
+    message_type: 'interactive',
     update_time: dayjs().toDate(),
     card_id: cardId,
   };

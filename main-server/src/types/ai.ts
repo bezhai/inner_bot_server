@@ -2,13 +2,13 @@
 
 // System Message 接口
 export interface SystemMessage {
-  role: "system"; // 固定为 "system"
+  role: 'system'; // 固定为 "system"
   content: string; // 消息内容
   name?: string; // 名称，可选
 }
 
 export interface UserContent {
-  type: "text" | "image_url" | "video"; // 消息的类型
+  type: 'text' | 'image_url' | 'video'; // 消息的类型
   text?: string; // 当 type 为 "text" 时，使用 text 字段
   image_url?: string; // 当 type 为 "image_url" 时，使用 image_url 字段
   video?: string[]; // 当 type 为 "video" 时，使用 video
@@ -16,14 +16,14 @@ export interface UserContent {
 
 // User Message 接口
 export interface UserMessage {
-  role: "user"; // 固定为 "user"
+  role: 'user'; // 固定为 "user"
   content: string | UserContent; // 消息内容
   name?: string; // 名称，可选
 }
 
 // Assistant Message 接口
 export interface AssistantMessage {
-  role: "assistant"; // 固定为 "assistant"
+  role: 'assistant'; // 固定为 "assistant"
   content: string; // 消息内容
   name?: string; // 名称，可选
 }
@@ -57,7 +57,7 @@ export interface FunctionCall {
 }
 
 // 流式响应动作类型
-export type StreamAction = 
+export type StreamAction =
   | { type: 'text'; content: string }
   | { type: 'think'; content: string }
   | { type: 'function_call'; function: FunctionCall };
@@ -83,7 +83,7 @@ export interface StreamedCompletionChunk {
   id: string; // 请求的 ID
   created: number; // 创建时间戳
   model: string; // 使用的模型名称
-  object: "chat.completion.chunk"; // 对象类型，流式为 "chat.completion.chunk"
+  object: 'chat.completion.chunk'; // 对象类型，流式为 "chat.completion.chunk"
   choices: Choice[]; // 每次生成的内容
   service_tier?: string | null; // 服务等级，通常为 null
   system_fingerprint?: string | null; // 系统指纹，通常为 null
@@ -93,7 +93,7 @@ export interface StreamedCompletionChunk {
 
 export interface TempMessage {
   content: string;
-} 
+}
 
 // 非流式响应中的完整 Message 对象
 export interface RespMessage {
@@ -118,7 +118,7 @@ export interface NonStreamedCompletion {
   id: string; // 请求的 ID
   created: number; // 创建时间戳
   model: string; // 使用的模型名称
-  object: "chat.completion"; // 对象类型，非流式为 "chat.completion"
+  object: 'chat.completion'; // 对象类型，非流式为 "chat.completion"
   choices: NonStreamChoice[]; // 包含完整消息的 choice 数组
   service_tier?: string | null; // 服务等级，通常为 null
   system_fingerprint?: string | null; // 系统指纹，通常为 null

@@ -1,8 +1,8 @@
-import { BaseMessage } from "./base-message";
-import { MentionUtils } from "../utils/mention-utils";
-import { LarkMessageMetaInfo } from "../types/mongo";
-import { LarkHistoryMessage } from "../types/lark";
-import { TextUtils } from "../utils/text/text-utils";
+import { BaseMessage } from './base-message';
+import { MentionUtils } from '../utils/mention-utils';
+import { LarkMessageMetaInfo } from '../types/mongo';
+import { LarkHistoryMessage } from '../types/lark';
+import { TextUtils } from '../utils/text/text-utils';
 
 enum ItemType {
   Text = 1,
@@ -36,26 +36,20 @@ export class CommonMessage extends BaseMessage {
   }
 
   texts(): string[] {
-    return this.messageItems
-      .filter((item) => item.itemType === ItemType.Text)
-      .map((item) => item.text ?? "");
+    return this.messageItems.filter((item) => item.itemType === ItemType.Text).map((item) => item.text ?? '');
   }
 
   sticker(): string {
-    const stickerItem = this.messageItems.find(
-      (item) => item.itemType === ItemType.Sticker
-    );
-    return stickerItem?.fileKey ?? "";
+    const stickerItem = this.messageItems.find((item) => item.itemType === ItemType.Sticker);
+    return stickerItem?.fileKey ?? '';
   }
 
   imageKeys(): string[] {
-    return this.messageItems
-      .filter((item) => item.itemType === ItemType.Photo)
-      .map((item) => item.imageKey ?? "");
+    return this.messageItems.filter((item) => item.itemType === ItemType.Photo).map((item) => item.imageKey ?? '');
   }
 
   text(): string {
-    return this.texts().join("");
+    return this.texts().join('');
   }
 
   clearText(): string {
@@ -65,10 +59,7 @@ export class CommonMessage extends BaseMessage {
   withMentionText(): string {
     let text = this.text();
     this.mentions.forEach((mention, index) => {
-      text = text.replace(
-        `@_user_${index + 1}`,
-        `<at user_id="${mention}"></at>`
-      );
+      text = text.replace(`@_user_${index + 1}`, `<at user_id="${mention}"></at>`);
     });
     return text;
   }
@@ -90,7 +81,7 @@ export class CommonMessage extends BaseMessage {
       const baseMessage = new CommonMessage({
         messageId: message.message_id,
         chatId: message.chat_id,
-        sender: "robot",
+        sender: 'robot',
         parentMessageId: message.parent_id,
         mentions: [],
         chatType: message.chat_type,
@@ -98,13 +89,13 @@ export class CommonMessage extends BaseMessage {
         threadId: message.thread_id,
         isRobotMessage: true,
       });
-      baseMessage.addText(message.robot_text ?? "");
+      baseMessage.addText(message.robot_text ?? '');
       return baseMessage;
     } else {
       const baseMessage = new CommonMessage({
         messageId: message.message_id,
         chatId: message.chat_id,
-        sender: message.sender ?? "unknown_sender",
+        sender: message.sender ?? 'unknown_sender',
         parentMessageId: message.parent_id,
         mentions: MentionUtils.addMentions(message.mentions),
         chatType: message.chat_type,
@@ -112,8 +103,8 @@ export class CommonMessage extends BaseMessage {
         threadId: message.thread_id,
         isRobotMessage: false,
       });
-      const content = JSON.parse(message.message_content ?? "{}");
-      baseMessage.addText(content.text ?? "");
+      const content = JSON.parse(message.message_content ?? '{}');
+      baseMessage.addText(content.text ?? '');
       return baseMessage;
     }
   }
@@ -122,20 +113,20 @@ export class CommonMessage extends BaseMessage {
     const baseMessage = new CommonMessage({
       messageId: message.message_id!,
       chatId: message.chat_id!,
-      sender: message.sender?.id ?? "unknown",
+      sender: message.sender?.id ?? 'unknown',
       parentMessageId: message.parent_id,
       mentions: (message.mentions ?? []).map((m) => m.id),
-      chatType: "group",
+      chatType: 'group',
       rootId: message.root_id,
       threadId: message.thread_id,
-      isRobotMessage: message.sender?.id_type === "app_id",
+      isRobotMessage: message.sender?.id_type === 'app_id',
     });
     baseMessage.createTime = message.create_time;
     try {
-      const content = JSON.parse(message.body?.content ?? "{}");
-      baseMessage.addText(content.text ?? "");
+      const content = JSON.parse(message.body?.content ?? '{}');
+      baseMessage.addText(content.text ?? '');
     } catch (e) {
-      console.warn("CommonMessage.fromHistoryMessage", e, message);
+      console.warn('CommonMessage.fromHistoryMessage', e, message);
     }
     return baseMessage;
   }

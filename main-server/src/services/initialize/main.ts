@@ -1,7 +1,7 @@
-import { upsertAllChatInfo } from "./group";
+import { upsertAllChatInfo } from './group';
 
 export async function botInitialization() {
-  if (process.env.NEED_INIT !== "true") {
+  if (process.env.NEED_INIT !== 'true') {
     return;
   }
 

@@ -1,12 +1,12 @@
-import { LarkGroupChatInfo, LarkGroupMember } from "../../dal/entities";
+import { LarkGroupChatInfo, LarkGroupMember } from '../../dal/entities';
 import {
   GroupChatInfoRepository,
   GroupMemberRepository,
   LarkUserOpenIdRepository,
   UserRepository,
-} from "../../dal/repositories/repositories";
-import { setTimeout } from "timers/promises";
-import { searchAllLarkGroup, searchLarkChatInfo, searchLarkChatMember } from "../lark/basic/group";
+} from '../../dal/repositories/repositories';
+import { setTimeout } from 'timers/promises';
+import { searchAllLarkGroup, searchLarkChatInfo, searchLarkChatMember } from '../lark/basic/group';
 
 export async function upsertAllChatInfo() {
   const chatList = await searchAllLarkGroup();
@@ -18,11 +18,7 @@ export async function upsertAllChatInfo() {
     const { groupInfo, members } = await searchLarkChatInfo(chatId);
     groupInfoList.push(groupInfo);
     membersList.push(...members);
-    const {
-      users,
-      members: newMembers,
-      openIdUsers,
-    } = await searchLarkChatMember(chatId);
+    const { users, members: newMembers, openIdUsers } = await searchLarkChatMember(chatId);
     await Promise.all([
       GroupMemberRepository.save(newMembers),
       UserRepository.save(users),
@@ -30,8 +26,5 @@ export async function upsertAllChatInfo() {
     ]); // 这里每个群更新一次, 防止数据量过大
     await setTimeout(200);
   }
-  await Promise.all([
-    GroupChatInfoRepository.save(groupInfoList),
-    GroupMemberRepository.save(membersList),
-  ]);
+  await Promise.all([GroupChatInfoRepository.save(groupInfoList), GroupMemberRepository.save(membersList)]);
 }

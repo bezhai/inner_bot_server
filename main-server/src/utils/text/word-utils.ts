@@ -2140,11 +2140,11 @@ function loadWordList(): string[] {
   首先
   高兴
   是不是
-  说说`
+  说说`;
 
   // 按行分割，并过滤掉空行
   return words
-    .split("\n")
+    .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 }

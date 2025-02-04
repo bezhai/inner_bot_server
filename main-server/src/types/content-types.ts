@@ -1,4 +1,4 @@
-import { PostNode } from "./post-node-types";
+import { PostNode } from './post-node-types';
 
 // 文本消息内容
 export interface TextContent {

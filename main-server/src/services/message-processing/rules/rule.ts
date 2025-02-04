@@ -1,6 +1,6 @@
-import { LarkBaseChatInfo } from "../../../dal/entities";
-import { CommonMessage } from "../../../models/common-message";
-import { getBotUnionId } from "../../../utils/bot/bot-var";
+import { LarkBaseChatInfo } from '../../../dal/entities';
+import { CommonMessage } from '../../../models/common-message';
+import { getBotUnionId } from '../../../utils/bot/bot-var';
 
 // 定义规则函数类型
 type Rule = (message: CommonMessage) => boolean;
@@ -53,10 +53,9 @@ export interface GenCombineRule {
  */
 export const combineRule = <T>(
   originRule: { key: T; handler: Handler }[],
-  adaptor: (key: T) => Rule
+  adaptor: (key: T) => Rule,
 ): GenCombineRule => {
-  const rule: Rule = (message) =>
-    originRule.some((rule) => adaptor(rule.key)(message));
+  const rule: Rule = (message) => originRule.some((rule) => adaptor(rule.key)(message));
   const handler: Handler = async (message) => {
     for (const rule of originRule) {
       if (adaptor(rule.key)(message)) {
@@ -77,8 +76,7 @@ export interface RuleConfig {
 }
 
 // 工具函数：通用规则
-export const NeedRobotMention: Rule = (message) =>
-  message.hasMention(getBotUnionId()) || message.isP2P();
+export const NeedRobotMention: Rule = (message) => message.hasMention(getBotUnionId()) || message.isP2P();
 
 export const TextMessageLimit: Rule = (message) => message.isTextMessage();
 

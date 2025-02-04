@@ -1,6 +1,6 @@
-import { 
+import {
   BaseContext,
-  WorkflowNode, 
+  WorkflowNode,
   NodeType,
   HandlerRegistry,
   ConditionRegistry,
@@ -10,7 +10,7 @@ import {
   ConditionNodeConfig,
   WorkflowDefinition,
   HandlerFunction,
-  ConditionFunction
+  ConditionFunction,
 } from './types';
 
 export class WorkflowEngine<TContext extends BaseContext> {
@@ -31,13 +31,10 @@ export class WorkflowEngine<TContext extends BaseContext> {
   }
 
   private findNode(nodes: WorkflowNode[], nodeId: string): WorkflowNode | undefined {
-    return nodes.find(node => node.id === nodeId);
+    return nodes.find((node) => node.id === nodeId);
   }
 
-  private async executeRegularNode(
-    node: RegularNodeConfig,
-    context: TContext
-  ): Promise<string> {
+  private async executeRegularNode(node: RegularNodeConfig, context: TContext): Promise<string> {
     const handler = this.handlers[node.handler];
     if (!handler) {
       throw new Error(`Handler not found: ${node.handler}`);
@@ -47,10 +44,7 @@ export class WorkflowEngine<TContext extends BaseContext> {
     return node.next;
   }
 
-  private async executeConditionNode(
-    node: ConditionNodeConfig,
-    context: TContext
-  ): Promise<string> {
+  private async executeConditionNode(node: ConditionNodeConfig, context: TContext): Promise<string> {
     for (const branch of node.branches) {
       const condition = this.conditions[branch.condition];
       if (!condition) {
@@ -66,23 +60,17 @@ export class WorkflowEngine<TContext extends BaseContext> {
     return node.default;
   }
 
-  private async executeStartNode(
-    node: StartNodeConfig,
-    _context: TContext
-  ): Promise<string> {
+  private async executeStartNode(node: StartNodeConfig, _context: TContext): Promise<string> {
     return node.next;
   }
 
-  private async executeEndNode(
-    _node: EndNodeConfig,
-    _context: TContext
-  ): Promise<string> {
+  private async executeEndNode(_node: EndNodeConfig, _context: TContext): Promise<string> {
     return '';
   }
 
   public async execute(workflow: WorkflowDefinition<TContext>): Promise<TContext> {
     const context = { ...(workflow.initialContext || {}) } as TContext;
-    let currentNodeId = workflow.nodes.find(node => node.type === NodeType.START)?.id;
+    let currentNodeId = workflow.nodes.find((node) => node.type === NodeType.START)?.id;
 
     if (!currentNodeId) {
       throw new Error('No start node found in workflow');
@@ -90,7 +78,7 @@ export class WorkflowEngine<TContext extends BaseContext> {
 
     while (currentNodeId) {
       const currentNode = this.findNode(workflow.nodes, currentNodeId);
-      
+
       if (!currentNode) {
         throw new Error(`Node not found: ${currentNodeId}`);
       }

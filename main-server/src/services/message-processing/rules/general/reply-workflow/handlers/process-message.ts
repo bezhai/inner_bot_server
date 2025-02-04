@@ -1,9 +1,7 @@
 import { generateChatResponse } from '../../../../ai/chat-service';
 import { ReplyContext } from '../types';
 
-export async function processMessageHandler(
-  context: ReplyContext,
-): Promise<void> {
+export async function processMessageHandler(context: ReplyContext): Promise<void> {
   if (!context.cardManager || !context.contextMessages || !context.config) {
     throw new Error('Context not properly prepared');
   }

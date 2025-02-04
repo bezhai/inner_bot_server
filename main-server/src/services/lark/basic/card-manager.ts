@@ -9,13 +9,13 @@ import {
   MarkdownComponent,
   HrComponent,
   CardElementV2,
-} from "feishu-card";
-import { StreamAction } from "../../../types/ai";
-import { sendReq, reply, send } from "../../../dal/lark-client";
-import { AddElementType } from "../../../types/lark";
-import { v4 as uuidv4 } from "uuid";
-import { incr } from "../../../dal/redis";
-import { updateRobotMessageText } from "../../message-store/basic";
+} from 'feishu-card';
+import { StreamAction } from '../../../types/ai';
+import { sendReq, reply, send } from '../../../dal/lark-client';
+import { AddElementType } from '../../../types/lark';
+import { v4 as uuidv4 } from 'uuid';
+import { incr } from '../../../dal/redis';
+import { updateRobotMessageText } from '../../message-store/basic';
 
 /**
  * CardManager 统一管理飞书卡片的全生命周期
@@ -27,8 +27,8 @@ export class CardManager {
   private messageId?: string;
   private hasReasoningElement: boolean = false;
   private hasResponseElement: boolean = false;
-  private reasoningElementId: string = "reasoning_content";
-  private responseElementId: string = "response_content";
+  private reasoningElementId: string = 'reasoning_content';
+  private responseElementId: string = 'response_content';
 
   private constructor(card: LarkV2Card) {
     this.card = card;
@@ -40,22 +40,13 @@ export class CardManager {
   public static async createReplyCard(): Promise<CardManager> {
     const larkCard = new LarkV2Card().withConfig(
       new Config()
-        .withStreamingMode(
-          true,
-          new StreamConfig()
-            .withPrintStrategy("fast")
-            .withPrintFrequency(20)
-            .withPrintStep(4)
-        )
-        .withSummary(new Summary("少女回复中"))
+        .withStreamingMode(true, new StreamConfig().withPrintStrategy('fast').withPrintFrequency(20).withPrintStep(4))
+        .withSummary(new Summary('少女回复中')),
     );
 
     larkCard.addElements(
-      withElementId(new HrComponent(), "hr"),
-      withElementId(
-        new MarkdownComponent("赤尾思考中..."),
-        "thinking_placeholder"
-      )
+      withElementId(new HrComponent(), 'hr'),
+      withElementId(new MarkdownComponent('赤尾思考中...'), 'thinking_placeholder'),
     );
 
     const instance = new CardManager(larkCard);
@@ -77,13 +68,13 @@ export class CardManager {
     this.cardId = await sendReq<{
       card_id: string;
     }>(
-      "/open-apis/cardkit/v1/cards",
+      '/open-apis/cardkit/v1/cards',
       {
-        type: "card_json",
+        type: 'card_json',
         data: JSON.stringify(this.card),
         uuid: uuidv4(),
       },
-      "POST"
+      'POST',
     ).then((res) => res?.card_id);
   }
 
@@ -92,12 +83,12 @@ export class CardManager {
    */
   public async replyToMessage(messageId: string): Promise<void> {
     const realCardJson = {
-      type: "card",
+      type: 'card',
       data: {
         card_id: this.cardId,
       },
     };
-    const sendResp = await reply(messageId, realCardJson, "interactive");
+    const sendResp = await reply(messageId, realCardJson, 'interactive');
     this.messageId = sendResp?.message_id;
   }
 
@@ -106,12 +97,12 @@ export class CardManager {
    */
   public async sendToChat(chatId: string): Promise<void> {
     const realCardJson = {
-      type: "card",
+      type: 'card',
       data: {
         card_id: this.cardId,
       },
     };
-    const sendResp = await send(chatId, realCardJson, "interactive");
+    const sendResp = await send(chatId, realCardJson, 'interactive');
     this.messageId = sendResp?.message_id;
   }
 
@@ -121,18 +112,12 @@ export class CardManager {
   private async createReasoningElement(): Promise<void> {
     if (!this.hasReasoningElement) {
       const collapseElement = withElementId(
-        new CollapsiblePanelComponent(
-          new CollapsiblePanelHeader("赤尾的内心思考").setBackgroundColor(
-            "grey-100"
-          )
-        )
-          .setBorder("grey-100")
-          .addElement(
-            withElementId(new MarkdownComponent(""), this.reasoningElementId)
-          ),
-        "collapse"
+        new CollapsiblePanelComponent(new CollapsiblePanelHeader('赤尾的内心思考').setBackgroundColor('grey-100'))
+          .setBorder('grey-100')
+          .addElement(withElementId(new MarkdownComponent(''), this.reasoningElementId)),
+        'collapse',
       );
-      await this.addElements("insert_before", [collapseElement], "hr");
+      await this.addElements('insert_before', [collapseElement], 'hr');
       this.hasReasoningElement = true;
     }
   }
@@ -142,11 +127,8 @@ export class CardManager {
    */
   private async createResponseElement(): Promise<void> {
     if (!this.hasResponseElement) {
-      const mdElement = withElementId(
-        new MarkdownComponent(""),
-        this.responseElementId
-      );
-      await this.addElements("insert_before", [mdElement], "hr");
+      const mdElement = withElementId(new MarkdownComponent(''), this.responseElementId);
+      await this.addElements('insert_before', [mdElement], 'hr');
       this.hasResponseElement = true;
     }
   }
@@ -170,10 +152,7 @@ export class CardManager {
   /**
    * 流式更新文本内容
    */
-  private async streamUpdateText(
-    elementId: string,
-    content: string
-  ): Promise<void> {
+  private async streamUpdateText(elementId: string, content: string): Promise<void> {
     await sendReq(
       `/open-apis/cardkit/v1/cards/${this.cardId}/elements/${elementId}/content`,
       {
@@ -181,31 +160,25 @@ export class CardManager {
         sequence: await this.getSequence(),
         uuid: uuidv4(),
       },
-      "PUT"
+      'PUT',
     );
   }
 
   /**
    * 添加卡片元素
    */
-  private async addElements(
-    type: AddElementType,
-    elements: CardElementV2[],
-    targetElementId?: string
-  ): Promise<void> {
-    if (type === "insert_before" || type === "insert_after") {
+  private async addElements(type: AddElementType, elements: CardElementV2[], targetElementId?: string): Promise<void> {
+    if (type === 'insert_before' || type === 'insert_after') {
       if (!targetElementId) {
         throw new Error(`targetElementId is required for ${type}`);
       }
 
-      const index = this.card.body.elements.findIndex(
-        (e: CardElementV2) => e.element_id === targetElementId
-      );
+      const index = this.card.body.elements.findIndex((e: CardElementV2) => e.element_id === targetElementId);
       if (index === -1) {
         throw new Error(`Target element with id ${targetElementId} not found`);
       }
 
-      const insertIndex = type === "insert_after" ? index + 1 : index;
+      const insertIndex = type === 'insert_after' ? index + 1 : index;
       this.card.body.elements.splice(insertIndex, 0, ...elements);
     } else {
       this.card.body.elements.push(...elements);
@@ -220,7 +193,7 @@ export class CardManager {
         sequence: await this.getSequence(),
         uuid: uuidv4(),
       },
-      "POST"
+      'POST',
     );
   }
 
@@ -228,41 +201,34 @@ export class CardManager {
    * 删除卡片元素
    */
   public async deleteElement(elementId: string): Promise<void> {
-    this.card.body.elements = this.card.body.elements.filter(
-      (e: CardElementV2) => e.element_id !== elementId
-    );
+    this.card.body.elements = this.card.body.elements.filter((e: CardElementV2) => e.element_id !== elementId);
     await sendReq(
       `/open-apis/cardkit/v1/cards/${this.cardId}/elements/${elementId}`,
       {
         sequence: await this.getSequence(),
         uuid: uuidv4(),
       },
-      "DELETE"
+      'DELETE',
     );
   }
 
   /**
    * 完成卡片更新
    */
-  public async closeUpdate(
-    fullText: string | null,
-    error?: Error
-  ): Promise<void> {
-    await this.deleteElement("thinking_placeholder");
+  public async closeUpdate(fullText: string | null, error?: Error): Promise<void> {
+    await this.deleteElement('thinking_placeholder');
 
     if (error) {
       const errorElement = withElementId(
-        new MarkdownComponent(
-          `**<font color='red'>错误: ${error.message}</font>**`
-        ),
-        "error_message"
+        new MarkdownComponent(`**<font color='red'>错误: ${error.message}</font>**`),
+        'error_message',
       );
-      await this.addElements("append", [errorElement]);
+      await this.addElements('append', [errorElement]);
       return;
     }
 
     if (fullText) {
-      const removeThinkText = fullText.replace(/<think>[\s\S]*?<\/think>/g, "");
+      const removeThinkText = fullText.replace(/<think>[\s\S]*?<\/think>/g, '');
       await Promise.allSettled([
         this.updateCardConfig({
           streaming_mode: false,
@@ -278,9 +244,7 @@ export class CardManager {
   /**
    * 更新卡片配置
    */
-  private async updateCardConfig(
-    config: Partial<LarkV2Card["config"]>
-  ): Promise<void> {
+  private async updateCardConfig(config: Partial<LarkV2Card['config']>): Promise<void> {
     Object.assign(this.card.config!, config);
     await sendReq(
       `/open-apis/cardkit/v1/cards/${this.cardId}/settings`,
@@ -289,7 +253,7 @@ export class CardManager {
         sequence: await this.getSequence(),
         uuid: uuidv4(),
       },
-      "PATCH"
+      'PATCH',
     );
   }
 
@@ -300,28 +264,28 @@ export class CardManager {
     return async (action) => {
       try {
         switch (action.type) {
-          case "think":
+          case 'think':
             if (action.content.length > 0) {
               await this.updateThinking(action.content);
             }
             break;
-          case "text":
+          case 'text':
             if (action.content.length > 0) {
               await this.updateContent(action.content);
             }
             break;
-          case "function_call":
+          case 'function_call':
             // Handle function calls if needed
             break;
         }
       } catch (error) {
-        console.error("处理action时出错:", error);
+        console.error('处理action时出错:', error);
       }
     };
   }
 
   private truncate(str: string, max: number): string {
-    return str.length > max ? str.slice(0, max) + "..." : str;
+    return str.length > max ? str.slice(0, max) + '...' : str;
   }
 
   public getMessageId(): string | undefined {

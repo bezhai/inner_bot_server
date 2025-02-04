@@ -1,15 +1,12 @@
-import _ from "lodash";
-import { ImageForLark } from "../types/pixiv";
+import _ from 'lodash';
+import { ImageForLark } from '../types/pixiv';
 
 function combinations<T>(arr: T[], n: number): T[][] {
   if (n === 0) return [[]];
   if (arr.length === 0) return [];
 
   const [first, ...rest] = arr;
-  const combsWithFirst = combinations(rest, n - 1).map((comb) => [
-    first,
-    ...comb,
-  ]);
+  const combsWithFirst = combinations(rest, n - 1).map((comb) => [first, ...comb]);
   const combsWithoutFirst = combinations(rest, n);
 
   return [...combsWithFirst, ...combsWithoutFirst];
@@ -49,17 +46,11 @@ export function calcBestChunks(images: ImageForLark[]): {
     const leftRate = (sumRate * weight[1]) / (weight[0] + weight[1]);
 
     // 生成所有可能的分组
-    const allCombinations = _.flatMap(_.range(1, images.length), (n) =>
-      combinations(_.range(images.length), n)
-    );
+    const allCombinations = _.flatMap(_.range(1, images.length), (n) => combinations(_.range(images.length), n));
 
     for (const indexCombination of allCombinations) {
       const chooseImages = indexCombination.map((idx) => images[idx]);
-      const chooseRightImages = _.differenceBy(
-        images,
-        chooseImages,
-        "image_key"
-      );
+      const chooseRightImages = _.differenceBy(images, chooseImages, 'image_key');
 
       const currLeftSumRate = _(indexCombination)
         .map((idx) => rates[idx])

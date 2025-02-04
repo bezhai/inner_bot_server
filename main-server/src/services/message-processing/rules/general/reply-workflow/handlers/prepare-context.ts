@@ -1,7 +1,7 @@
-import { CardManager } from "../../../../../lark/basic/card-manager";
-import { saveRobotMessage } from "../../../../../message-store/service";
-import { prepareContextMessages, fetchChatConfig } from "../../reply-utils";
-import { ReplyContext } from "../types";
+import { CardManager } from '../../../../../lark/basic/card-manager';
+import { saveRobotMessage } from '../../../../../message-store/service';
+import { prepareContextMessages, fetchChatConfig } from '../../reply-utils';
+import { ReplyContext } from '../types';
 
 export async function prepareContextHandler(context: ReplyContext): Promise<void> {
   // 创建回复卡片
@@ -20,9 +20,5 @@ export async function prepareContextHandler(context: ReplyContext): Promise<void
   context.config = config;
 
   // 保存机器人消息
-  await saveRobotMessage(
-    context.commonMessage,
-    cardManager.getMessageId()!,
-    cardManager.getCardId()!
-  );
+  await saveRobotMessage(context.commonMessage, cardManager.getMessageId()!, cardManager.getCardId()!);
 }

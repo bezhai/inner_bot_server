@@ -1,5 +1,5 @@
-import * as lark from "@larksuiteoapi/node-sdk";
-import { getBotAppId, getBotAppSecret } from "../utils/bot/bot-var";
+import * as lark from '@larksuiteoapi/node-sdk';
+import { getBotAppId, getBotAppSecret } from '../utils/bot/bot-var';
 
 const client = new lark.Client({
   appId: getBotAppId(),
@@ -28,22 +28,17 @@ async function handleResponse<T>(promise: Promise<LarkResp<T>>): Promise<T> {
 export async function send(chat_id: string, content: any, msgType: string) {
   return handleResponse(
     client.im.message.create({
-      params: { receive_id_type: "chat_id" },
+      params: { receive_id_type: 'chat_id' },
       data: {
         receive_id: chat_id,
         content: JSON.stringify(content),
         msg_type: msgType,
       },
-    })
+    }),
   );
 }
 
-export async function reply(
-  messageId: string,
-  content: any,
-  msgType: string,
-  replyInThread?: boolean
-) {
+export async function reply(messageId: string, content: any, msgType: string, replyInThread?: boolean) {
   return handleResponse(
     client.im.message.reply({
       path: { message_id: messageId },
@@ -52,7 +47,7 @@ export async function reply(
         msg_type: msgType,
         reply_in_thread: replyInThread,
       },
-    })
+    }),
   );
 }
 
@@ -62,15 +57,15 @@ export async function sendReq<T>(url: string, data: any, method: string) {
       url,
       method,
       data,
-    })
+    }),
   );
 }
 
 export async function getChatList(page_token?: string) {
   return handleResponse(
     client.im.chat.list({
-      params: { page_size: 100, page_token, sort_type: "ByCreateTimeAsc" },
-    })
+      params: { page_size: 100, page_token, sort_type: 'ByCreateTimeAsc' },
+    }),
   );
 }
 
@@ -78,21 +73,21 @@ export async function getChatInfo(chat_id: string) {
   return handleResponse(
     client.im.chat.get({
       path: { chat_id },
-      params: { user_id_type: "union_id" },
-    })
+      params: { user_id_type: 'union_id' },
+    }),
   );
 }
 
 export async function searchAllMembers(
   chat_id: string,
   page_token?: string,
-  member_id_type: "user_id" | "union_id" | "open_id" = "union_id"
+  member_id_type: 'user_id' | 'union_id' | 'open_id' = 'union_id',
 ) {
   return handleResponse(
     client.im.chatMembers.get({
       path: { chat_id },
       params: { page_size: 50, page_token, member_id_type },
-    })
+    }),
   );
 }
 
@@ -100,8 +95,8 @@ export async function getMessageInfo(message_id: string) {
   return handleResponse(
     client.im.message.get({
       path: { message_id },
-      params: { user_id_type: "union_id" },
-    })
+      params: { user_id_type: 'union_id' },
+    }),
   );
 }
 
@@ -109,16 +104,11 @@ export async function deleteMessage(message_id: string) {
   return handleResponse(
     client.im.message.delete({
       path: { message_id },
-    })
+    }),
   );
 }
 
-export async function getMessageList(
-  chatId: string,
-  startTime?: number,
-  endTime?: number,
-  pageToken?: string
-) {
+export async function getMessageList(chatId: string, startTime?: number, endTime?: number, pageToken?: string) {
   return handleResponse(
     client.im.message.list({
       params: {
@@ -126,10 +116,10 @@ export async function getMessageList(
         page_token: pageToken,
         start_time: startTime?.toString(),
         end_time: endTime?.toString(),
-        container_id_type: "chat",
+        container_id_type: 'chat',
         container_id: chatId,
-        sort_type: "ByCreateTimeAsc",
+        sort_type: 'ByCreateTimeAsc',
       },
-    })
+    }),
   );
 }

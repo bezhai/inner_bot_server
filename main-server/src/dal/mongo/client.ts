@@ -1,7 +1,7 @@
-import { MongoClient } from "mongodb";
-import { MongoCollection } from "./collection";
-import { LarkMessageMetaInfo } from "../../types/mongo";
-import { LarkOperateReactionInfo } from "../../types/lark";
+import { MongoClient } from 'mongodb';
+import { MongoCollection } from './collection';
+import { LarkMessageMetaInfo } from '../../types/mongo';
+import { LarkOperateReactionInfo } from '../../types/lark';
 
 // MongoDB 客户端实例
 let db: MongoClient;
@@ -17,20 +17,16 @@ export const mongoInitPromise = async () => {
     db = new MongoClient(url);
     await db.connect();
 
-    const database = db.db("chiwei");
+    const database = db.db('chiwei');
 
     // 初始化各个集合
-    MessageCollection = new MongoCollection<LarkMessageMetaInfo>(
-      database.collection("lark_message")
-    );
+    MessageCollection = new MongoCollection<LarkMessageMetaInfo>(database.collection('lark_message'));
 
-    ReactionCollection = new MongoCollection<LarkOperateReactionInfo>(
-      database.collection("lark_reaction")
-    );
+    ReactionCollection = new MongoCollection<LarkOperateReactionInfo>(database.collection('lark_reaction'));
 
-    console.log("MongoDB initialization completed.");
+    console.log('MongoDB initialization completed.');
   } catch (err) {
-    console.error("MongoDB initialization failed:", err);
+    console.error('MongoDB initialization failed:', err);
     throw err;
   }
 };

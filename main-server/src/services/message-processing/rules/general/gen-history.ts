@@ -1,25 +1,16 @@
-import dayjs from "dayjs";
-import _ from "lodash";
-import { In } from "typeorm";
-import {
-  CardHeader,
-  ChartElement,
-  LarkCard,
-  LineChartSpec,
-  PieChartSpec,
-  WordCloudChartSpec,
-} from "feishu-card";
-import { LarkUserOpenIdRepository } from "../../../../dal/repositories/repositories";
-import { CommonMessage } from "../../../../models/common-message";
-import { buildWeeklyWordCloud } from "../../../../utils/text/jieba";
-import { replyCard, searchGroupMessage } from "../../../lark/basic/message";
+import dayjs from 'dayjs';
+import _ from 'lodash';
+import { In } from 'typeorm';
+import { CardHeader, ChartElement, LarkCard, LineChartSpec, PieChartSpec, WordCloudChartSpec } from 'feishu-card';
+import { LarkUserOpenIdRepository } from '../../../../dal/repositories/repositories';
+import { CommonMessage } from '../../../../models/common-message';
+import { buildWeeklyWordCloud } from '../../../../utils/text/jieba';
+import { replyCard, searchGroupMessage } from '../../../lark/basic/message';
 
 function splitTime(start: number, end: number, splitSize: number): number[][] {
   // 确保输入有效
   if (splitSize <= 0 || start >= end) {
-    throw new Error(
-      "Invalid input: splitSize must be > 0 and start must be < end"
-    );
+    throw new Error('Invalid input: splitSize must be > 0 and start must be < end');
   }
 
   const step = Math.floor((end - start) / splitSize); // 每个区间的步长
@@ -38,72 +29,63 @@ function splitTime(start: number, end: number, splitSize: number): number[][] {
 
 export async function genHistoryCard(commonMessage: CommonMessage) {
   const messages = await getHistoryMessage(commonMessage.chatId!);
-  const { messageCountMap, messagePersonMap, messageByPersonMap } =
-    processMessages(messages);
+  const { messageCountMap, messagePersonMap, messageByPersonMap } = processMessages(messages);
 
   const activeChart = new ChartElement(
     new LineChartSpec(
-      { text: "活跃大盘" },
-      "x",
-      "y",
-      "series",
+      { text: '活跃大盘' },
+      'x',
+      'y',
+      'series',
       {
         visible: true,
       },
       {
         visible: true,
-        orient: "bottom",
-        position: "middle",
+        orient: 'bottom',
+        position: 'middle',
       },
-      "monotone"
-    )
+      'monotone',
+    ),
   );
 
   const dateKeys = Object.keys(messageCountMap);
   dateKeys.sort(); // 确保日期是按顺序排列的
   dateKeys.forEach((date) => {
-    activeChart.chart_spec.addLineData(
-      date,
-      messagePersonMap[date],
-      "活跃人数"
-    );
-    activeChart.chart_spec.addLineData(date, messageCountMap[date], "消息数");
+    activeChart.chart_spec.addLineData(date, messagePersonMap[date], '活跃人数');
+    activeChart.chart_spec.addLineData(date, messageCountMap[date], '消息数');
   });
 
   // 接着是发言人数的图表
   const personChart = new ChartElement(
-    new PieChartSpec({ text: "龙王" }, "value", "category", {
+    new PieChartSpec({ text: '龙王' }, 'value', 'category', {
       visible: true,
     })
       .setPie({
         state: {
           hover: {
             outerRadius: 0.65,
-            stroke: "#000",
+            stroke: '#000',
             lineWidth: 1,
           },
           selected: {
             outerRadius: 0.65,
-            stroke: "#000",
+            stroke: '#000',
             lineWidth: 1,
           },
         },
       })
       .setInnerRadius(0.4)
-      .setOuterRadius(0.6)
+      .setOuterRadius(0.6),
   );
 
   // 对 messageByPersonMap 进行排序，按照消息数量降序排列
-  const sortedPersonMap = Object.entries(messageByPersonMap).sort(
-    (a, b) => b[1] - a[1]
-  );
+  const sortedPersonMap = Object.entries(messageByPersonMap).sort((a, b) => b[1] - a[1]);
   // 取前 10 个发言最多的人
   const top10PersonMap = sortedPersonMap.slice(0, 10);
 
   // 这里拿到的是openId到发言数的映射, 需要增加一个openId到name的映射
-  const openIdToNameMap = await openIdToName(
-    top10PersonMap.map(([openId]) => openId)
-  );
+  const openIdToNameMap = await openIdToName(top10PersonMap.map(([openId]) => openId));
 
   // 将 top10PersonMap 转换为饼图所需的数据格式, 这里是name和发言数
   const pieData = top10PersonMap.map(([category, value]) => ({
@@ -115,18 +97,16 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
     personChart.chart_spec.addPieData(data.value, data.category);
   });
   // 还需要将剩下的人合并为一个 "其他" 类别
-  const otherValue = sortedPersonMap
-    .slice(10)
-    .reduce((acc, [_, value]) => acc + value, 0);
+  const otherValue = sortedPersonMap.slice(10).reduce((acc, [_, value]) => acc + value, 0);
 
   if (otherValue > 0) {
-    personChart.chart_spec.addPieData(otherValue, "其他");
+    personChart.chart_spec.addPieData(otherValue, '其他');
   }
 
   // 我们还需要一个词云, 需要先换成去除emoji后的消息
   const clearTexts = messages
     .map((message) => message.withoutEmojiText())
-    .filter((text) => text.length > 0 && !text.includes("https://"));
+    .filter((text) => text.length > 0 && !text.includes('https://'));
 
   const wordCloudMap = await buildWeeklyWordCloud(clearTexts);
 
@@ -136,16 +116,14 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
     .slice(0, 100);
 
   // 构建词云的图表
-  const wordCloudChart = new ChartElement(
-    new WordCloudChartSpec({ text: "本群词云" }, "name", "value", "name")
-  );
+  const wordCloudChart = new ChartElement(new WordCloudChartSpec({ text: '本群词云' }, 'name', 'value', 'name'));
 
   // 添加数据到词云
   sortedWordCloudMap.forEach(([name, value]) => {
     wordCloudChart.chart_spec.addWordCloudData(name, value);
   });
 
-  const card = new LarkCard(new CardHeader("七天水群趋势").color("green"));
+  const card = new LarkCard(new CardHeader('七天水群趋势').color('green'));
   card.addElements(activeChart, personChart, wordCloudChart);
 
   // 最后需要发送卡片
@@ -153,11 +131,7 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
 }
 
 async function getHistoryMessage(chatId: string) {
-  const startTime = dayjs()
-    .startOf("day")
-    .subtract(6, "day")
-    .add(8, "hour")
-    .unix(); // 这里手动调一下东八区, 这里是因为我们要取东八区的零点
+  const startTime = dayjs().startOf('day').subtract(6, 'day').add(8, 'hour').unix(); // 这里手动调一下东八区, 这里是因为我们要取东八区的零点
   const endTime = dayjs().unix();
 
   // 分割时间区间
@@ -180,9 +154,9 @@ async function getHistoryMessage(chatId: string) {
 
   try {
     await Promise.all(promises);
-    console.log("All messages fetched successfully!");
+    console.log('All messages fetched successfully!');
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    console.error('Error fetching messages:', error);
     throw error;
   }
 
@@ -196,7 +170,7 @@ function processMessages(messages: CommonMessage[]) {
   // 按日期分组（MM-DD 格式）
   const messageGroupMap = _.groupBy(
     userMessages,
-    (m) => dayjs(parseInt(m.createTime!)).add(8, "hour").format("MM-DD") // 转为东八区时间并格式化
+    (m) => dayjs(parseInt(m.createTime!)).add(8, 'hour').format('MM-DD'), // 转为东八区时间并格式化
   );
 
   const messageCountMap: Record<string, number> = {}; // 每天的消息数量
@@ -226,17 +200,18 @@ function processMessages(messages: CommonMessage[]) {
   };
 }
 
-async function openIdToName(
-  openIds: string[]
-): Promise<Record<string, string>> {
+async function openIdToName(openIds: string[]): Promise<Record<string, string>> {
   const users = await LarkUserOpenIdRepository.find({
     where: {
       openId: In(openIds),
     },
   });
 
-  return users.reduce((acc, user) => {
-    acc[user.openId] = user.name;
-    return acc;
-  }, {} as Record<string, string>);
+  return users.reduce(
+    (acc, user) => {
+      acc[user.openId] = user.name;
+      return acc;
+    },
+    {} as Record<string, string>,
+  );
 }
