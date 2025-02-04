@@ -18,17 +18,17 @@ export async function fetchChatCompletion(payload: CompletionRequest): Promise<R
       timeout: 300000, // 5分钟超时
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
+        Accept: 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       } as any,
     });
-    
+
     // 转换axios响应为fetch Response格式
     const headers = new Headers({
       'content-type': 'text/event-stream',
       'transfer-encoding': 'chunked',
-      ...response.headers as any
+      ...(response.headers as any),
     });
 
     return new Response(response.data, {

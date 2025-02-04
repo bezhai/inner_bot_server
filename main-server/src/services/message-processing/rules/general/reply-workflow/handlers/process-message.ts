@@ -7,14 +7,14 @@ export async function processMessageHandler(context: ReplyContext): Promise<void
   }
 
   try {
-    await generateChatResponse(
-      context.config.model,
-      context.contextMessages,
-      context.cardManager.createActionHandler(),
-      context.config.prompt,
-      context.config.params,
-      context.cardManager.closeUpdate.bind(context.cardManager),
-    );
+    await generateChatResponse({
+      model: context.config.model,
+      messages: context.contextMessages,
+      handleAction: context.cardManager.createActionHandler(),
+      systemPrompt: context.config.prompt,
+      chatParams: context.config.params,
+      endOfReply: context.cardManager.closeUpdate.bind(context.cardManager),
+    });
   } catch (error) {
     console.error('回复消息时出错:', error);
     // Error will be handled by closeUpdate through endOfReply callback

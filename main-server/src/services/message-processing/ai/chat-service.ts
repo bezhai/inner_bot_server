@@ -4,24 +4,26 @@ import { processChatCompletion } from './chat-completion';
 import { formatMessages } from './message-formatter';
 import { ActionHandler, EndOfReplyHandler } from './stream/types';
 
-export async function generateChatResponse(
-  model: string,
-  messages: CommonMessage[],
-  handleAction: ActionHandler,
-  systemPrompt?: string,
-  chatParams?: Partial<CompletionRequest>,
-  endOfReply?: EndOfReplyHandler,
-) {
-  const formattedMessages = formatMessages(messages, systemPrompt);
+export interface ChatResponseOptions {
+  model: string;
+  messages: CommonMessage[];
+  handleAction: ActionHandler;
+  systemPrompt?: string;
+  chatParams?: Partial<CompletionRequest>;
+  endOfReply?: EndOfReplyHandler;
+}
 
-  await processChatCompletion(
-    {
-      model,
+export async function generateChatResponse(options: ChatResponseOptions) {
+  const formattedMessages = formatMessages(options.messages, options.systemPrompt);
+
+  await processChatCompletion({
+    payload: {
+      model: options.model,
       messages: formattedMessages,
       stream: true,
-      ...chatParams,
+      ...options.chatParams,
     },
-    handleAction,
-    endOfReply,
-  );
+    handleAction: options.handleAction,
+    endOfReply: options.endOfReply,
+  });
 }

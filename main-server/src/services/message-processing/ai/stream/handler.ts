@@ -82,13 +82,15 @@ function extractActions(delta: StreamDelta): StreamAction[] {
   return actions;
 }
 
+export interface HandleStreamResponseOptions {
+  response: Response;
+  handleAction: ActionHandler;
+  endOfReply?: EndOfReplyHandler;
+}
+
 // 处理流式响应
-export async function handleStreamResponse(
-  response: Response,
-  handleAction: ActionHandler,
-  endOfReply?: EndOfReplyHandler,
-): Promise<void> {
-  const reader = response.body?.getReader();
+export async function handleStreamResponse(options: HandleStreamResponseOptions): Promise<void> {
+  const reader = options.response.body?.getReader();
   if (!reader) {
     throw new Error('无法读取响应流');
   }
@@ -146,19 +148,19 @@ export async function handleStreamResponse(
                 for (const action of actions) {
                   if (action.type === 'function_call') {
                     // 函数调用立即处理
-                    await handleAction(action);
+                    await options.handleAction(action);
                   } else {
                     // 文本内容定期处理
                     const now = Date.now();
                     if (now - lastProcessTime >= processInterval) {
                       if (fullThinkContent.trim()) {
-                        await handleAction({
+                        await options.handleAction({
                           type: 'think',
                           content: fullThinkContent.trim(),
                         });
                       }
                       if (fullContent.trim()) {
-                        await handleAction({
+                        await options.handleAction({
                           type: 'text',
                           content: fullContent.trim(),
                         });
@@ -178,26 +180,26 @@ export async function handleStreamResponse(
 
     // 处理最后的内容
     if (fullThinkContent.trim()) {
-      await handleAction({
+      await options.handleAction({
         type: 'think',
         content: fullThinkContent.trim(),
       });
     }
     if (fullContent.trim()) {
-      await handleAction({
+      await options.handleAction({
         type: 'text',
         content: fullContent.trim(),
       });
     }
 
     // 调用结束回调
-    if (endOfReply) {
-      await endOfReply(fullContent);
+    if (options.endOfReply) {
+      await options.endOfReply(fullContent);
     }
   } catch (error) {
     console.error('处理流式响应时出错:', error);
-    if (endOfReply) {
-      await endOfReply(null, error instanceof Error ? error : new Error(String(error)));
+    if (options.endOfReply) {
+      await options.endOfReply(null, error instanceof Error ? error : new Error(String(error)));
     }
     throw error;
   }
