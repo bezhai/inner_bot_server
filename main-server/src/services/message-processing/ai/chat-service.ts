@@ -1,7 +1,8 @@
 import { CompletionRequest } from '../../../types/ai';
 import { CommonMessage } from '../../../models/common-message';
-import { processChatCompletion, ActionHandler, EndOfReplyHandler } from './chat-completion';
+import { processChatCompletion } from './chat-completion';
 import { formatMessages } from './message-formatter';
+import { ActionHandler, EndOfReplyHandler } from './stream/types';
 
 export async function generateChatResponse(
   model: string,
@@ -24,6 +25,3 @@ export async function generateChatResponse(
     endOfReply,
   );
 }
-
-export { getAvailableModels } from './chat-completion';
-export type { ActionHandler, EndOfReplyHandler };

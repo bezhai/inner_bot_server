@@ -1,6 +1,6 @@
 import { CompletionRequest } from '../../../types/ai';
 import { ActionHandler, EndOfReplyHandler } from './stream/types';
-import { fetchChatCompletion, fetchAvailableModels } from './http-client';
+import { fetchChatCompletion } from './http-client';
 import { handleCompletion } from './completion-handler';
 
 export async function processChatCompletion(
@@ -20,9 +20,3 @@ export async function processChatCompletion(
     throw error;
   }
 }
-
-export async function getAvailableModels(): Promise<string[]> {
-  return await fetchAvailableModels();
-}
-
-export type { ActionHandler, EndOfReplyHandler };

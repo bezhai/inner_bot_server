@@ -22,8 +22,3 @@ export async function makeCardReply(commonMessage: CommonMessage) {
   });
 }
 
-// Export types and handlers for external use if needed
-// export * from './types';
-// export * from './handlers/prepare-context';
-// export * from './handlers/process-message';
-// export * from './workflow-definition';
