@@ -16,12 +16,7 @@ import {
   getEncryptKey,
 } from "../../../utils/bot/bot-var";
 
-const wsClient = new Lark.WSClient({
-  appId: getBotAppId(),
-  appSecret: getBotAppSecret(),
-  loggerLevel: Lark.LoggerLevel.info,
-});
-
+// Helper function to create void decorators for async handlers
 function createVoidDecorator<T>(
   asyncFn: (params: T) => Promise<void>
 ): (params: T) => void {
@@ -38,39 +33,56 @@ function createVoidDecorator<T>(
   };
 }
 
-export const eventRouter = Lark.adaptKoaRouter(
-  new Lark.EventDispatcher({
+// Create event dispatcher with all handlers
+function createEventDispatcher() {
+  return new Lark.EventDispatcher({
     verificationToken: getVerificationToken(),
     encryptKey: getEncryptKey(),
   }).register({
     "im.message.receive_v1": createVoidDecorator(handleMessageReceive),
     "im.message.recalled_v1": createVoidDecorator(handleMessageRecalled),
     "im.chat.member.user.added_v1": createVoidDecorator(handleChatMemberAdd),
-    "im.chat.member.user.deleted_v1": createVoidDecorator(
-      handleChatMemberRemove
-    ),
-    "im.chat.member.user.withdrawn_v1": createVoidDecorator(
-      handleChatMemberRemove
-    ),
+    "im.chat.member.user.deleted_v1": createVoidDecorator(handleChatMemberRemove),
+    "im.chat.member.user.withdrawn_v1": createVoidDecorator(handleChatMemberRemove),
     "im.chat.member.bot.added_v1": createVoidDecorator(handleChatRobotAdd),
     "im.chat.member.bot.deleted_v1": createVoidDecorator(handleChatRobotRemove),
     "im.message.reaction.created_v1": createVoidDecorator(handleReaction),
     "im.message.reaction.deleted_v1": createVoidDecorator(handleReaction),
-  }),
-  {
-    autoChallenge: true,
-  }
-);
+  });
+}
 
-export const cardActionRouter = Lark.adaptKoaRouter(
-  new Lark.CardActionHandler(
+// Initialize HTTP mode components
+export function initializeHttpMode() {
+  const eventDispatcher = createEventDispatcher();
+  const cardActionHandler = new Lark.CardActionHandler(
     {
       verificationToken: getVerificationToken(),
       encryptKey: getEncryptKey(),
     },
     createVoidDecorator(handleCardAction)
-  ),
-  {
-    autoChallenge: true,
-  }
-);
+  );
+
+  return {
+    eventRouter: Lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }),
+    cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, { autoChallenge: true }),
+  };
+}
+
+// Initialize and start WebSocket mode
+export function startLarkWebSocket() {
+  const eventDispatcher = createEventDispatcher();
+  const wsClient = new Lark.WSClient({
+    appId: getBotAppId(),
+    appSecret: getBotAppSecret(),
+    loggerLevel: Lark.LoggerLevel.info,
+  });
+
+  // Register card action handler for WebSocket mode
+  eventDispatcher.handles.set(
+    "card.action.trigger",
+    createVoidDecorator(handleCardAction)
+  );
+
+  wsClient.start({ eventDispatcher });
+  console.log("Feishu WebSocket client started.");
+}
