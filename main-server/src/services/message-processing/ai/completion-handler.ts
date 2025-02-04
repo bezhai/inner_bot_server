@@ -23,6 +23,6 @@ async function handleNonStreamedCompletion(
   const completion: NonStreamedCompletion = await response.json();
   handleAction({
     type: "text",
-    content: completion.choices[0].message.content
+    content: completion.choices[0].message.content,
   });
 }

@@ -6,7 +6,15 @@
   "type": "commonjs",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "simple-git-hooks"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "src/**/*.ts": ["prettier --write"]
   },
   "author": "Chiwei",
   "license": "MIT",
@@ -15,6 +23,9 @@
     "@types/node": "^18.0.0",
     "@types/uuid": "^10.0.0",
     "clinic": "^13.0.0",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2",
+    "simple-git-hooks": "^2.11.1",
     "ts-node": "^10.0.0",
     "typescript": "^5.6.3"
   },

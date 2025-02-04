@@ -15,7 +15,10 @@ export async function processChatCompletion(
   } catch (error) {
     console.error("Chat completion error:", error);
     if (endOfReply) {
-      await endOfReply(null, error instanceof Error ? error : new Error(String(error)));
+      await endOfReply(
+        null,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
     throw error;
   }

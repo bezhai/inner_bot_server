@@ -1,6 +1,10 @@
 import { CompletionRequest } from "../../../types/ai";
 import { CommonMessage } from "../../../models/common-message";
-import { processChatCompletion, ActionHandler, EndOfReplyHandler } from "./chat-completion";
+import {
+  processChatCompletion,
+  ActionHandler,
+  EndOfReplyHandler,
+} from "./chat-completion";
 import { formatMessages } from "./message-formatter";
 
 export async function generateChatResponse(

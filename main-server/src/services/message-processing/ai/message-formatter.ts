@@ -3,7 +3,10 @@ import { CommonMessage } from "../../../models/common-message";
 import Handlebars from "handlebars";
 import { getCurrentDateTime } from "../../../utils/date-time";
 
-export function formatMessages(messages: CommonMessage[], systemPrompt?: string): Message[] {
+export function formatMessages(
+  messages: CommonMessage[],
+  systemPrompt?: string
+): Message[] {
   const userNameList: string[] = [];
   const formattedMessages: Message[] = messages.map((msg) => {
     if (msg.isRobotMessage) {
@@ -31,7 +34,7 @@ export function formatMessages(messages: CommonMessage[], systemPrompt?: string)
     const compiled = Handlebars.compile(systemPrompt);
     formattedMessages.unshift({
       role: "system",
-      content: compiled({ currDate: date, currTime: time })
+      content: compiled({ currDate: date, currTime: time }),
     });
   }
 

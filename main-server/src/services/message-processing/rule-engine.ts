@@ -5,7 +5,7 @@ import { deleteBotMessage } from "./rules/admin/delete-message";
 import { genHistoryCard } from "./rules/general/gen-history";
 import { checkMeme, genMeme } from "../media/meme/meme";
 import { changeRepeatStatus, repeatMessage } from "./rules/group/repeat-message";
-import { makeCardReply } from "./rules/general/reply-handler";
+import { makeCardReply } from "./rules/general/reply-workflow";
 import {
   ContainKeyword,
   NeedRobotMention,

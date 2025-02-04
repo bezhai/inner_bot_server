@@ -1,5 +1,10 @@
 import { StreamedCompletionChunk } from "../../../../types/ai";
-import { ActionHandler, StreamAction, EndOfReplyHandler, StreamDelta } from "./types";
+import {
+  ActionHandler,
+  StreamAction,
+  EndOfReplyHandler,
+  StreamDelta,
+} from "./types";
 
 // 从chunk中提取delta
 function extractDelta(chunk: StreamedCompletionChunk): StreamDelta | null {
@@ -10,27 +15,30 @@ function extractDelta(chunk: StreamedCompletionChunk): StreamDelta | null {
 }
 
 // 从文本中提取思维链内容
-function extractThinkContent(text: string): { thinkContent: string | null; remainingText: string } {
+function extractThinkContent(text: string): {
+  thinkContent: string | null;
+  remainingText: string;
+} {
   // 处理完整的思维链标签
   const thinkMatch = /^<think>([\s\S]*?)<\/think>/.exec(text);
   if (thinkMatch) {
     return {
       thinkContent: thinkMatch[1].trim(),
-      remainingText: text.substring(thinkMatch[0].length).trim()
+      remainingText: text.substring(thinkMatch[0].length).trim(),
     };
   }
 
   // 处理未闭合的思维链标签
-  if (text.startsWith('<think>')) {
+  if (text.startsWith("<think>")) {
     return {
       thinkContent: text.substring(7).trim(),
-      remainingText: ''
+      remainingText: "",
     };
   }
 
   return {
     thinkContent: null,
-    remainingText: text
+    remainingText: text,
   };
 }
 
@@ -41,26 +49,26 @@ function extractActions(delta: StreamDelta): StreamAction[] {
   // 处理reasoning_content
   if (delta.reasoning_content?.trim()) {
     actions.push({
-      type: 'think',
-      content: delta.reasoning_content.trim()
+      type: "think",
+      content: delta.reasoning_content.trim(),
     });
   }
 
   // 处理content中的思维链和普通文本
   if (delta.content) {
     const { thinkContent, remainingText } = extractThinkContent(delta.content);
-    
+
     if (thinkContent) {
       actions.push({
-        type: 'think',
-        content: thinkContent
+        type: "think",
+        content: thinkContent,
       });
     }
 
     if (remainingText) {
       actions.push({
-        type: 'text',
-        content: remainingText
+        type: "text",
+        content: remainingText,
       });
     }
   }
@@ -68,11 +76,11 @@ function extractActions(delta: StreamDelta): StreamAction[] {
   // 处理函数调用
   if (delta.function_call) {
     actions.push({
-      type: 'function_call',
+      type: "function_call",
       function: {
-        name: delta.function_call.name || '',
-        arguments: delta.function_call.arguments || ''
-      }
+        name: delta.function_call.name || "",
+        arguments: delta.function_call.arguments || "",
+      },
     });
   }
 
@@ -115,13 +123,14 @@ export async function handleStreamResponse(
             try {
               const chunk: StreamedCompletionChunk = JSON.parse(line.trim());
               const delta = extractDelta(chunk);
-              
+
               if (delta) {
                 // 累积内容
                 // 处理普通文本和标签思维链
                 if (delta.content) {
                   fullTaggedContent += delta.content;
-                  const { thinkContent, remainingText } = extractThinkContent(fullTaggedContent);
+                  const { thinkContent, remainingText } =
+                    extractThinkContent(fullTaggedContent);
                   if (thinkContent) {
                     fullThinkContent = thinkContent; // 标签思维链覆盖reasoning_content
                     fullContent = remainingText;
@@ -132,7 +141,8 @@ export async function handleStreamResponse(
 
                 // 处理reasoning_content思维链
                 if (delta.reasoning_content) {
-                  if (!fullTaggedContent.includes('<think>')) { // 只在没有标签思维链时处理
+                  if (!fullTaggedContent.includes("<think>")) {
+                    // 只在没有标签思维链时处理
                     fullThinkContent += delta.reasoning_content; // 累积reasoning_content
                   }
                 }
@@ -140,7 +150,7 @@ export async function handleStreamResponse(
                 // 处理actions
                 const actions = extractActions(delta);
                 for (const action of actions) {
-                  if (action.type === 'function_call') {
+                  if (action.type === "function_call") {
                     // 函数调用立即处理
                     await handleAction(action);
                   } else {
@@ -149,14 +159,14 @@ export async function handleStreamResponse(
                     if (now - lastProcessTime >= processInterval) {
                       if (fullThinkContent.trim()) {
                         await handleAction({
-                          type: 'think',
-                          content: fullThinkContent.trim()
+                          type: "think",
+                          content: fullThinkContent.trim(),
                         });
                       }
                       if (fullContent.trim()) {
                         await handleAction({
-                          type: 'text',
-                          content: fullContent.trim()
+                          type: "text",
+                          content: fullContent.trim(),
                         });
                       }
                       lastProcessTime = now;
@@ -175,14 +185,14 @@ export async function handleStreamResponse(
     // 处理最后的内容
     if (fullThinkContent.trim()) {
       await handleAction({
-        type: 'think',
-        content: fullThinkContent.trim()
+        type: "think",
+        content: fullThinkContent.trim(),
       });
     }
     if (fullContent.trim()) {
       await handleAction({
-        type: 'text',
-        content: fullContent.trim()
+        type: "text",
+        content: fullContent.trim(),
       });
     }
 
@@ -193,7 +203,10 @@ export async function handleStreamResponse(
   } catch (error) {
     console.error("处理流式响应时出错:", error);
     if (endOfReply) {
-      await endOfReply(null, error instanceof Error ? error : new Error(String(error))); 
+      await endOfReply(
+        null,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
     throw error;
   }
