@@ -2,13 +2,10 @@ import { In } from "typeorm";
 import { UserRepository } from "../../../../dal/repositories/repositories";
 import { CommonMessage } from "../../../../models/common-message";
 import { CompletionRequest } from "../../../../types/ai";
-import { CardManager } from "../../../lark/basic/card-manager";
-import { generateChatResponse } from "../../core/chat-service";
 import { get } from "../../../../dal/redis";
 import { searchMessageByRootId } from "../../../message-store/basic";
-import { saveRobotMessage } from "../../../message-store/service";
 
-async function prepareContextMessages(commonMessage: CommonMessage) {
+export async function prepareContextMessages(commonMessage: CommonMessage) {
   const mongoMessages = await searchMessageByRootId(commonMessage.rootId!);
   const contextMessages = mongoMessages.map((msg) =>
     CommonMessage.fromMessage(msg)
@@ -34,7 +31,7 @@ async function prepareContextMessages(commonMessage: CommonMessage) {
   return contextMessages;
 }
 
-async function fetchChatConfig(chatId: string) {
+export async function fetchChatConfig(chatId: string) {
   const [chatModel, defaultPrompt, chatPrompt, modelParams] = await Promise.all(
     [
       get(`lark_chat_model:${chatId}`),
@@ -49,37 +46,4 @@ async function fetchChatConfig(chatId: string) {
     prompt: chatPrompt ?? defaultPrompt ?? "",
     params: JSON.parse(modelParams ?? "{}") as Partial<CompletionRequest>,
   };
-}
-
-export async function makeCardReply(commonMessage: CommonMessage) {
-  // 创建回复卡片
-  const cardManager = await CardManager.createReplyCard();
-  await cardManager.replyToMessage(commonMessage.messageId);
-
-  // 准备上下文消息
-  const contextMessages = await prepareContextMessages(commonMessage);
-
-  // 获取聊天配置
-  const config = await fetchChatConfig(commonMessage.chatId);
-
-  // 保存机器人消息
-  await saveRobotMessage(
-    commonMessage,
-    cardManager.getMessageId()!,
-    cardManager.getCardId()!
-  );
-
-  try {
-    await generateChatResponse(
-      config.model,
-      contextMessages,
-      cardManager.createActionHandler(),
-      config.prompt,
-      config.params,
-      cardManager.closeUpdate.bind(cardManager)
-    );
-  } catch (error) {
-    console.error("回复消息时出错:", error);
-    // Error will be handled by closeUpdate through endOfReply callback
-  }
 }

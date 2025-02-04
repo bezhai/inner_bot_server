@@ -1,7 +1,7 @@
 import { set } from "../../../../dal/redis";
 import { CommonMessage } from "../../../../models/common-message";
 import { replyMessage } from "../../../lark/basic/message";
-import { fetchAvailableModels } from "../../core/http-client";
+import { fetchAvailableModels } from "../../ai/http-client";
 import { combineRule, RegexpMatch } from "../rule";
 
 const commandRules = [

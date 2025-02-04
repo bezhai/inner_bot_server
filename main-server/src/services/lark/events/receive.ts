@@ -1,5 +1,5 @@
 import { LarkReceiveMessage } from "../../../types/lark";
-import { runRules } from "../../chat/match-rule";
+import { runRules } from "../../message-processing/rule-engine";
 import { saveLarkMessage } from "../../message-store/service";
 import { MessageFactory } from "./factory";
 
