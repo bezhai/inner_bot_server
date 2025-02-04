@@ -155,7 +155,7 @@ async function example() {
 }
 
 // Export the example workflow for use in the main application
-export const createCustomerWorkflow = () => {
+const createCustomerWorkflow = () => {
   const engine = new WorkflowEngine<CustomerContext>();
 
   // Register all handlers and conditions

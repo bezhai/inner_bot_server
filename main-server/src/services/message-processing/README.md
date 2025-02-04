@@ -24,19 +24,25 @@ message-processing/
 ## Components
 
 ### AI Module (`ai/`)
+
 Handles all AI-related functionality including:
+
 - Chat completions
 - Stream processing
 - Message formatting
 
 ### Rules Module (`rules/`)
+
 Contains all rule-based message processing logic:
+
 - `admin/`: Administrative commands and moderation
 - `group/`: Group chat specific functionality
 - `general/`: General chat features and responses
 
 ### Rule Engine (`rule-engine.ts`)
+
 Central rule processing system that:
+
 - Matches incoming messages against defined rules
 - Executes appropriate handlers
 - Manages rule priority and fallthrough behavior
