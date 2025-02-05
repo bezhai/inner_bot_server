@@ -91,7 +91,7 @@ const chatRules: RuleConfig[] = [
     comment: 'Meme',
   },
   {
-    rules: [TextMessageLimit, NeedRobotMention],
+    rules: [NeedRobotMention],
     handler: makeCardReply,
     comment: '聊天',
   },

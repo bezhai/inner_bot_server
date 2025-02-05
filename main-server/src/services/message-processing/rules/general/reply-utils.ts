@@ -50,7 +50,7 @@ export async function fetchChatConfig(chatId: string) {
   ]);
 
   return {
-    model: chatModel ?? 'qwen-plus',
+    model: chatModel ?? 'gpt-4o-mini',
     prompt: chatPrompt ?? defaultPrompt ?? '',
     params: JSON.parse(modelParams ?? '{}') as Partial<CompletionRequest>,
   };
