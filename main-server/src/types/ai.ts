@@ -7,17 +7,25 @@ export interface SystemMessage {
   name?: string; // 名称，可选
 }
 
-export interface UserContent {
-  type: 'text' | 'image_url' | 'video'; // 消息的类型
-  text?: string; // 当 type 为 "text" 时，使用 text 字段
-  image_url?: string; // 当 type 为 "image_url" 时，使用 image_url 字段
-  video?: string[]; // 当 type 为 "video" 时，使用 video
+interface TextMessage {
+  type: 'text'; // 消息的类型
+  text: string; // 消息的文本内容
 }
+
+interface ImageMessage {
+  type: 'image_url'; // 消息的类型
+  image_url: {
+    url: string; // 图片的 URL
+    detail?: string; // 图片的详细描述
+  };
+}
+
+export type UserContent = TextMessage | ImageMessage;
 
 // User Message 接口
 export interface UserMessage {
   role: 'user'; // 固定为 "user"
-  content: string | UserContent; // 消息内容
+  content: string | UserContent[]; // 消息内容
   name?: string; // 名称，可选
 }
 

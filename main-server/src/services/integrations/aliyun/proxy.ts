@@ -8,6 +8,7 @@ import {
   UploadImageToLarkDto,
   UploadLarkResp,
 } from '../../../types/pixiv';
+import { LarkFileTransferInfo, LarkFileTransferRequest, LarkFileTransferResponse } from '../../../types/aliyun';
 
 // 生成盐
 const generateSalt = (length: number): string => {
@@ -67,6 +68,28 @@ export async function getPixivImages(params: ListPixivImageDto): Promise<ImageFo
     return response.data.data;
   } catch (error: any) {
     console.error('Error in getPixivImages:', error);
+    throw new Error(error.message || 'Unknown error');
+  }
+}
+
+export async function getLarkFileTransferUrl(params: LarkFileTransferRequest): Promise<LarkFileTransferInfo> {
+  try {
+    const url = `${process.env.PROXY_HOST}/api/v2/lark-file-transfer`;
+
+    // 发送带有身份认证的请求
+    const response = await sendAuthenticatedRequest<BaseResponse<LarkFileTransferResponse>>(url, params);
+
+    // 检查响应的 code 字段
+    if (response.code !== 0) {
+      throw new Error(response.msg);
+    }
+
+    return {
+      file_key: params.file_key,
+      url: response.data.url,
+    };
+  } catch (error: any) {
+    console.error('Error in getLarkFileTransferUrl:', error);
     throw new Error(error.message || 'Unknown error');
   }
 }
