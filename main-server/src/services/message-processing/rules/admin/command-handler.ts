@@ -1,5 +1,5 @@
 import { set } from '../../../../dal/redis';
-import { CommonMessage } from '../../../../models/common-message';
+import { Message } from '../../../../models/message';
 import { replyMessage } from '../../../lark/basic/message';
 import { fetchAvailableModels } from '../../ai/http-client';
 import { combineRule, RegexpMatch } from '../rule';
@@ -7,13 +7,13 @@ import { combineRule, RegexpMatch } from '../rule';
 const commandRules = [
   {
     key: 'chat_id',
-    handler: async (message: CommonMessage) => {
+    handler: async (message: Message) => {
       replyMessage(message.messageId, message.chatId, true);
     },
   },
   {
     key: 'message_id',
-    handler: async (message: CommonMessage) => {
+    handler: async (message: Message) => {
       if (message.parentMessageId) {
         replyMessage(message.messageId, message.parentMessageId, true);
       } else {
@@ -23,7 +23,7 @@ const commandRules = [
   },
   {
     key: 'model',
-    handler: async (message: CommonMessage) => {
+    handler: async (message: Message) => {
       if (!message.senderInfo?.is_admin) {
         replyMessage(message.messageId, '当前用户无权限', true);
         return;

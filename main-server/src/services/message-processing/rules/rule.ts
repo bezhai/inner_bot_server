@@ -1,14 +1,14 @@
 import { LarkBaseChatInfo } from '../../../dal/entities';
-import { CommonMessage } from '../../../models/common-message';
+import { Message } from '../../../models/message';
 import { getBotUnionId } from '../../../utils/bot/bot-var';
 
 // 定义规则函数类型
-type Rule = (message: CommonMessage) => boolean;
+type Rule = (message: Message) => boolean;
 
-type AsyncRule = (message: CommonMessage) => Promise<boolean>;
+type AsyncRule = (message: Message) => Promise<boolean>;
 
 // 定义权限函数类型
-type Handler = (message: CommonMessage) => Promise<void>;
+type Handler = (message: Message) => Promise<void>;
 
 // 组合规则返回的类型
 export interface GenCombineRule {
@@ -41,7 +41,7 @@ export interface GenCombineRule {
  *   { key: "rule2", handler: async (message) => console.log("Handled rule2") },
  * ];
  *
- * const adaptor = (key: string) => (message: CommonMessage) => message.content.includes(key);
+ * const adaptor = (key: string) => (message: Message) => message.text().includes(key);
  *
  * const combined = combineRule(originRules, adaptor);
  *
@@ -78,7 +78,7 @@ export interface RuleConfig {
 // 工具函数：通用规则
 export const NeedRobotMention: Rule = (message) => message.hasMention(getBotUnionId()) || message.isP2P();
 
-export const TextMessageLimit: Rule = (message) => message.isTextMessage();
+export const TextMessageLimit: Rule = (message) => message.isTextOnly();
 
 export const ContainKeyword =
   (keyword: string): Rule =>

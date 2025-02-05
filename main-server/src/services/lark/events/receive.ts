@@ -1,21 +1,25 @@
 import { LarkReceiveMessage } from '../../../types/lark';
+import { Message } from '../../../models/message';
 import { runRules } from '../../message-processing/rule-engine';
 import { saveLarkMessage } from '../../message-store/service';
-import { MessageFactory } from './factory';
+import { MessageTransferer } from './factory';
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
-  const [_, commonMessage] = await Promise.all([
-    saveLarkMessage(params), // 保存消息
-    (async () => {
-      const factory = MessageFactory.create(params);
-      return await factory.build(); // 构建消息
-    })(),
-  ]);
+  try {
+    const [_, message] = await Promise.all([
+      saveLarkMessage(params), // 保存消息
+      (async () => {
+        const builtMessage = await MessageTransferer.transfer(params);
+        if (!builtMessage) {
+          throw new Error('Failed to build message');
+        }
+        return builtMessage;
+      })(),
+    ]);
 
-  if (!commonMessage) {
-    console.error('Unsupported message type or failed to build message.');
-    return;
+    await runRules(message);
+  } catch (error) {
+    console.error('Error handling message receive:', error);
+    // Could add more sophisticated error handling here if needed
   }
-
-  await runRules(commonMessage);
 }

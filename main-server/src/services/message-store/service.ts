@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { LarkReceiveMessage } from '../../types/lark';
 import { LarkRobotMessageMetaInfo, LarkUserMessageMetaInfo } from '../../types/mongo';
 import { saveMessage } from './basic';
-import { CommonMessage } from '../../models/common-message';
+import { Message } from '../../models/message';
 
 export async function saveLarkMessage(params: LarkReceiveMessage) {
   const mongoMessage: LarkUserMessageMetaInfo = {
@@ -25,7 +25,7 @@ export async function saveLarkMessage(params: LarkReceiveMessage) {
   await saveMessage(mongoMessage);
 }
 
-export async function saveRobotMessage(message: CommonMessage, messageId: string, cardId: string) {
+export async function saveRobotMessage(message: Message, messageId: string, cardId: string) {
   const mongoMessage: LarkRobotMessageMetaInfo = {
     message_id: messageId,
     root_id: message.rootId,

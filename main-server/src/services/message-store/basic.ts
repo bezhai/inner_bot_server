@@ -17,11 +17,11 @@ export async function updateRobotMessageText(messageId: string, text: string) {
   return MessageCollection.updateOne({ message_id: messageId }, { robot_text: text });
 }
 
-export async function searchMessageByRootId(rootId: string, messageType = 'text', limit = 7) {
+export async function searchMessageByRootId(rootId: string, messageType = ['text', 'post', 'image'], limit = 7) {
   return MessageCollection.find(
     {
       root_id: rootId,
-      $or: [{ message_type: messageType }, { is_from_robot: true }],
+      $or: [{ message_type: { $in: messageType } }, { is_from_robot: true }],
       is_delete: false,
     },
     { sort: { create_time: -1 }, limit },

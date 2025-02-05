@@ -1,8 +1,8 @@
 import axios, { AxiosResponse } from 'axios';
 import { BaseResponse } from '../../../types/pixiv';
-import { CommonMessage } from '../../../models/common-message';
+import { Message } from '../../../models/message';
 
-export async function checkMeme(message: CommonMessage): Promise<boolean> {
+export async function checkMeme(message: Message): Promise<boolean> {
   try {
     const response: AxiosResponse<BaseResponse<void>> = await axios.post(`${process.env.MEME_HOST}/api/check`, {
       text: message.clearText(),
@@ -16,7 +16,7 @@ export async function checkMeme(message: CommonMessage): Promise<boolean> {
   }
 }
 
-export async function genMeme(message: CommonMessage) {
+export async function genMeme(message: Message) {
   try {
     await axios.post(`${process.env.MEME_HOST}/api/gen`, {
       text: message.clearText(),

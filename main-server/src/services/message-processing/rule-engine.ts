@@ -1,4 +1,4 @@
-import { CommonMessage } from '../../models/common-message';
+import { Message } from '../../models/message';
 import { replyTemplate } from '../lark/basic/message';
 import { CommandHandler, CommandRule } from './rules/admin/command-handler';
 import { deleteBotMessage } from './rules/admin/delete-message';
@@ -18,7 +18,7 @@ import {
 import { sendPhoto } from '../media/photo/send-photo';
 
 // 工具函数：执行规则链
-export async function runRules(message: CommonMessage) {
+export async function runRules(message: Message) {
   for (const { rules, handler, fallthrough, async_rules } of chatRules) {
     // 检查同步规则
     const syncRulesPass = rules.every((rule) => rule(message));

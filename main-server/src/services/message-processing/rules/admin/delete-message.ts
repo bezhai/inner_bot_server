@@ -1,9 +1,9 @@
 import { getMessageInfo, deleteMessage } from '../../../../dal/lark-client';
-import { CommonMessage } from '../../../../models/common-message';
+import { Message } from '../../../../models/message';
 import { getBotAppId } from '../../../../utils/bot/bot-var';
 import { replyMessage } from '../../../lark/basic/message';
 
-export async function deleteBotMessage(message: CommonMessage) {
+export async function deleteBotMessage(message: Message) {
   try {
     if (!message.parentMessageId) {
       throw new Error('没有父消息，无法撤回');

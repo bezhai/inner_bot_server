@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { In } from 'typeorm';
 import { CardHeader, ChartElement, LarkCard, LineChartSpec, PieChartSpec, WordCloudChartSpec } from 'feishu-card';
 import { LarkUserOpenIdRepository } from '../../../../dal/repositories/repositories';
-import { CommonMessage } from '../../../../models/common-message';
+import { Message } from '../../../../models/message';
 import { buildWeeklyWordCloud } from '../../../../utils/text/jieba';
 import { replyCard, searchGroupMessage } from '../../../lark/basic/message';
 
@@ -27,8 +27,8 @@ function splitTime(start: number, end: number, splitSize: number): number[][] {
   return result;
 }
 
-export async function genHistoryCard(commonMessage: CommonMessage) {
-  const messages = await getHistoryMessage(commonMessage.chatId!);
+export async function genHistoryCard(message: Message) {
+  const messages = await getHistoryMessage(message.chatId);
   const { messageCountMap, messagePersonMap, messageByPersonMap } = processMessages(messages);
 
   const activeChart = new ChartElement(
@@ -127,7 +127,7 @@ export async function genHistoryCard(commonMessage: CommonMessage) {
   card.addElements(activeChart, personChart, wordCloudChart);
 
   // 最后需要发送卡片
-  replyCard(commonMessage.messageId, card);
+  replyCard(message.messageId, card);
 }
 
 async function getHistoryMessage(chatId: string) {
@@ -138,7 +138,7 @@ async function getHistoryMessage(chatId: string) {
   const splitSize = 10;
   const timeIntervals = splitTime(startTime, endTime, splitSize); // 返回 [[start1, end1], [start2, end2], ...]
 
-  const messageList: CommonMessage[] = [];
+  const messageList: Message[] = [];
   const promises: Promise<void>[] = [];
 
   for (const [start, end] of timeIntervals) {
@@ -163,14 +163,17 @@ async function getHistoryMessage(chatId: string) {
   return messageList;
 }
 
-function processMessages(messages: CommonMessage[]) {
+function processMessages(messages: Message[]) {
   // 过滤掉机器人消息
   const userMessages = messages.filter((message) => !message.isRobotMessage);
 
   // 按日期分组（MM-DD 格式）
   const messageGroupMap = _.groupBy(
     userMessages,
-    (m) => dayjs(parseInt(m.createTime!)).add(8, 'hour').format('MM-DD'), // 转为东八区时间并格式化
+    (m) =>
+      dayjs(parseInt(m.createTime ?? ''))
+        .add(8, 'hour')
+        .format('MM-DD'), // 转为东八区时间并格式化
   );
 
   const messageCountMap: Record<string, number> = {}; // 每天的消息数量

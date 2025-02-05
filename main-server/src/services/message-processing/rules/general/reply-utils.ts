@@ -1,26 +1,44 @@
 import { In } from 'typeorm';
 import { UserRepository } from '../../../../dal/repositories/repositories';
-import { CommonMessage } from '../../../../models/common-message';
+import { Message } from '../../../../models/message';
 import { CompletionRequest } from '../../../../types/ai';
 import { get } from '../../../../dal/redis';
 import { searchMessageByRootId } from '../../../message-store/basic';
 
-export async function prepareContextMessages(commonMessage: CommonMessage) {
-  const mongoMessages = await searchMessageByRootId(commonMessage.rootId!);
-  const contextMessages = mongoMessages.map((msg) => CommonMessage.fromMessage(msg));
+export interface MessageContext {
+  message: Message;
+  senderName: string | undefined;
+}
 
-  const userIds = contextMessages.filter((msg) => !msg.isRobotMessage).map((msg) => msg.sender);
+export async function prepareContextMessages(message: Message): Promise<Message[]> {
+  const mongoMessages = await searchMessageByRootId(message.rootId!);
+
+  const messages = mongoMessages.map((msg) => Message.fromMessage(msg));
+
+  const userIds = messages.filter((msg) => !msg.isRobotMessage).map((msg) => msg.sender);
 
   if (userIds.length > 0) {
     const userInfos = await UserRepository.findBy({ union_id: In(userIds) });
     const userMap = new Map(userInfos.map((user) => [user.union_id, user.name]));
 
-    contextMessages.forEach((msg) => {
-      msg.senderName = msg.isRobotMessage ? '赤尾小助手' : userMap.get(msg.sender);
+    // Create new messages with sender names in metadata
+    return messages.map((msg) => {
+      const metadata = {
+        ...msg.toJSON().metadata,
+        senderName: msg.isRobotMessage ? '赤尾小助手' : userMap.get(msg.sender),
+      };
+      return new Message(metadata, msg.toJSON().content);
     });
   }
 
-  return contextMessages;
+  // Create new messages with default sender names
+  return messages.map((msg) => {
+    const metadata = {
+      ...msg.toJSON().metadata,
+      senderName: msg.isRobotMessage ? '赤尾小助手' : undefined,
+    };
+    return new Message(metadata, msg.toJSON().content);
+  });
 }
 
 export async function fetchChatConfig(chatId: string) {

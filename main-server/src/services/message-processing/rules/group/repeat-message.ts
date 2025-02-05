@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 import { get, setWithExpire } from '../../../../dal/redis';
 import { BaseChatInfoRepository } from '../../../../dal/repositories/repositories';
-import { CommonMessage } from '../../../../models/common-message';
+import { Message } from '../../../../models/message';
 import { sendMsg, sendSticker, replyMessage } from '../../../lark/basic/message';
 
 interface RepeatMsg {
@@ -52,16 +52,16 @@ async function addRepeatMsgAndCheck(chatId: string, msg: string): Promise<boolea
   return msgBody.repeatTime === 3;
 }
 
-export async function repeatMessage(message: CommonMessage) {
-  if (message.isTextMessage() && (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))) {
+export async function repeatMessage(message: Message) {
+  if (message.isTextOnly() && (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))) {
     sendMsg(message.chatId, message.withMentionText());
-  } else if (message.isStickerMessage() && (await addRepeatMsgAndCheck(message.chatId, message.sticker()))) {
-    sendSticker(message.chatId, message.sticker());
+  } else if (message.isStickerOnly() && (await addRepeatMsgAndCheck(message.chatId, message.stickerKey()))) {
+    sendSticker(message.chatId, message.stickerKey());
   }
 }
 
-export function changeRepeatStatus(open_repeat_message: boolean): (message: CommonMessage) => Promise<void> {
-  return async function (message: CommonMessage) {
+export function changeRepeatStatus(open_repeat_message: boolean): (message: Message) => Promise<void> {
+  return async function (message: Message) {
     BaseChatInfoRepository.update(
       {
         chat_id: message.chatId,

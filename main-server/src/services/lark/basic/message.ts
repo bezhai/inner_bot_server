@@ -1,8 +1,8 @@
 import { LarkCard } from 'feishu-card';
 import { reply, getMessageList, send } from '../../../dal/lark-client';
-import { CommonMessage } from '../../../models/common-message';
 import { PostContent } from '../../../types/content-types';
 import { RateLimiter } from '../../../utils/rate-limiting/rate-limiter';
+import { Message } from '../../../models/message';
 
 export async function sendMsg(chat_id: string, message: string) {
   await send(chat_id, { text: message }, 'text');
@@ -38,7 +38,7 @@ const secondLimiter = new RateLimiter(40, 1000); // 每秒限制40次
 export async function searchGroupMessage(chat_id: string, start_time: number, end_time: number) {
   let pageToken: string | undefined = undefined;
 
-  const messageList: CommonMessage[] = [];
+  const messageList: Message[] = [];
 
   while (true) {
     await minuteLimiter.waitForAllowance(60 * 1000);
@@ -49,7 +49,7 @@ export async function searchGroupMessage(chat_id: string, start_time: number, en
       messageList.push(
         ...res.items
           .filter((item) => !item.deleted && item.msg_type !== 'merge_forward')
-          .map((item) => CommonMessage.fromHistoryMessage(item)),
+          .map((item) => Message.fromHistoryMessage(item)),
       );
       pageToken = res?.page_token;
     }

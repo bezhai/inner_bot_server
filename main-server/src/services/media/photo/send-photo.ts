@@ -1,8 +1,8 @@
-import { CommonMessage } from '../../../models/common-message';
+import { Message } from '../../../models/message';
 import { replyCard, replyMessage } from '../../lark/basic/message';
 import { searchAndBuildPhotoCard } from './photo-card';
 
-export async function sendPhoto(message: CommonMessage) {
+export async function sendPhoto(message: Message) {
   try {
     const tags = message
       .clearText()
