@@ -123,3 +123,15 @@ export async function getMessageList(chatId: string, startTime?: number, endTime
     }),
   );
 }
+
+export async function downloadResource(messageId: string, fileKey: string, type: 'image' | 'file') {
+  return client.im.v1.messageResource.get({
+    path: {
+      message_id: messageId,
+      file_key: fileKey,
+    },
+    params: {
+      type,
+    },
+  });
+}

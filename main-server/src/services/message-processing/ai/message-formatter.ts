@@ -1,13 +1,13 @@
-import { Message as AIMessage, UserContent, UserMessage, SystemMessage, AssistantMessage } from '../../../types/ai';
+import { Message as AIMessage, UserContent, UserMessage, SystemMessage } from '../../../types/ai';
 import { Message } from '../../../models/message';
-import { MessageMetadata } from '../../../models/message-metadata';
 import Handlebars from 'handlebars';
 import { getCurrentDateTime } from '../../../utils/date-time';
-import { getLarkFileTransferUrl } from '../../integrations/aliyun/proxy';
+import { downloadResource } from '../../../dal/lark-client';
+import { streamToBase64 } from '../../../utils/stream-utils';
 
 export function formatMessages(
   messages: Message[],
-  imageKeyMap: Map<string, string>,
+  imageBase64Map: Map<string, string>,
   systemPrompt?: string,
 ): AIMessage[] {
   const userNameList: string[] = [];
@@ -48,11 +48,11 @@ export function formatMessages(
         // Add image content
         const images = msg.imageKeys();
         images.forEach((imageKey) => {
-          if (imageKeyMap.has(imageKey)) {
+          if (imageBase64Map.has(imageKey)) {
             (userMessage.content as UserContent[]).push({
               type: 'image_url',
               image_url: {
-                url: imageKeyMap.get(imageKey)!,
+                url: `data:image/jpeg;base64,${imageBase64Map.get(imageKey)!}`,
               },
             });
           }
@@ -78,29 +78,29 @@ export function formatMessages(
   return formattedMessages;
 }
 
-export async function uploadMessageImages(messages: Message[]): Promise<Map<string, string>> {
-  const imageKeyMap = new Map<string, string>();
+export async function getMessageImagesBase64(messages: Message[]): Promise<Map<string, string>> {
+  const imageBase64Map = new Map<string, string>();
 
-  const transferRequests = messages.flatMap((msg) => {
-    return msg.imageKeys().map((imageKey) => {
-      return {
-        file_key: imageKey,
-        message_id: msg.messageId,
-        destination: '302ai',
-      };
+  const base64Requests = messages.flatMap((msg) => {
+    return msg.imageKeys().map(async (imageKey) => {
+      try {
+        const resource = await downloadResource(msg.messageId, imageKey, 'image');
+        const base64 = await streamToBase64(resource.getReadableStream());
+        return { imageKey, base64 };
+      } catch (error) {
+        console.error(`Failed to get base64 for image ${imageKey}:`, error);
+        return { imageKey, base64: '' };
+      }
     });
   });
 
-  const transferResponses = await Promise.allSettled(
-    transferRequests.map((req) => {
-      return getLarkFileTransferUrl(req);
-    }),
-  );
+  const results = await Promise.allSettled(base64Requests);
 
-  transferResponses.forEach((resp) => {
-    if (resp.status === 'fulfilled') {
-      imageKeyMap.set(resp.value.file_key, resp.value.url);
+  results.forEach((result) => {
+    if (result.status === 'fulfilled' && result.value.base64) {
+      imageBase64Map.set(result.value.imageKey, result.value.base64);
     }
   });
-  return imageKeyMap;
+
+  return imageBase64Map;
 }

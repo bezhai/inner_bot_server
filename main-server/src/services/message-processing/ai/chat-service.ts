@@ -1,7 +1,7 @@
 import { CompletionRequest } from '../../../types/ai';
 import { Message } from '../../../models/message';
 import { processChatCompletion } from './chat-completion';
-import { formatMessages, uploadMessageImages } from './message-formatter';
+import { formatMessages, getMessageImagesBase64 } from './message-formatter';
 import { ActionHandler, EndOfReplyHandler } from './stream/types';
 
 export interface ChatResponseOptions {
@@ -14,8 +14,8 @@ export interface ChatResponseOptions {
 }
 
 export async function generateChatResponse(options: ChatResponseOptions) {
-  const imageKeyMap = await uploadMessageImages(options.messages);
-  const formattedMessages = formatMessages(options.messages, imageKeyMap, options.systemPrompt);
+  const imageBase64Map = await getMessageImagesBase64(options.messages);
+  const formattedMessages = formatMessages(options.messages, imageBase64Map, options.systemPrompt);
 
   await processChatCompletion({
     payload: {
