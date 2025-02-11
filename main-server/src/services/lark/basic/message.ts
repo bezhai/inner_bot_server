@@ -1,4 +1,4 @@
-import { LarkCard } from 'feishu-card';
+import { ValidLarkCard } from 'feishu-card';
 import { reply, getMessageList, send } from '../../../dal/lark-client';
 import { PostContent } from '../../../types/content-types';
 import { RateLimiter } from '../../../utils/rate-limiting/rate-limiter';
@@ -20,11 +20,11 @@ export async function sendPost(chat_id: string, content: PostContent) {
   await send(chat_id, { zh_cn: content }, 'post');
 }
 
-export async function sendCard(chat_id: string, card: LarkCard) {
+export async function sendCard(chat_id: string, card: ValidLarkCard) {
   await send(chat_id, card, 'interactive');
 }
 
-export async function replyCard(messageId: string, card: LarkCard) {
+export async function replyCard(messageId: string, card: ValidLarkCard) {
   await reply(messageId, card, 'interactive');
 }
 

@@ -109,6 +109,3 @@ export class WorkflowEngine<TContext extends BaseContext> {
     return context;
   }
 }
-
-// Re-export types for convenience
-export type { HandlerFunction, ConditionFunction } from './types';

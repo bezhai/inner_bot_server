@@ -1,12 +1,7 @@
-import { LarkCard } from 'feishu-card';
 import { LarkCallbackInfo } from '../../types/lark';
 import { BaseChatInfoRepository } from '../../dal/repositories/repositories';
 import { sendReq } from '../../dal/lark-client';
 import { searchAndBuildPhotoCard } from '../media/photo/photo-card';
-
-interface DelayUpdatedCard extends LarkCard {
-  open_ids?: string[];
-}
 
 export async function handleUpdatePhotoCard(data: LarkCallbackInfo, tags: string[]) {
   try {
@@ -14,8 +9,12 @@ export async function handleUpdatePhotoCard(data: LarkCallbackInfo, tags: string
       where: { chat_id: data.context.open_chat_id },
     });
 
-    const delayCard = (await searchAndBuildPhotoCard(tags, basicChatInfo?.allow_send_limit_photo)) as DelayUpdatedCard;
-    delayCard.open_ids = [data.operator.open_id]; // 非共享卡片需要更新卡片的open_ids
+    const updatedCard = await searchAndBuildPhotoCard(tags, basicChatInfo?.allow_send_limit_photo);
+
+    const delayCard = {
+      open_ids: [data.operator.open_id], // 非共享卡片需要更新卡片的open_ids
+      elements: updatedCard.getElements(),
+    };
 
     await sendReq(
       '/open-apis/interactive/v1/card/update',

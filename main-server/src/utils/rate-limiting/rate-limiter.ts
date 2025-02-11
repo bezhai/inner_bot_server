@@ -31,7 +31,6 @@ export class RateLimiter {
         return true;
       }
 
-      const startTime = Date.now();
       const waitTime = this.queue[0] + this.interval - now;
 
       if (waitTime > timeout) {

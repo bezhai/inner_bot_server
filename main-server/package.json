@@ -14,7 +14,9 @@
     "pre-commit": "npx lint-staged"
   },
   "lint-staged": {
-    "src/**/*.ts": ["prettier --write"]
+    "src/**/*.ts": [
+      "prettier --write"
+    ]
   },
   "author": "Chiwei",
   "license": "MIT",
@@ -38,7 +40,7 @@
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
-    "feishu-card": "^0.1.1",
+    "feishu-card": "^1.0.0-beta.12",
     "handlebars": "^4.7.8",
     "ioredis": "^5.4.1",
     "koa": "^2.15.3",

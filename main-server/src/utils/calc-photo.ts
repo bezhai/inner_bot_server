@@ -12,6 +12,8 @@ function combinations<T>(arr: T[], n: number): T[][] {
   return [...combsWithFirst, ...combsWithoutFirst];
 }
 
+type ValidWeight = 1 | 2 | 3 | 4 | 5;
+
 /**
  * 计算最佳的图片分组方式
  * @param images 要处理的图片数组
@@ -22,13 +24,13 @@ function combinations<T>(arr: T[], n: number): T[][] {
  */
 export function calcBestChunks(images: ImageForLark[]): {
   chunks: [ImageForLark[], ImageForLark[]];
-  weights: [number, number];
+  weights: [ValidWeight, ValidWeight];
 } {
   // 计算每张图片的比率
   const rates = images.map((img) => img.height! / img.width!);
   const sumRate = _.sum(rates);
 
-  const weights: [number, number][] = [
+  const weights: [ValidWeight, ValidWeight][] = [
     [1, 1],
     [5, 4],
     [4, 3],
@@ -37,7 +39,7 @@ export function calcBestChunks(images: ImageForLark[]): {
   ];
 
   let targetRate = 0;
-  let targetWeight: [number, number] = [1, 1];
+  let targetWeight: [ValidWeight, ValidWeight] = [1, 1];
   let targetLeft: ImageForLark[] = [];
   let targetRight: ImageForLark[] = [];
 

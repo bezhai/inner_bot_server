@@ -32,6 +32,7 @@ export async function genHistoryCard(message: Message) {
   const { messageCountMap, messagePersonMap, messageByPersonMap } = processMessages(messages);
 
   const activeChart = new ChartElement(
+    'active_chart',
     new LineChartSpec(
       { text: '活跃大盘' },
       'x',
@@ -58,6 +59,7 @@ export async function genHistoryCard(message: Message) {
 
   // 接着是发言人数的图表
   const personChart = new ChartElement(
+    'person_chart',
     new PieChartSpec({ text: '龙王' }, 'value', 'category', {
       visible: true,
     })
@@ -116,15 +118,18 @@ export async function genHistoryCard(message: Message) {
     .slice(0, 100);
 
   // 构建词云的图表
-  const wordCloudChart = new ChartElement(new WordCloudChartSpec({ text: '本群词云' }, 'name', 'value', 'name'));
+  const wordCloudChart = new ChartElement(
+    'word_cloud_chart',
+    new WordCloudChartSpec({ text: '本群词云' }, 'name', 'value', 'name'),
+  );
 
   // 添加数据到词云
   sortedWordCloudMap.forEach(([name, value]) => {
     wordCloudChart.chart_spec.addWordCloudData(name, value);
   });
 
-  const card = new LarkCard(new CardHeader('七天水群趋势').color('green'));
-  card.addElements(activeChart, personChart, wordCloudChart);
+  const card = new LarkCard().withHeader(new CardHeader('七天水群趋势').color('green'));
+  card.addElement(activeChart, personChart, wordCloudChart);
 
   // 最后需要发送卡片
   replyCard(message.messageId, card);

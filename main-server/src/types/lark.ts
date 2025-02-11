@@ -1,5 +1,3 @@
-import { CardElementV2 } from 'feishu-card';
-
 // 发送者相关信息
 export interface LarkSender {
   sender_id?: {
@@ -147,6 +145,9 @@ export const UpdatePhotoCard = 'update-photo-card';
 export const FetchPhotoDetails = 'fetch-photo-details';
 export const UpdateDailyPhotoCard = 'update-daily-photo-card';
 export const AuthorDownloadRequest = 'author_download';
+export const LarkCardThumbsUp = 'lark_card_thumbs_up';
+export const LarkCardThumbsDown = 'lark_card_thumbs_down';
+export const LarkCardRetry = 'lark_card_retry';
 
 export interface UpdatePhotoCardCallback {
   type: typeof UpdatePhotoCard;
@@ -167,11 +168,26 @@ export interface AuthorDownloadRequestCallback {
   type: typeof AuthorDownloadRequest;
 }
 
+export interface LarkCardThumbsUpCallback {
+  type: typeof LarkCardThumbsUp;
+}
+
+export interface LarkCardThumbsDownCallback {
+  type: typeof LarkCardThumbsDown;
+}
+
+export interface LarkCardRetryCallback {
+  type: typeof LarkCardRetry;
+}
+
 type LarkCallbackValue =
   | UpdatePhotoCardCallback
   | FetchPhotoDetailsCallback
   | UpdateDailyPhotoCardCallback
-  | AuthorDownloadRequestCallback;
+  | AuthorDownloadRequestCallback
+  | LarkCardThumbsUpCallback
+  | LarkCardThumbsDownCallback
+  | LarkCardRetryCallback;
 
 export interface AuthorDownloadFormValue {
   author_id: string;
