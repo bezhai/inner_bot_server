@@ -29,7 +29,7 @@ export function formatMessages(
       };
 
       if (msg.isTextOnly()) {
-        userMessage.content = `${msg.senderName ?? msg.sender}: ${msg.clearText()}`;
+        userMessage.content = `${msg.senderName ?? msg.sender}: ${msg.withMentionText()}`;
       } else {
         // Multi-modal message
         userMessage.content = [];
