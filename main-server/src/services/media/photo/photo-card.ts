@@ -92,7 +92,7 @@ export async function getPhotoDetailCard(pixivAddrs: string[]) {
         .map((tag) => tag.translation)
         .join('、');
 
-      return new ColumnSet('photo_detail_card').addColumns(
+      return new ColumnSet(`photo_detail_card_${index}`).addColumns(
         new Column(`column_info_${index}`)
           .addElements(
             new MarkdownComponent(

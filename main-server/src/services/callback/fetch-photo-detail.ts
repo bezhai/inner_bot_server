@@ -12,14 +12,9 @@ export async function fetchAndSendPhotoDetail(data: LarkCallbackInfo, pixivAddrs
 
     const detailCardPromise = getPhotoDetailCard(pixivAddrs);
 
-    const userInfoPromise = UserRepository.findOne({
-      where: { union_id: data.operator.union_id },
-    });
-
-    const [basicChatInfo, detailCard, userInfo] = await Promise.all([
+    const [basicChatInfo, detailCard] = await Promise.all([
       basicChatInfoPromise,
       detailCardPromise,
-      userInfoPromise,
     ]);
 
     if (basicChatInfo?.chat_mode === 'p2p' || !basicChatInfo) {
