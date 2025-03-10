@@ -25,4 +25,10 @@ export class LarkBaseChatInfo {
 
   @Column({ type: 'boolean', nullable: true })
   allow_send_limit_photo?: boolean; // 是否允许发送限制图片
+  
+  @Column({ type: 'boolean', nullable: true })
+  can_access_restricted_models?: boolean; // 是否可以访问受限模型
+
+  @Column({ type: 'boolean', nullable: true })
+  can_access_restricted_prompts?: boolean; // 是否可以访问受限提示词
 }

@@ -22,5 +22,11 @@ async def ai_chat(request: ChatRequest):
         api_key=model_setting['api_key'])
     
     request.model = model_setting['model'] # 替换为实际的模型名称
+    
+    # o系列模型需要将请求中的system替换为developer
+    if request.model.startswith('o1') or request.model.startswith('o3'):
+        for message in request.messages:
+            if message.role == 'system':
+                message.role = 'developer'
 
     return await client.chat(request)

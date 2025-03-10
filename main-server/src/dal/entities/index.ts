@@ -3,3 +3,8 @@ export * from './LarkGroupMember';
 export * from './LarkBaseChatInfo';
 export * from './LarkGroupChatInfo';
 export * from './LarkCardContext';
+export * from './AIModel';
+export * from './AIPrompt';
+export * from './ChatModelMapping';
+export * from './ChatPromptMapping';
+export * from './UserChatMapping';

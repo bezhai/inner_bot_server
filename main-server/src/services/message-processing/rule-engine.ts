@@ -16,6 +16,7 @@ import {
   WhiteGroupCheck,
 } from './rules/rule';
 import { sendPhoto } from '../media/photo/send-photo';
+import { setAIConfig } from './rules/setting/setting';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {
@@ -75,6 +76,10 @@ const chatRules: RuleConfig[] = [
     handler: changeRepeatStatus(false),
   },
   {
+    rules: [ContainKeyword('模型配置'), TextMessageLimit, NeedRobotMention],
+    handler: setAIConfig,
+  },
+  {
     rules: [CommandRule, TextMessageLimit, NeedRobotMention],
     handler: CommandHandler,
     comment: '指令处理',
@@ -96,3 +101,5 @@ const chatRules: RuleConfig[] = [
     comment: '聊天',
   },
 ];
+
+

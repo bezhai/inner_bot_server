@@ -148,6 +148,7 @@ export const AuthorDownloadRequest = 'author_download';
 export const LarkCardThumbsUp = 'lark_card_thumbs_up';
 export const LarkCardThumbsDown = 'lark_card_thumbs_down';
 export const LarkCardRetry = 'lark_card_retry';
+export const SetLLMConfig = 'set_llm_config';
 
 export interface UpdatePhotoCardCallback {
   type: typeof UpdatePhotoCard;
@@ -180,6 +181,10 @@ export interface LarkCardRetryCallback {
   type: typeof LarkCardRetry;
 }
 
+export interface SetLLMConfigCallback {
+  type: typeof SetLLMConfig;
+}
+
 type LarkCallbackValue =
   | UpdatePhotoCardCallback
   | FetchPhotoDetailsCallback
@@ -187,7 +192,8 @@ type LarkCallbackValue =
   | AuthorDownloadRequestCallback
   | LarkCardThumbsUpCallback
   | LarkCardThumbsDownCallback
-  | LarkCardRetryCallback;
+  | LarkCardRetryCallback
+  | SetLLMConfigCallback;
 
 export interface AuthorDownloadFormValue {
   author_id: string;
@@ -195,12 +201,17 @@ export interface AuthorDownloadFormValue {
   end_index?: string;
 }
 
+export interface SetLLMConfigFormValue {
+  select_model: string;
+  select_prompt: string;
+}
+
 export interface LarkCallbackInfo {
   action: {
     tag: string; // 交互组件的标签
     value?: LarkCallbackValue;
     name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
-    form_value?: AuthorDownloadFormValue; // 表单容器内用户提交的数据
+    form_value?: AuthorDownloadFormValue | SetLLMConfigFormValue; // 表单容器内用户提交的数据
     input_value?: string; // 当输入框组件未内嵌在表单容器中时，用户在输入框中提交的数据
     option?: string; // 当折叠按钮组、下拉选择-单选、人员选择-单选、日期选择器、时间选择器、日期时间选择器组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
     options?: string[]; // 当下拉选择-多选组件和人员选择-多选组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
@@ -242,3 +253,24 @@ export type AddElementType =
   | 'insert_before' // 在目标组件前插入
   | 'insert_after' // 在目标组件后插入
   | 'append'; // 在卡片或容器组件末尾添加
+
+
+export interface LarkEnterChatEvent {
+  event_id?: string;
+  token?: string;
+  create_time?: string;
+  event_type?: string;
+  tenant_key?: string;
+  ts?: string;
+  uuid?: string;
+  type?: string;
+  app_id?: string;
+  chat_id?: string;
+  operator_id?: {
+      union_id?: string;
+      user_id?: string;
+      open_id?: string;
+  };
+  last_message_id?: string;
+  last_message_create_time?: string;
+}

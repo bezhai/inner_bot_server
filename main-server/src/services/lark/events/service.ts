@@ -5,6 +5,7 @@ import { handleChatMemberAdd, handleChatMemberRemove, handleChatRobotAdd, handle
 import { handleCardAction } from './card';
 import { handleReaction } from './reaction';
 import { getBotAppId, getBotAppSecret, getVerificationToken, getEncryptKey } from '../../../utils/bot/bot-var';
+import { handlerEnterChat } from './enter';
 
 // Helper function to create void decorators for async handlers
 function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params: T) => void {
@@ -34,6 +35,7 @@ function createEventDispatcher() {
     'im.chat.member.bot.deleted_v1': createVoidDecorator(handleChatRobotRemove),
     'im.message.reaction.created_v1': createVoidDecorator(handleReaction),
     'im.message.reaction.deleted_v1': createVoidDecorator(handleReaction),
+    'im.chat.access_event.bot_p2p_chat_entered_v1': createVoidDecorator(handlerEnterChat),
   });
 }
 
