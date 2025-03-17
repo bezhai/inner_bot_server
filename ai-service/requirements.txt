@@ -1,5 +1,6 @@
 aioredis==2.0.1
 annotated-types==0.7.0
+asyncpg==0.29.0
 anyio==4.6.2.post1
 async-timeout==5.0.1
 certifi==2024.8.30

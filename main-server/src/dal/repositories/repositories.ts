@@ -9,6 +9,7 @@ import {
   AIPrompt,
   ChatModelMapping,
   ChatPromptMapping,
+  ModelProvider,
 } from '../entities';
 import { LarkUserOpenId } from '../entities/LarkUserOpenId';
 import { UserChatMapping } from '../entities/UserChatMapping';
@@ -26,3 +27,4 @@ export const AIModelRepository = AppDataSource.getRepository(AIModel);
 export const AIPromptRepository = AppDataSource.getRepository(AIPrompt);
 export const ChatModelMappingRepository = AppDataSource.getRepository(ChatModelMapping);
 export const ChatPromptMappingRepository = AppDataSource.getRepository(ChatPromptMapping);
+export const ModelProviderRepository = AppDataSource.getRepository(ModelProvider);

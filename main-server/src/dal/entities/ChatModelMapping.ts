@@ -16,6 +16,15 @@ export class ChatModelMapping {
   @Column({ type: 'boolean', default: true })
   is_active!: boolean; // 映射是否激活
 
+  @Column({ type: 'boolean', default: false })
+  enable_search!: boolean; // 是否启用搜索
+
+  @Column({ type: 'boolean', default: false })
+  enable_multimodal!: boolean; // 是否启用多模态
+
+  @Column({ type: 'boolean', default: false })
+  enable_thinking!: boolean; // 是否启用思维链
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at!: Date; // 创建时间
 

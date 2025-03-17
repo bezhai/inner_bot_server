@@ -8,3 +8,4 @@ export * from './AIPrompt';
 export * from './ChatModelMapping';
 export * from './ChatPromptMapping';
 export * from './UserChatMapping';
+export * from './ModelProvider';
