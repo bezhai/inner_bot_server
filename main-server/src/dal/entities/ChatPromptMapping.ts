@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { LarkBaseChatInfo } from './LarkBaseChatInfo';
 import { AIPrompt } from './AIPrompt';
 
 @Entity('chat_prompt_mapping')
+@Index(['chat_id'], { unique: true })
 export class ChatPromptMapping {
   @PrimaryGeneratedColumn('uuid')
   mapping_id!: string; // 映射ID

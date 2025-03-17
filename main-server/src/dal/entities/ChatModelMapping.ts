@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { LarkBaseChatInfo } from './LarkBaseChatInfo';
 import { AIModel } from './AIModel';
 
 @Entity('chat_model_mapping')
+@Index(['chat_id'], { unique: true })
 export class ChatModelMapping {
   @PrimaryGeneratedColumn('uuid')
   mapping_id!: string; // 映射ID

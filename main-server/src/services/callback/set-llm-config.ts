@@ -1,4 +1,5 @@
-import { ChatModelMappingRepository, ChatPromptMappingRepository } from '../../dal/repositories/repositories';
+import AppDataSource from '../../ormconfig';
+import { ChatModelMapping, ChatPromptMapping } from '../../dal/entities';
 import { LarkCallbackInfo, SetLLMConfigFormValue } from '../../types/lark';
 
 export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetLLMConfigFormValue) {
@@ -7,9 +8,14 @@ export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetL
 
   // TODO: 需要加鉴权
 
-  // 更新模型配置
-  await Promise.all([
-    ChatModelMappingRepository.save({ chat_id: chatId, model_id: select_model }),
-    ChatPromptMappingRepository.save({ chat_id: chatId, prompt_id: select_prompt }),
-  ]);
+  // ... existing code ...
+  await AppDataSource.transaction(async (transactionalEntityManager) => {
+    await transactionalEntityManager
+      .getRepository(ChatModelMapping)
+      .upsert({ chat_id: chatId, model_id: select_model }, { conflictPaths: ['chat_id'] });
+
+    await transactionalEntityManager
+      .getRepository(ChatPromptMapping)
+      .upsert({ chat_id: chatId, prompt_id: select_prompt }, { conflictPaths: ['chat_id'] });
+  });
 }
