@@ -135,14 +135,44 @@ export async function getChatAIConfig(chatId: string): Promise<ChatAIConfig> {
   const fallbackModel = 'gpt-4o-mini';
   const fallbackPrompt = '你是一个有用的AI助手，请回答用户的问题。';
 
+  // 获取模型的默认参数
+  const defaultParams =
+    (modelMapping?.model.default_params as Partial<CompletionRequest>) ??
+    (defaultModel?.default_params as Partial<CompletionRequest>) ??
+    {};
+
+  // 创建参数对象，包括extra_body
+  const params: Partial<CompletionRequest> = {
+    ...defaultParams,
+    extra_body: {
+      ...(defaultParams.extra_body || {}),
+    },
+  };
+
+  // 根据ChatModelMapping中的配置动态写入extra_body
+  if (modelMapping) {
+    // 如果enable_search为true，添加"web-search":true
+    if (modelMapping.enable_search) {
+      params.extra_body = {
+        ...(params.extra_body || {}),
+        'web-search': true,
+      };
+    }
+
+    // 如果enable_multimodal为true，添加"ocr_model":"gpt-4o-mini"
+    if (modelMapping.enable_multimodal) {
+      params.extra_body = {
+        ...(params.extra_body || {}),
+        ocr_model: 'gpt-4o-mini',
+      };
+    }
+  }
+
   // 构建配置
   return {
     model: modelMapping?.model.model_id ?? defaultModel?.model_id ?? fallbackModel,
     prompt: promptMapping?.prompt.content ?? defaultPrompt?.content ?? fallbackPrompt,
-    params:
-      (modelMapping?.model.default_params as Partial<CompletionRequest>) ??
-      (defaultModel?.default_params as Partial<CompletionRequest>) ??
-      {},
+    params: params,
     prompt_id: promptMapping?.prompt.prompt_id ?? defaultPrompt?.prompt_id ?? '',
     model_id: modelMapping?.model.model_id ?? defaultModel?.model_id ?? '',
   };

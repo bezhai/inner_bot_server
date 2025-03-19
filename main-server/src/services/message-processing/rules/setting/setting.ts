@@ -16,7 +16,7 @@ import { replyCard } from '../../../lark/basic/message';
 import { SetLLMConfig } from '../../../../types/lark';
 
 export async function setAIConfig(message: Message): Promise<void> {
-  const { prompt_id, model_id } = await getChatAIConfig(message.chatId);
+  const { prompt_id, model_id, params } = await getChatAIConfig(message.chatId);
 
   const validModels = await getAvailableModelsForChat(message.chatId);
   const validPrompts = await getAvailablePromptsForChat(message.chatId);
@@ -56,6 +56,21 @@ export async function setAIConfig(message: Message): Promise<void> {
               .setName('select_prompt')
               .setInitialOption(prompt_id)
               .setOptions(validPrompts.map((prompt) => new SelectOption(prompt.name, prompt.prompt_id))),
+          )
+          .setVerticalAlign('center'),
+      ),
+      new ColumnSet('column_set_3').addColumns(
+        new Column('column_5')
+          .addElements(new MarkdownComponent('text_3', '联网搜索'))
+          .setVerticalAlign('center')
+          .setWidth('100px'),
+        new Column('column_6')
+          .addElements(
+            new SelectComponent('enable_search')
+              .setPlaceholder(new PlainText('是否开启'))
+              .setName('enable_search')
+              .setInitialOption(params?.extra_body?.['web-search'] ? 'true' : 'false')
+              .setOptions([new SelectOption('开启', 'true'), new SelectOption('关闭', 'false')]),
           )
           .setVerticalAlign('center'),
       ),

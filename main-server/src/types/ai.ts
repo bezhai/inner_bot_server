@@ -97,6 +97,7 @@ export interface StreamedCompletionChunk {
   system_fingerprint?: string | null; // 系统指纹，通常为 null
   usage?: any; // 使用情况，通常为 null
   message?: TempMessage; // 有些模型没有choices, 临时用这个
+  citations?: string[]; // 引用信息，字符串数组形式
 }
 
 export interface TempMessage {

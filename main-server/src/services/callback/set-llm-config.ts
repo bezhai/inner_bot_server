@@ -5,7 +5,7 @@ import { replyMessage } from '../lark/basic/message';
 import { AIModelRepository, AIPromptRepository } from '../../dal/repositories/repositories';
 
 export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetLLMConfigFormValue) {
-  const { select_model, select_prompt } = fromValue;
+  const { select_model, select_prompt, enable_search } = fromValue;
   const chatId = data.context.open_chat_id;
 
   // TODO: 需要加鉴权
@@ -14,7 +14,7 @@ export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetL
   await AppDataSource.transaction(async (transactionalEntityManager) => {
     await transactionalEntityManager
       .getRepository(ChatModelMapping)
-      .upsert({ chat_id: chatId, model_id: select_model }, { conflictPaths: ['chat_id'] });
+      .upsert({ chat_id: chatId, model_id: select_model, enable_search: enable_search === 'true' }, { conflictPaths: ['chat_id'] });
 
     await transactionalEntityManager
       .getRepository(ChatPromptMapping)
@@ -33,5 +33,5 @@ export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetL
     },
   });
 
-  replyMessage(data.context.open_message_id, `设置模型[${model?.name}]和提示词[${prompt?.name}]成功`);
+  replyMessage(data.context.open_message_id, `设置模型${model?.name}和提示词${prompt?.name}成功, 联网搜索功能${enable_search ? '开启' : '关闭'}`);
 }

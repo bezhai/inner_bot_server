@@ -1,6 +1,12 @@
 import { StreamedCompletionChunk } from '../../../../types/ai';
 import { ActionHandler, StreamAction, EndOfReplyHandler, StreamDelta } from './types';
 
+// 定义文本处理器接口
+interface TextProcessor {
+  process(text: string, context?: any): string;
+  priority: number; // 优先级，数字越大优先级越高
+}
+
 // 从chunk中提取delta
 function extractDelta(chunk: StreamedCompletionChunk): StreamDelta | null {
   if (!chunk.choices?.[0]?.delta) {
@@ -35,6 +41,72 @@ function extractThinkContent(text: string): {
     thinkContent: null,
     remainingText: text,
   };
+}
+
+// 思维链处理器实现
+class ThinkContentProcessor implements TextProcessor {
+  priority = 100; // 高优先级
+
+  process(text: string): string {
+    const { thinkContent, remainingText } = extractThinkContent(text);
+    return remainingText || text;
+  }
+}
+
+// 引用标记处理器实现
+class CitationProcessor implements TextProcessor {
+  priority = 90;
+  private citationUrls: string[] = [];
+
+  constructor(citationUrls?: string[]) {
+    if (citationUrls) {
+      this.citationUrls = citationUrls;
+    }
+  }
+
+  setCitationUrls(urls: string[]) {
+    this.citationUrls = urls;
+  }
+
+  process(text: string): string {
+    // 匹配形如[1]、[10]的引用标记
+    return text.replace(/\[(\d+)\]/g, (match, number) => {
+      const index = parseInt(number, 10);
+      // 检查边界（序号从1开始）
+      if (index < 1 || index > this.citationUrls.length) {
+        return match; // 超出边界，保留原样
+      }
+
+      const url = this.citationUrls[index - 1];
+      return `<number_tag background_color='grey-50' font_color='grey-600' url='${url}'>${number}</number_tag>`;
+    });
+  }
+}
+
+// 文本处理器管理器
+class TextProcessorManager {
+  private processors: TextProcessor[] = [];
+
+  // 注册处理器
+  register(processor: TextProcessor): void {
+    this.processors.push(processor);
+    // 按优先级排序
+    this.processors.sort((a, b) => b.priority - a.priority);
+  }
+
+  // 处理文本
+  process(text: string, context?: any): string {
+    let processedText = text;
+    for (const processor of this.processors) {
+      processedText = processor.process(processedText, context);
+    }
+    return processedText;
+  }
+
+  // 获取指定类型的处理器
+  getProcessor<T extends TextProcessor>(type: new (...args: any[]) => T): T | undefined {
+    return this.processors.find(p => p instanceof type) as T | undefined;
+  }
 }
 
 // 从delta中提取actions
@@ -86,6 +158,16 @@ export interface HandleStreamResponseOptions {
   response: Response;
   handleAction: ActionHandler;
   endOfReply?: EndOfReplyHandler;
+  textProcessorManager?: TextProcessorManager; // 新增：文本处理器管理器
+  processingContext?: any; // 新增：处理上下文
+}
+
+// 创建默认的文本处理器管理器
+function createDefaultTextProcessorManager(): TextProcessorManager {
+  const manager = new TextProcessorManager();
+  manager.register(new ThinkContentProcessor());
+  manager.register(new CitationProcessor());
+  return manager;
 }
 
 // 处理流式响应
@@ -95,13 +177,23 @@ export async function handleStreamResponse(options: HandleStreamResponseOptions)
     throw new Error('无法读取响应流');
   }
 
-  let fullContent = ''; // 用于保存普通文本内容
-  let fullThinkContent = ''; // 用于保存reasoning_content思维链内容
-  let fullTaggedContent = ''; // 用于保存带标签的完整内容
+  // 初始化文本处理器管理器（如果未提供）
+  const textProcessorManager = options.textProcessorManager || createDefaultTextProcessorManager();
+
+  // 数据累积状态
+  let fullContent = ''; // 累积的普通文本内容
+  let fullThinkContent = ''; // 累积的思维链内容
+  let fullTaggedContent = ''; // 累积的带标签原始内容
+
+  // 控制发送频率
   let buffer = '';
   let done = false;
-  let lastProcessTime = Date.now();
-  const processInterval = 500; // 500ms
+  let lastUpdateTime = Date.now();
+  const updateInterval = 500; // 更新间隔，毫秒
+
+  // 记录已发送的内容，避免重复
+  let lastSentThinkContent = '';
+  let lastSentTextContent = '';
 
   try {
     while (!done) {
@@ -119,82 +211,72 @@ export async function handleStreamResponse(options: HandleStreamResponseOptions)
           if (line.trim()) {
             try {
               const chunk: StreamedCompletionChunk = JSON.parse(line.trim());
+
+              // 处理可能的引用信息
+              if (chunk.citations) {
+                const citationProcessor = textProcessorManager.getProcessor(CitationProcessor);
+                if (citationProcessor && Array.isArray(chunk.citations)) {
+                  citationProcessor.setCitationUrls(chunk.citations);
+                }
+              }
+
               const delta = extractDelta(chunk);
+              if (!delta) continue;
 
-              if (delta) {
-                // 累积内容
-                // 处理普通文本和标签思维链
-                if (delta.content) {
-                  fullTaggedContent += delta.content;
-                  const { thinkContent, remainingText } = extractThinkContent(fullTaggedContent);
-                  if (thinkContent) {
-                    fullThinkContent = thinkContent; // 标签思维链覆盖reasoning_content
-                    fullContent = remainingText;
-                  } else {
-                    fullContent = fullTaggedContent;
-                  }
-                }
+              // 1. 处理增量内容
+              if (delta.content) {
+                fullTaggedContent += delta.content;
+                const { thinkContent, remainingText } = extractThinkContent(fullTaggedContent);
 
-                // 处理reasoning_content思维链
-                if (delta.reasoning_content) {
-                  if (!fullTaggedContent.includes('<think>')) {
-                    // 只在没有标签思维链时处理
-                    fullThinkContent += delta.reasoning_content; // 累积reasoning_content
-                  }
+                // 找到思维链内容时，更新思维链和普通文本
+                if (thinkContent) {
+                  fullThinkContent = thinkContent; // 覆盖而非累加
+                  fullContent = remainingText;
+                } else {
+                  // 没有思维链标签时，全部当作普通文本
+                  fullContent = fullTaggedContent;
                 }
+              }
 
-                // 处理actions
-                const actions = extractActions(delta);
-                for (const action of actions) {
-                  if (action.type === 'function_call') {
-                    // 函数调用立即处理
-                    await options.handleAction(action);
-                  } else {
-                    // 文本内容定期处理
-                    const now = Date.now();
-                    if (now - lastProcessTime >= processInterval) {
-                      if (fullThinkContent.trim()) {
-                        await options.handleAction({
-                          type: 'think',
-                          content: fullThinkContent.trim(),
-                        });
-                      }
-                      if (fullContent.trim()) {
-                        await options.handleAction({
-                          type: 'text',
-                          content: fullContent.trim(),
-                        });
-                      }
-                      lastProcessTime = now;
-                    }
-                  }
+              // 2. 处理reasoning_content（无标签思维链）
+              if (delta.reasoning_content) {
+                // 只在没有<think>标签时处理reasoning_content
+                if (!fullTaggedContent.includes('<think>')) {
+                  fullThinkContent += delta.reasoning_content;
                 }
+              }
+
+              // 3. 处理来自delta的单条动作（主要是function_call）
+              const actions = extractActions(delta);
+              for (const action of actions) {
+                if (action.type === 'function_call') {
+                  // 函数调用立即处理，不受更新间隔限制
+                  await options.handleAction(action);
+                }
+                // 单条text/think动作不立即处理，等待批量更新
               }
             } catch (err) {
               console.error('解析流式数据时出错:', err, '原始数据', line);
             }
           }
         }
+
+        // 批量更新内容（受更新间隔控制）
+        const now = Date.now();
+        if (now - lastUpdateTime >= updateInterval) {
+          await updateContent();
+          lastUpdateTime = now;
+        }
       }
     }
 
-    // 处理最后的内容
-    if (fullThinkContent.trim()) {
-      await options.handleAction({
-        type: 'think',
-        content: fullThinkContent.trim(),
-      });
-    }
-    if (fullContent.trim()) {
-      await options.handleAction({
-        type: 'text',
-        content: fullContent.trim(),
-      });
-    }
+    // 最终更新，确保所有内容都被发送
+    await updateContent();
 
     // 调用结束回调
     if (options.endOfReply) {
-      await options.endOfReply(fullContent);
+      const finalProcessedContent = textProcessorManager.process(fullContent.trim(), options.processingContext);
+      await options.endOfReply(finalProcessedContent || fullContent);
     }
   } catch (error) {
     console.error('处理流式响应时出错:', error);
@@ -202,5 +284,29 @@ export async function handleStreamResponse(options: HandleStreamResponseOptions)
       await options.endOfReply(null, error instanceof Error ? error : new Error(String(error)));
     }
     throw error;
+  }
+
+  // 更新累积的内容到UI
+  async function updateContent() {
+    // 1. 更新思维链内容（如果有新内容）
+    const currentThinkContent = fullThinkContent.trim();
+    if (currentThinkContent && currentThinkContent !== lastSentThinkContent) {
+      await options.handleAction({
+        type: 'think',
+        content: currentThinkContent,
+      });
+      lastSentThinkContent = currentThinkContent;
+    }
+
+    // 2. 更新文本内容（如果有新内容）
+    const processedContent = textProcessorManager.process(fullContent.trim(), options.processingContext);
+
+    if (processedContent && processedContent !== lastSentTextContent) {
+      await options.handleAction({
+        type: 'text',
+        content: processedContent,
+      });
+      lastSentTextContent = processedContent;
+    }
   }
 }

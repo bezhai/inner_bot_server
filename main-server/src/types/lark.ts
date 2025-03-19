@@ -204,6 +204,7 @@ export interface AuthorDownloadFormValue {
 export interface SetLLMConfigFormValue {
   select_model: string;
   select_prompt: string;
+  enable_search: string;
 }
 
 export interface LarkCallbackInfo {

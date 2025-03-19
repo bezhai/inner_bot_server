@@ -29,15 +29,11 @@ export type StreamAction = ThinkAction | TextAction | FunctionCallAction;
 // Action处理器类型
 export type ActionHandler = (action: StreamAction) => Promise<void>;
 
-// 响应完成回调
-export type EndOfReplyHandler = (fullText: string | null, error?: Error) => Promise<void>;
-
-// 卡片更新接口
-export interface ICardUpdater {
-  updateThinking(content: string): Promise<void>;
-  updateContent(content: string): Promise<void>;
-  closeUpdate(fullText: string | null, error?: Error): Promise<void>;
-}
+// 请求结束回调类型
+export type EndOfReplyHandler = (
+  finalContent: string | null,
+  error?: Error
+) => Promise<void>;
 
 // 流式响应的Delta类型
 export interface StreamDelta {
