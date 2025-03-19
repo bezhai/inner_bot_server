@@ -33,5 +33,5 @@ export async function handleSetLLMConfig(data: LarkCallbackInfo, fromValue: SetL
     },
   });
 
-  replyMessage(data.context.open_message_id, `设置模型${model?.name}和提示词${prompt?.name}成功, 联网搜索功能${enable_search ? '开启' : '关闭'}`);
+  replyMessage(data.context.open_message_id, `设置模型${model?.name}和提示词${prompt?.name}成功, 联网搜索功能${enable_search === 'true' ? '开启' : '关闭'}`);
 }
