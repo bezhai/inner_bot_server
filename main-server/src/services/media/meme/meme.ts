@@ -2,8 +2,9 @@ import axios, { AxiosResponse } from 'axios';
 import { Message } from '../../../models/message';
 import { Meme } from '../../../types/meme';
 import { Readable } from 'stream';
-import { uploadFile, reply, downloadResource } from '../../../dal/lark-client';
+import { uploadFile, downloadResource } from '../../../dal/lark-client';
 import FormData from 'form-data';
+import { replyImage, replyMessage } from '../../lark/basic/message';
 
 export async function checkMeme(message: Message): Promise<boolean> {
   try {
@@ -65,7 +66,25 @@ async function generateMemeImage(
         ...formData.getHeaders(),
       },
       responseType: 'arraybuffer',
+      validateStatus: function (_) {
+        return true; // 允许所有状态码，不抛出错误
+      },
     });
+
+    // 检查状态码
+    if (response.status !== 200) {
+      // 尝试解析响应中的detail字段
+      let errorMessage = '生成表情包失败';
+      try {
+        const errorResponse = JSON.parse(Buffer.from(response.data).toString());
+        if (errorResponse.detail) {
+          errorMessage = errorResponse.detail;
+        }
+      } catch (parseError) {
+        console.error('解析错误响应失败:', parseError);
+      }
+      throw new Error(errorMessage);
+    }
 
     // 将响应数据转换为可读流
     const buffer = Buffer.from(response.data);
@@ -82,7 +101,7 @@ async function generateMemeImage(
     throw new Error('上传图片失败');
   } catch (error: any) {
     console.error('生成表情包错误:', error);
-    throw new Error(`生成表情包失败: ${error.message}`);
+    throw new Error(error.message || '生成表情包失败');
   }
 }
 
@@ -134,8 +153,10 @@ export async function genMeme(message: Message) {
     const imageKey = await generateMemeImage(texts, meme.key, messageImages, args);
 
     // 使用项目中的回复函数发送图片
-    await reply(message.messageId, { image_key: imageKey }, 'image');
+    await replyImage(message.messageId, imageKey);
   } catch (error: any) {
     console.error('Error in req:', error);
+    // 向用户回复错误信息
+    await replyMessage(message.messageId, error.message || '生成表情包失败，原因未知');
   }
 }
