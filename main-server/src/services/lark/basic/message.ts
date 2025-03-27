@@ -28,6 +28,10 @@ export async function replyCard(messageId: string, card: ValidLarkCard) {
   await reply(messageId, card, 'interactive');
 }
 
+export async function replyImage(messageId: string, image_key: string) {
+  await reply(messageId, { image_key }, 'image');
+}
+
 export async function replyTemplate(messageId: string, template_id: string, template_variable: any) {
   await reply(messageId, { type: 'template', data: { template_id, template_variable } }, 'interactive');
 }

@@ -1,5 +1,7 @@
 import * as lark from '@larksuiteoapi/node-sdk';
 import { getBotAppId, getBotAppSecret } from '../utils/bot/bot-var';
+import { Readable } from 'stream';
+import { ReadStream } from 'fs';
 
 const client = new lark.Client({
   appId: getBotAppId(),
@@ -132,6 +134,15 @@ export async function downloadResource(messageId: string, fileKey: string, type:
     },
     params: {
       type,
+    },
+  });
+}
+
+export async function uploadFile(fileStream: Readable) {
+  return client.im.v1.image.create({
+    data: {
+      image: fileStream as ReadStream,
+      image_type: 'message',
     },
   });
 }

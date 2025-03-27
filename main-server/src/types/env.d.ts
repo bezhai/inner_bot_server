@@ -26,6 +26,7 @@ declare namespace NodeJS {
     HTTP_SECRET: string;
     PROXY_HOST: string;
     MEME_HOST: string;
+    MEME_PORT: string;
     USE_WEBSOCKET: string; // true or false
   }
 }
