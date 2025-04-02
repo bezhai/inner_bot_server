@@ -19,6 +19,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY --from=builder /app /app
 
+# 创建日志目录
+RUN mkdir -p /var/log/ai-service && \
+    chmod 777 /var/log/ai-service
+
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config", "app/logging_config.json"]

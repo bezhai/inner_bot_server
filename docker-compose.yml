@@ -9,6 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - .env:/app/.env
+      - ai_service_logs:/var/log/ai-service
     restart: always
 
   # MongoDB 服务
@@ -34,6 +35,8 @@ services:
       - PORT=3000
     env_file:
       - .env
+    volumes:
+      - main_server_logs:/var/log/main-server
     restart: always
 
   # Redis 服务
@@ -66,7 +69,60 @@ services:
     ports:
       - "2233:2233"
 
+  # Elasticsearch 服务
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - xpack.security.enrollment.enabled=true
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    restart: always
+
+  # Logstash 服务
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.12.2
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    ports:
+      - "5044:5044/tcp"
+      - "5000:5000/tcp"
+      - "9600:9600"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ai_service_logs:/var/log/ai-service
+      - main_server_logs:/var/log/main-server
+    depends_on:
+      - elasticsearch
+    restart: always
+
+  # Kibana 服务
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    restart: always
+
 volumes:
   redis-data:
   mongo_data:
   postgres_data:
+  elasticsearch_data:
+  ai_service_logs:
+  main_server_logs:

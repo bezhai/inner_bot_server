@@ -22,4 +22,8 @@ COPY --from=builder /usr/src/app/node_modules ./node_modules
 
 COPY package*.json ./
 
+# 创建日志目录
+RUN mkdir -p /var/log/main-server && \
+    chmod 777 /var/log/main-server
+
 CMD ["node", "dist/index.js"]
