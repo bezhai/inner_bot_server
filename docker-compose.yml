@@ -114,17 +114,28 @@ services:
       - elasticsearch
     restart: always
 
+  # Elasticsearch 初始化
+  es-init:
+    image: curlimages/curl:latest
+    volumes:
+      - ./elasticsearch/init:/scripts
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    command: ["/bin/sh", "/scripts/init-kibana.sh"]
+    depends_on:
+      - elasticsearch
+
   # Kibana 服务
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.2
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - ELASTICSEARCH_SERVICEACCOUNT_TOKEN=${KIBANA_SERVICE_TOKEN}
     ports:
       - "5601:5601"
     depends_on:
       - elasticsearch
+      - es-init
     restart: always
 
 volumes:
