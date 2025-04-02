@@ -99,6 +99,8 @@ services:
     image: docker.elastic.co/logstash/logstash:8.12.2
     environment:
       - LS_JAVA_OPTS=-Xms1g -Xmx1g
+    env_file:
+      - .env
     ports:
       - "5044:5044/tcp"
       - "5000:5000/tcp"
