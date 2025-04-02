@@ -15,8 +15,8 @@ curl -X POST "http://elasticsearch:9200/_security/service/elastic/kibana/credent
       "name": "kibana_token"
     }' | tee /tmp/token_response.json
 
-# 提取 token 并设置环境变量
-export KIBANA_SERVICE_TOKEN=$(cat /tmp/token_response.json | jq -r '.token.value')
+# 提取 token 并写入共享文件
+cat /tmp/token_response.json | jq -r '.token.value' > /shared/kibana_token
 
 # 清理临时文件
 rm /tmp/token_response.json 
