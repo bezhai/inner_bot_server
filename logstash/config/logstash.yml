@@ -2,13 +2,8 @@ http.host: "0.0.0.0"
 path.config: /usr/share/logstash/pipeline
 path.logs: /var/log/logstash
 
-# X-Pack 安全设置
+# X-Pack 监控设置
 xpack.monitoring.enabled: true
 xpack.monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
 xpack.monitoring.elasticsearch.username: elastic
-xpack.monitoring.elasticsearch.password: ${ELASTIC_PASSWORD}
-xpack.security.enabled: true
-xpack.security.transport.ssl.enabled: true
-xpack.security.transport.ssl.verification_mode: certificate
-xpack.security.transport.ssl.keystore.path: /usr/share/logstash/config/logstash.keystore
-xpack.security.transport.ssl.truststore.path: /usr/share/logstash/config/logstash.truststore 
+xpack.monitoring.elasticsearch.password: ${ELASTIC_PASSWORD} 
