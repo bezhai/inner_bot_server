@@ -98,8 +98,6 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.12.2
     environment:
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - xpack.security.enabled=true
       - LS_JAVA_OPTS=-Xms1g -Xmx1g
     ports:
       - "5044:5044/tcp"
