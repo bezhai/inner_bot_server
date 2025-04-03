@@ -71,32 +71,22 @@ services:
 
   # Elasticsearch 服务
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.13
     environment:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - xpack.security.enabled=true
-      - xpack.security.enrollment.enabled=true
-      - network.host=0.0.0.0
       - bootstrap.memory_lock=true
-      - cluster.routing.allocation.disk.threshold_enabled=false
     ports:
       - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
     restart: always
 
   # Logstash 服务
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.12.2
+    image: docker.elastic.co/logstash/logstash:7.17.13
     environment:
       - LS_JAVA_OPTS=-Xms1g -Xmx1g
     env_file:
@@ -116,18 +106,13 @@ services:
 
   # Kibana 服务
   kibana:
-    image: docker.elastic.co/kibana/kibana:8.12.2
+    image: docker.elastic.co/kibana/kibana:7.17.13
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - XPACK_SECURITY_ENCRYPTIONKEY=encryptionkey12345678909876543210
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-    volumes:
-      - ./kibana-init.sh:/usr/local/bin/kibana-init.sh:ro
-      - kibana_config:/usr/share/kibana/config
+      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
     ports:
       - "5601:5601"
-    user: root
-    command: ["/bin/sh", "/usr/local/bin/kibana-init.sh"]
     depends_on:
       - elasticsearch
     restart: always
