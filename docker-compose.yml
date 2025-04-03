@@ -94,19 +94,6 @@ services:
         hard: 65536
     restart: always
 
-  # Elasticsearch 初始化
-  es-init:
-    image: curlimages/curl:latest
-    volumes:
-      - ${PWD}/elasticsearch/init:/scripts
-      - shared_data:/shared
-    environment:
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-    user: root
-    command: ["/bin/sh", "-c", "chmod +x /scripts/init-kibana.sh && /scripts/init-kibana.sh"]
-    depends_on:
-      - elasticsearch
-
   # Logstash 服务
   logstash:
     image: docker.elastic.co/logstash/logstash:8.12.2
@@ -132,18 +119,18 @@ services:
     image: docker.elastic.co/kibana/kibana:8.12.2
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    volumes:
-      - shared_data:/shared
-    command: >
-      /bin/sh -c "
-        while [ ! -f /shared/kibana_token ]; do sleep 1; done;
-        export ELASTICSEARCH_SERVICEACCOUNT_TOKEN=$$(cat /shared/kibana_token);
-        /usr/local/bin/kibana-docker"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     ports:
       - "5601:5601"
+    command: >
+      /bin/sh -c "
+        until curl -s http://elasticsearch:9200 >/dev/null; do echo 'Waiting for Elasticsearch...'; sleep 5; done;
+        TOKEN=$$(curl -s -X POST 'http://elasticsearch:9200/_security/service/elastic/kibana/credential/token' -u elastic:${ELASTIC_PASSWORD} -H 'Content-Type: application/json' | grep -o '\"value\":\"[^\"]*\"' | cut -d'\"' -f4);
+        echo $$TOKEN > /usr/share/kibana/data/token;
+        export ELASTICSEARCH_SERVICEACCOUNT_TOKEN=$$TOKEN;
+        /usr/local/bin/kibana-docker"
     depends_on:
       - elasticsearch
-      - es-init
     restart: always
 
 volumes:
@@ -153,4 +140,3 @@ volumes:
   elasticsearch_data:
   ai_service_logs:
   main_server_logs:
-  shared_data:
