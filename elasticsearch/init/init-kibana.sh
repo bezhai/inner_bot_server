@@ -11,9 +11,7 @@ done
 curl -X POST "http://elasticsearch:9200/_security/service/elastic/kibana/credential/token" \
     -H "Content-Type: application/json" \
     -u elastic:${ELASTIC_PASSWORD} \
-    -d '{
-      "name": "kibana_token"
-    }' | tee /tmp/token_response.json
+    -o /tmp/token_response.json
 
 # 提取 token 并写入共享文件
 cat /tmp/token_response.json | jq -r '.token.value' > /shared/kibana_token

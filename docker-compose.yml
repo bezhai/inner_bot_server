@@ -98,11 +98,12 @@ services:
   es-init:
     image: curlimages/curl:latest
     volumes:
-      - ./elasticsearch/init:/scripts
+      - ./elasticsearch/init:/scripts:ro
       - shared_data:/shared
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-    command: ["/bin/sh", "/scripts/init-kibana.sh"]
+    user: root
+    command: ["/bin/sh", "-c", "chmod +x /scripts/init-kibana.sh && /scripts/init-kibana.sh"]
     depends_on:
       - elasticsearch
 
