@@ -33,6 +33,9 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - ENABLE_FILE_LOGGING=true
+      - LOG_LEVEL=info
+      - LOG_DIR=/var/log/main-server
     env_file:
       - .env
     volumes:
@@ -125,4 +128,3 @@ volumes:
   elasticsearch_data:
   ai_service_logs:
   main_server_logs:
-  kibana_config:

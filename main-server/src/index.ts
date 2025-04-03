@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import './utils/logger';
 import { botInitialization } from './services/initialize/main';
 import { mongoInitPromise } from './dal/mongo/client';
 import AppDataSource from './ormconfig';

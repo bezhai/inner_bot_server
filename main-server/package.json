@@ -32,22 +32,24 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
-    "@koa/router": "^13.1.0",
-    "@larksuiteoapi/node-sdk": "^1.41.0",
+    "@koa/router": "^12.0.1",
+    "@larksuiteoapi/node-sdk": "^1.23.0",
     "@types/koa": "^2.15.0",
     "@types/koa__router": "^12.0.4",
     "async-mutex": "^0.5.0",
-    "axios": "^1.7.9",
+    "axios": "^1.6.2",
     "dayjs": "^1.11.13",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.3.1",
     "feishu-card": "^1.0.0-beta.12",
     "handlebars": "^4.7.8",
-    "ioredis": "^5.4.1",
-    "koa": "^2.15.3",
+    "ioredis": "^5.3.2",
+    "koa": "^2.14.2",
     "koa-body": "^6.0.1",
-    "mongodb": "^5.8.0",
-    "pg": "^8.13.1",
+    "mongodb": "^6.3.0",
+    "pg": "^8.11.3",
+    "reflect-metadata": "^0.2.1",
     "saslprep": "^1.0.3",
-    "typeorm": "^0.3.20"
+    "typeorm": "^0.3.17",
+    "winston": "^3.11.0"
   }
 }

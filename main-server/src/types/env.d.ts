@@ -28,5 +28,8 @@ declare namespace NodeJS {
     MEME_HOST: string;
     MEME_PORT: string;
     USE_WEBSOCKET: string; // true or false
+    ENABLE_FILE_LOGGING: string; // true or false
+    LOG_LEVEL: string; // info, warn, error, debug
+    LOG_DIR: string; // /var/log/main-server
   }
 }
