@@ -123,12 +123,13 @@ services:
     ports:
       - "5601:5601"
     command: >
-      /bin/sh -c "
-        until curl -s http://elasticsearch:9200 >/dev/null; do echo 'Waiting for Elasticsearch...'; sleep 5; done;
-        TOKEN=$$(curl -s -X POST 'http://elasticsearch:9200/_security/service/elastic/kibana/credential/token' -u elastic:${ELASTIC_PASSWORD} -H 'Content-Type: application/json' | grep -o '\"value\":\"[^\"]*\"' | cut -d'\"' -f4);
-        echo $$TOKEN > /usr/share/kibana/data/token;
-        export ELASTICSEARCH_SERVICEACCOUNT_TOKEN=$$TOKEN;
-        /usr/local/bin/kibana-docker"
+      sh -c '
+        until curl -s http://elasticsearch:9200 >/dev/null; do echo "Waiting for Elasticsearch..."; sleep 5; done;
+        TOKEN=$(curl -s -X POST "http://elasticsearch:9200/_security/service/elastic/kibana/credential/token" -u elastic:${ELASTIC_PASSWORD} -H "Content-Type: application/json" | grep -o "\"value\":\"[^\"]*\"" | cut -d"\"" -f4);
+        echo "$TOKEN" > /usr/share/kibana/data/token;
+        export ELASTICSEARCH_SERVICEACCOUNT_TOKEN="$TOKEN";
+        /usr/local/bin/kibana-docker
+      '
     depends_on:
       - elasticsearch
     restart: always
