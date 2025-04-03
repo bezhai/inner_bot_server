@@ -98,7 +98,7 @@ services:
   es-init:
     image: curlimages/curl:latest
     volumes:
-      - ./elasticsearch/init:/scripts
+      - ${PWD}/elasticsearch/init:/scripts
       - shared_data:/shared
     environment:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
