@@ -78,6 +78,7 @@ services:
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - xpack.security.enabled=true
       - bootstrap.memory_lock=true
+      - ingest.geoip.downloader.enabled=false
     ports:
       - "9200:9200"
     volumes:
