@@ -120,10 +120,13 @@ services:
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - XPACK_SECURITY_ENCRYPTIONKEY=encryptionkey12345678909876543210
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     volumes:
       - ./kibana-init.sh:/usr/local/bin/kibana-init.sh:ro
+      - kibana_config:/usr/share/kibana/config
     ports:
       - "5601:5601"
+    user: root
     command: ["/bin/sh", "/usr/local/bin/kibana-init.sh"]
     depends_on:
       - elasticsearch
@@ -136,3 +139,4 @@ volumes:
   elasticsearch_data:
   ai_service_logs:
   main_server_logs:
+  kibana_config:
