@@ -30,6 +30,22 @@
             ],
             "level": "INFO",
             "propagate": true
+        },
+        "uvicorn": {
+            "handlers": [
+                "console",
+                "file"
+            ],
+            "level": "INFO",
+            "propagate": false
+        },
+        "uvicorn.error": {
+            "level": "INFO",
+            "handlers": [
+                "console",
+                "file"
+            ],
+            "propagate": false
         }
     }
 }
