@@ -7,11 +7,9 @@ from app.split_word import extract_batch, BatchExtractRequest
 
 app = FastAPI()
 
-
 @app.get("/")
 async def root():
     return {"message": "FastAPI is running!"}
-
 
 @app.post("/chat")
 async def chat_completion(request: ChatRequest):

@@ -6,6 +6,9 @@ import abc
 import threading
 from typing import Any
 from app.config import settings
+import logging
+import time
+from httpx import AsyncClient, Timeout
 
 
 from typing import (
@@ -311,37 +314,58 @@ class OpenAIChatModel(BaseChatModel):
             api_key=api_key,
             base_url=base_url,
         )
-
+        self.logger = logging.getLogger(__name__)
 
     async def chat(self, chat_request: ChatRequest) -> Any:
-        """
-        调用 OpenAI 模型进行对话。
-        支持流式响应和超时控制。
-        """
-        # 如果没有设置timeout，使用默认的stream_timeout
+        start_time = time.time()
+        self.logger.info(f"Starting chat request to {self.client.base_url}")
+        
         if chat_request.stream and not chat_request.timeout:
             chat_request.timeout = settings.stream_timeout
-                
+            
         try:
+            self.logger.info(f"Request parameters: {chat_request.model_dump(exclude={'api_key'})}")
+            
+            # 记录请求发送前的时间
+            request_start = time.time()
             completion = await self.client.chat.completions.create(**chat_request.model_dump())
+            request_end = time.time()
+            
+            # 记录请求发送和接收的时间
+            self.logger.info(f"Request sent in {request_end - request_start:.2f} seconds")
             
             if chat_request.stream:       
                 async def event_generator():
                     try:
+                        first_chunk_time = None
                         async for chunk in completion:
+                            if first_chunk_time is None:
+                                first_chunk_time = time.time()
+                                self.logger.info(f"First chunk received in {first_chunk_time - request_end:.2f} seconds")
+                            
+                            self.logger.debug(f"Received chunk: {chunk.model_dump()}")
                             yield json.dumps(chunk.model_dump()) + "\n"
                     except asyncio.TimeoutError:
+                        self.logger.error(f"Stream timeout after {chat_request.timeout} seconds")
                         yield json.dumps({"error": "Stream timeout after {} seconds".format(chat_request.timeout)}) + "\n"
                         return
                     except Exception as e:
+                        self.logger.error(f"Stream error: {str(e)}")
                         yield json.dumps({"error": str(e)}) + "\n"
                         return
                 return event_generator()
             else:
+                end_time = time.time()
+                self.logger.info(f"Request completed in {end_time - start_time:.2f} seconds")
+                self.logger.info(f"Response received in {end_time - request_end:.2f} seconds")
                 return completion
         except asyncio.TimeoutError:
+            self.logger.error(f"Request timeout after {chat_request.timeout} seconds")
             raise Exception("Request timeout after {} seconds".format(chat_request.timeout))
-        
+        except Exception as e:
+            self.logger.error(f"Request failed: {str(e)}")
+            raise
+
 
 class ChatModelFactory:
     """
