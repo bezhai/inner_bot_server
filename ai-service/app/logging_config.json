@@ -19,7 +19,9 @@
             "formatter": "json",
             "filename": "/var/log/ai-service/app.log",
             "maxBytes": 10485760,
-            "backupCount": 5
+            "backupCount": 5,
+            "mode": "a",
+            "encoding": "utf-8"
         }
     },
     "loggers": {
