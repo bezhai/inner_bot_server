@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+## Final Step
+- Summarize the changes and run git commit. Make sure to include a clear commit message.
