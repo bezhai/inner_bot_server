@@ -196,6 +196,19 @@ async function getHistoryMessage(chatId: string) {
   return messageList;
 }
 
+// 计算压抑分
+// 文本中每出现一个“压抑”加1分
+function calcRepressionScore(content: string) {
+  const repressionCount = countNonOverlappingSubstring(content, '压抑');
+  return repressionCount;
+}
+
+function countNonOverlappingSubstring(str: string, substring: string) {
+  const regex = new RegExp(substring, 'g');
+  const matches = str.match(regex);
+  return matches ? matches.length : 0;
+}
+
 function processMessages(messages: Message[]) {
   // 过滤掉机器人消息
   const userMessages = messages.filter((message) => !message.isRobotMessage);
@@ -228,9 +241,7 @@ function processMessages(messages: Message[]) {
       const userId = message.sender;
       messageByPersonMap[userId] = (messageByPersonMap[userId] || 0) + 1;
 
-      if (message.text().includes('压抑')) {
-        repressionMap[userId] = (repressionMap[userId] || 0) + 1;
-      }
+      repressionMap[userId] = (repressionMap[userId] || 0) + calcRepressionScore(message.text());
     }
   }
 
