@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import _ from 'lodash';
 import { In } from 'typeorm';
-import { CardHeader, ChartElement, LarkCard, LineChartSpec, PieChartSpec, WordCloudChartSpec } from 'feishu-card';
+import { CardHeader, ChartElement, LarkCard, LineChartSpec, MarkdownComponent, PieChartSpec, WordCloudChartSpec } from 'feishu-card';
 import { LarkUserOpenIdRepository } from '../../../../dal/repositories/repositories';
 import { Message } from '../../../../models/message';
 import { buildWeeklyWordCloud } from '../../../../utils/text/jieba';
@@ -29,7 +29,7 @@ function splitTime(start: number, end: number, splitSize: number): number[][] {
 
 export async function genHistoryCard(message: Message) {
   const messages = await getHistoryMessage(message.chatId);
-  const { messageCountMap, messagePersonMap, messageByPersonMap } = processMessages(messages);
+  const { messageCountMap, messagePersonMap, messageByPersonMap, repressionMap } = processMessages(messages);
 
   const activeChart = new ChartElement(
     'active_chart',
@@ -131,8 +131,36 @@ export async function genHistoryCard(message: Message) {
   const card = new LarkCard().withHeader(new CardHeader('七天水群趋势').color('green'));
   card.addElement(activeChart, personChart, wordCloudChart);
 
+  if (message.chatId === 'oc_a44255e98af05f1359aeb29eeb503536') {
+    // 压抑群hardcode加一下压抑榜
+
+    const repressionTitle = new MarkdownComponent('repression_title', '**压抑榜**');
+
+    const repressionList = Object.entries(repressionMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([userId, count], index) => `[**压抑分**：${count}] <at id=${userId}></at> ${getRankEmoji(index)}`);
+
+    const repressionMarkdownComponent = new MarkdownComponent('repression', repressionList.join('\n'));
+
+    card.addElement(repressionTitle, repressionMarkdownComponent);
+  }
+
   // 最后需要发送卡片
   replyCard(message.messageId, card);
+}
+
+function getRankEmoji(index: number) {
+  switch (index) {
+    case 0:
+      return '🥇';
+    case 1:
+      return '🥈';
+    case 2:
+      return '🥉';
+    default:
+      return '';
+  }
 }
 
 async function getHistoryMessage(chatId: string) {
@@ -184,6 +212,7 @@ function processMessages(messages: Message[]) {
   const messageCountMap: Record<string, number> = {}; // 每天的消息数量
   const messagePersonMap: Record<string, number> = {}; // 每天发言人数
   const messageByPersonMap: Record<string, number> = {}; // 按人统计的消息数量
+  const repressionMap: Record<string, number> = {}; // 按人统计的压抑次数
 
   // 遍历分组后的消息
   for (const [date, messagesByDay] of Object.entries(messageGroupMap)) {
@@ -198,6 +227,10 @@ function processMessages(messages: Message[]) {
     for (const message of messagesByDay) {
       const userId = message.sender;
       messageByPersonMap[userId] = (messageByPersonMap[userId] || 0) + 1;
+
+      if (message.text().includes('压抑')) {
+        repressionMap[userId] = (repressionMap[userId] || 0) + 1;
+      }
     }
   }
 
@@ -205,6 +238,7 @@ function processMessages(messages: Message[]) {
     messageCountMap, // 每天的消息数量
     messagePersonMap, // 每天的发言人数
     messageByPersonMap, // 按人的消息数量
+    repressionMap, // 按人的压抑次数
   };
 }
 
