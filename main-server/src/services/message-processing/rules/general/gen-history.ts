@@ -139,7 +139,7 @@ export async function genHistoryCard(message: Message) {
     const repressionList = Object.entries(repressionMap)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([userId, count], index) => `[**压抑分**：${count}] <at id=${userId}></at> ${getRankEmoji(index)}`);
+      .map(([userId, count], index) => `[**压抑分**：${count.toFixed(0)}] <at id=${userId}></at> ${getRankEmoji(index)}`);
 
     const repressionMarkdownComponent = new MarkdownComponent('repression', repressionList.join('\n'));
 
@@ -199,7 +199,7 @@ async function getHistoryMessage(chatId: string) {
 // 计算压抑分
 // 文本中每出现一个“压抑”加1分
 function calcRepressionScore(content: string) {
-  const repressionCount = countNonOverlappingSubstring(content, '压抑');
+  const repressionCount = Math.log(countNonOverlappingSubstring(content, '压抑|🐍|巳巳如意|打个|去趟') + 1);
   return repressionCount;
 }
 
