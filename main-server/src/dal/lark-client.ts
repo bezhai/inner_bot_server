@@ -22,11 +22,14 @@ async function handleResponse<T>(promise: Promise<LarkResp<T>>): Promise<T> {
   try {
     const res = await promise;
     if (res.code !== 0) {
-      throw new Error(errorMap[res.code || 0] || res.msg);
+      throw new Error(res.msg);
     }
     return res.data!;
   } catch (e: any) {
     console.error(JSON.stringify(e.response?.data || e, null, 4));
+    if (e.response?.data?.code) {
+      throw new Error(errorMap[e.response?.data?.code] || e.response?.data?.msg);
+    }
     throw e;
   }
 }
