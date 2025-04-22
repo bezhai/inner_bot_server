@@ -1,10 +1,11 @@
 import { set } from '../../../../dal/redis';
-import { UserGroupBindingRepository } from '../../../../dal/repositories/repositories';
+import { UserGroupBindingRepository, GroupMemberRepository } from '../../../../dal/repositories/repositories';
 import { Message } from '../../../../models/message';
 import { getBotUnionId } from '../../../../utils/bot/bot-var';
 import { replyMessage } from '../../../lark/basic/message';
 import { fetchAvailableModels } from '../../ai/http-client';
 import { combineRule, RegexpMatch } from '../rule';
+import { getUserInfo } from '../../../../dal/lark-client';
 
 const commandRules = [
   {
@@ -30,6 +31,26 @@ const commandRules = [
 
       if (!mentionUser) {
         replyMessage(message.messageId, '请@具体用户进行绑定', true);
+        return;
+      }
+
+      try {
+        await getUserInfo(mentionUser);
+      } catch (e) {
+        replyMessage(message.messageId, (e as Error).message, true);
+        return;
+      }
+
+      const member = await GroupMemberRepository.findOne({
+        where: {
+          chat_id: message.chatId,
+          union_id: mentionUser,
+          is_leave: false,
+        },
+      });
+
+      if (!member) {
+        replyMessage(message.messageId, '该用户不在群中，无法绑定', true);
         return;
       }
 

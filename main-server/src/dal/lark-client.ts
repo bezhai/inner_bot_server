@@ -3,6 +3,10 @@ import { getBotAppId, getBotAppSecret } from '../utils/bot/bot-var';
 import { Readable } from 'stream';
 import { ReadStream } from 'fs';
 
+const errorMap: Record<number, string> = {
+  41050: '无用户权限，请将当前操作的用户添加到应用或用户的权限范围内',
+};
+
 const client = new lark.Client({
   appId: getBotAppId(),
   appSecret: getBotAppSecret(),
@@ -18,13 +22,22 @@ async function handleResponse<T>(promise: Promise<LarkResp<T>>): Promise<T> {
   try {
     const res = await promise;
     if (res.code !== 0) {
-      throw new Error(res.msg);
+      throw new Error(errorMap[res.code || 0] || res.msg);
     }
     return res.data!;
   } catch (e: any) {
     console.error(JSON.stringify(e.response?.data || e, null, 4));
     throw e;
   }
+}
+
+export async function getUserInfo(unionId: string) {
+  return handleResponse(
+    client.contact.v3.user.get({
+      path: { user_id: unionId },
+      params: { user_id_type: 'union_id' },
+    }),
+  );
 }
 
 export async function send(chat_id: string, content: any, msgType: string) {
