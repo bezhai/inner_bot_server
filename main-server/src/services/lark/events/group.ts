@@ -17,6 +17,7 @@ export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
       return {
         union_id: user.user_id?.union_id!,
         chat_id: data.chat_id!,
+        is_leave: false,
       };
     }) || [];
   const users: LarkUser[] =
