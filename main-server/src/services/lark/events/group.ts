@@ -5,10 +5,11 @@ import {
   UserRepository,
   LarkUserOpenIdRepository,
   GroupChatInfoRepository,
+  UserGroupBindingRepository,
 } from '../../../dal/repositories/repositories';
 import { LarkGroupMemberChangeInfo } from '../../../types/lark';
 import { getBotAppId } from '../../../utils/bot/bot-var';
-import { searchLarkChatInfo, searchLarkChatMember } from '../basic/group';
+import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '../basic/group';
 
 export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
   const updateUsers: LarkGroupMember[] =
@@ -57,6 +58,15 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
   console.log('removeUsers', updateUsers);
 
   await GroupMemberRepository.save(updateUsers);
+
+  // 检查是否有绑定关系，如果有则重新拉入群
+  for (const user of data.users || []) {
+    const binding = await UserGroupBindingRepository.findByUserAndChat(user.user_id?.union_id!, data.chat_id!);
+    if (binding && binding.isActive) {
+      // 重新拉入群
+      await addChatMember(data.chat_id!, user.user_id?.open_id!);
+    }
+  }
 }
 
 export async function handleChatRobotAdd(data: LarkGroupMemberChangeInfo) {

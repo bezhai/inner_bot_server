@@ -126,6 +126,10 @@ export class Message {
     return this.content.mentions.includes(openId);
   }
 
+  getMentionedUsers(): string[] {
+    return this.content.mentions;
+  }
+
   // For debugging
   toJSON() {
     return {

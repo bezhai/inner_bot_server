@@ -146,3 +146,15 @@ export async function uploadFile(fileStream: Readable) {
     },
   });
 }
+
+export async function addChatMember(chat_id: string, open_id: string) {
+  return handleResponse(
+    client.im.chatMembers.create({
+      path: { chat_id },
+      params: { member_id_type: 'open_id' },
+      data: {
+        id_list: [open_id],
+      },
+    }),
+  );
+}
