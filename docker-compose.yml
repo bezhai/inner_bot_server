@@ -40,6 +40,11 @@ services:
       - .env
     volumes:
       - main_server_logs:/var/log/main-server
+    depends_on:
+      - redis
+      - mongo
+      - postgres
+      - elasticsearch
     restart: always
 
   # Redis 服务
