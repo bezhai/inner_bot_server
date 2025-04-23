@@ -10,6 +10,7 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import koaBody from 'koa-body';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
+import { traceMiddleware } from './middleware/trace';
 
 async function initializeServer() {
     console.log('Start initialization with bot', getBotAppId());
@@ -27,6 +28,7 @@ async function startHttpServer() {
     const router = new Router();
     const { eventRouter, cardActionRouter } = initializeHttpMode();
 
+    server.use(traceMiddleware);
     server.use(koaBody());
     router.post('/webhook/event', eventRouter);
     router.post('/webhook/card', cardActionRouter);

@@ -1,5 +1,6 @@
 import winston from 'winston';
 import path from 'path';
+import { trace } from './trace';
 
 // 获取环境变量，决定是否写入文件
 const enableFileLogging = process.env.ENABLE_FILE_LOGGING === 'true';
@@ -10,7 +11,14 @@ const logFileName = 'app.log';
 const transports: winston.transport[] = [
     // 控制台日志总是启用
     new winston.transports.Console({
-        format: winston.format.combine(winston.format.colorize(), winston.format.simple()),
+        format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple(),
+            winston.format.printf((info) => {
+                const traceId = trace.get();
+                return `${info.level}: ${info.message} ${traceId ? `[traceId: ${traceId}]` : ''}`;
+            }),
+        ),
     }),
 ];
 
@@ -21,7 +29,16 @@ if (enableFileLogging) {
             filename: path.join(logDir, logFileName),
             maxsize: 5242880, // 5MB
             maxFiles: 5,
-            format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
+            format: winston.format.combine(
+                winston.format.timestamp(),
+                winston.format.printf((info) => {
+                    const traceId = trace.get();
+                    return JSON.stringify({
+                        ...info,
+                        traceId,
+                    });
+                }),
+            ),
         }),
     );
 }
@@ -33,27 +50,42 @@ const logger = winston.createLogger({
 
 // 只在启用文件日志时重写 console 方法
 if (enableFileLogging) {
+    const originalConsole = {
+        log: console.log,
+        error: console.error,
+        info: console.info,
+        warn: console.warn,
+    };
+
     console.log = (...args) => {
+        const traceId = trace.get();
         logger.info(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+            { traceId },
         );
     };
 
     console.error = (...args) => {
+        const traceId = trace.get();
         logger.error(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+            { traceId },
         );
     };
 
     console.info = (...args) => {
+        const traceId = trace.get();
         logger.info(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+            { traceId },
         );
     };
 
     console.warn = (...args) => {
+        const traceId = trace.get();
         logger.warn(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+            { traceId },
         );
     };
 }
