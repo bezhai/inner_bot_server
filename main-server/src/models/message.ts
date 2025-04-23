@@ -6,135 +6,135 @@ import { MessageContent, MessageContentUtils } from './message-content';
 import { MessageBuilder } from './message-builder';
 
 export class Message {
-  private metadata: MessageMetadata;
-  private content: MessageContent;
+    private metadata: MessageMetadata;
+    private content: MessageContent;
 
-  constructor(metadata: MessageMetadata, content: MessageContent) {
-    this.metadata = metadata;
-    this.content = content;
-  }
+    constructor(metadata: MessageMetadata, content: MessageContent) {
+        this.metadata = metadata;
+        this.content = content;
+    }
 
-  // Factory methods
-  static async fromEvent(event: LarkReceiveMessage, content: MessageContent): Promise<Message> {
-    const metadata = await MessageBuilder.buildMetadataFromEvent(event);
-    return new Message(metadata, content);
-  }
+    // Factory methods
+    static async fromEvent(event: LarkReceiveMessage, content: MessageContent): Promise<Message> {
+        const metadata = await MessageBuilder.buildMetadataFromEvent(event);
+        return new Message(metadata, content);
+    }
 
-  static fromMessage(message: LarkMessageMetaInfo): Message {
-    const metadata = MessageBuilder.buildMetadataFromInfo(message);
-    const content = MessageBuilder.buildContentFromInfo(message);
-    return new Message(metadata, content);
-  }
+    static fromMessage(message: LarkMessageMetaInfo): Message {
+        const metadata = MessageBuilder.buildMetadataFromInfo(message);
+        const content = MessageBuilder.buildContentFromInfo(message);
+        return new Message(metadata, content);
+    }
 
-  static fromHistoryMessage(message: LarkHistoryMessage): Message {
-    const metadata = MessageBuilder.buildMetadataFromHistory(message);
-    const content = MessageBuilder.buildContentFromHistory(message);
-    return new Message(metadata, content);
-  }
+    static fromHistoryMessage(message: LarkHistoryMessage): Message {
+        const metadata = MessageBuilder.buildMetadataFromHistory(message);
+        const content = MessageBuilder.buildContentFromHistory(message);
+        return new Message(metadata, content);
+    }
 
-  // Metadata accessors
-  get messageId(): string {
-    return this.metadata.messageId;
-  }
+    // Metadata accessors
+    get messageId(): string {
+        return this.metadata.messageId;
+    }
 
-  get rootId(): string | undefined {
-    return this.metadata.rootId;
-  }
+    get rootId(): string | undefined {
+        return this.metadata.rootId;
+    }
 
-  get parentMessageId(): string | undefined {
-    return this.metadata.parentMessageId;
-  }
+    get parentMessageId(): string | undefined {
+        return this.metadata.parentMessageId;
+    }
 
-  get threadId(): string | undefined {
-    return this.metadata.threadId;
-  }
+    get threadId(): string | undefined {
+        return this.metadata.threadId;
+    }
 
-  get chatId(): string {
-    return this.metadata.chatId;
-  }
+    get chatId(): string {
+        return this.metadata.chatId;
+    }
 
-  get sender(): string {
-    return this.metadata.sender;
-  }
+    get sender(): string {
+        return this.metadata.sender;
+    }
 
-  get senderName(): string | undefined {
-    return this.metadata.senderName;
-  }
+    get senderName(): string | undefined {
+        return this.metadata.senderName;
+    }
 
-  get chatType(): string {
-    return this.metadata.chatType;
-  }
+    get chatType(): string {
+        return this.metadata.chatType;
+    }
 
-  get isRobotMessage(): boolean {
-    return this.metadata.isRobotMessage;
-  }
+    get isRobotMessage(): boolean {
+        return this.metadata.isRobotMessage;
+    }
 
-  get basicChatInfo(): LarkBaseChatInfo | undefined {
-    return this.metadata.basicChatInfo;
-  }
+    get basicChatInfo(): LarkBaseChatInfo | undefined {
+        return this.metadata.basicChatInfo;
+    }
 
-  get senderInfo(): LarkUser | undefined {
-    return this.metadata.senderInfo;
-  }
+    get senderInfo(): LarkUser | undefined {
+        return this.metadata.senderInfo;
+    }
 
-  get createTime(): string | undefined {
-    return this.metadata.createTime;
-  }
+    get createTime(): string | undefined {
+        return this.metadata.createTime;
+    }
 
-  isP2P(): boolean {
-    return MessageMetadataUtils.isP2P(this.metadata);
-  }
+    isP2P(): boolean {
+        return MessageMetadataUtils.isP2P(this.metadata);
+    }
 
-  // Content accessors
-  texts(): string[] {
-    return MessageContentUtils.texts(this.content);
-  }
+    // Content accessors
+    texts(): string[] {
+        return MessageContentUtils.texts(this.content);
+    }
 
-  text(): string {
-    return MessageContentUtils.fullText(this.content);
-  }
+    text(): string {
+        return MessageContentUtils.fullText(this.content);
+    }
 
-  clearText(): string {
-    return MessageContentUtils.clearText(this.content);
-  }
+    clearText(): string {
+        return MessageContentUtils.clearText(this.content);
+    }
 
-  withoutEmojiText(): string {
-    return MessageContentUtils.withoutEmojiText(this.content);
-  }
+    withoutEmojiText(): string {
+        return MessageContentUtils.withoutEmojiText(this.content);
+    }
 
-  withMentionText(): string {
-    return MessageContentUtils.withMentionText(this.content);
-  }
+    withMentionText(): string {
+        return MessageContentUtils.withMentionText(this.content);
+    }
 
-  imageKeys(): string[] {
-    return MessageContentUtils.imageKeys(this.content);
-  }
+    imageKeys(): string[] {
+        return MessageContentUtils.imageKeys(this.content);
+    }
 
-  stickerKey(): string {
-    return MessageContentUtils.stickerKey(this.content);
-  }
+    stickerKey(): string {
+        return MessageContentUtils.stickerKey(this.content);
+    }
 
-  isTextOnly(): boolean {
-    return MessageContentUtils.isTextOnly(this.content);
-  }
+    isTextOnly(): boolean {
+        return MessageContentUtils.isTextOnly(this.content);
+    }
 
-  isStickerOnly(): boolean {
-    return MessageContentUtils.isStickerOnly(this.content);
-  }
+    isStickerOnly(): boolean {
+        return MessageContentUtils.isStickerOnly(this.content);
+    }
 
-  hasMention(openId: string): boolean {
-    return this.content.mentions.includes(openId);
-  }
+    hasMention(openId: string): boolean {
+        return this.content.mentions.includes(openId);
+    }
 
-  getMentionedUsers(): string[] {
-    return this.content.mentions;
-  }
+    getMentionedUsers(): string[] {
+        return this.content.mentions;
+    }
 
-  // For debugging
-  toJSON() {
-    return {
-      metadata: this.metadata,
-      content: this.content,
-    };
-  }
+    // For debugging
+    toJSON() {
+        return {
+            metadata: this.metadata,
+            content: this.content,
+        };
+    }
 }

@@ -32,14 +32,14 @@ const engine = new WorkflowEngine();
 ```typescript
 // Register function handlers
 engine.registerHandler('handlerName', async (context) => {
-  // Your function logic here
-  context.someValue = 'result';
+    // Your function logic here
+    context.someValue = 'result';
 });
 
 // Register condition functions
 engine.registerCondition('conditionName', async (context) => {
-  // Your condition logic here
-  return context.someValue === 'expected';
+    // Your condition logic here
+    return context.someValue === 'expected';
 });
 ```
 
@@ -49,48 +49,48 @@ engine.registerCondition('conditionName', async (context) => {
 import { NodeType, WorkflowConfig } from './types';
 
 const workflow: WorkflowConfig = {
-  id: 'workflow-id',
-  name: 'Workflow Name',
-  nodes: [
-    {
-      id: 'start',
-      type: NodeType.START,
-      name: 'Start',
-      next: 'next-node-id'
-    },
-    {
-      id: 'regular-node',
-      type: NodeType.REGULAR,
-      name: 'Regular Node',
-      handler: 'handlerName',
-      next: 'next-node-id'
-    },
-    {
-      id: 'condition-node',
-      type: NodeType.CONDITION,
-      name: 'Multiple Branch Node',
-      branches: [
+    id: 'workflow-id',
+    name: 'Workflow Name',
+    nodes: [
         {
-          condition: 'isPremiumCustomer',
-          next: 'premium-path'
+            id: 'start',
+            type: NodeType.START,
+            name: 'Start',
+            next: 'next-node-id',
         },
         {
-          condition: 'isPreferredCustomer',
-          next: 'preferred-path'
+            id: 'regular-node',
+            type: NodeType.REGULAR,
+            name: 'Regular Node',
+            handler: 'handlerName',
+            next: 'next-node-id',
         },
         {
-          condition: 'isRegularCustomer',
-          next: 'regular-path'
-        }
-      ],
-      default: 'basic-path' // Default path if no conditions match
-    },
-    {
-      id: 'end',
-      type: NodeType.END,
-      name: 'End'
-    }
-  ]
+            id: 'condition-node',
+            type: NodeType.CONDITION,
+            name: 'Multiple Branch Node',
+            branches: [
+                {
+                    condition: 'isPremiumCustomer',
+                    next: 'premium-path',
+                },
+                {
+                    condition: 'isPreferredCustomer',
+                    next: 'preferred-path',
+                },
+                {
+                    condition: 'isRegularCustomer',
+                    next: 'regular-path',
+                },
+            ],
+            default: 'basic-path', // Default path if no conditions match
+        },
+        {
+            id: 'end',
+            type: NodeType.END,
+            name: 'End',
+        },
+    ],
 };
 ```
 
@@ -98,13 +98,13 @@ const workflow: WorkflowConfig = {
 
 ```typescript
 try {
-  const finalContext = await engine.execute(workflow, {
-    // Initial context
-    key: 'value'
-  });
-  console.log('Workflow completed:', finalContext);
+    const finalContext = await engine.execute(workflow, {
+        // Initial context
+        key: 'value',
+    });
+    console.log('Workflow completed:', finalContext);
 } catch (error) {
-  console.error('Workflow failed:', error);
+    console.error('Workflow failed:', error);
 }
 ```
 
@@ -122,6 +122,7 @@ The condition node supports multiple independent branches:
 ## Error Handling
 
 The workflow engine provides comprehensive error handling:
+
 - Validates node configurations
 - Checks for missing handlers/conditions
 - Ensures proper node connections

@@ -29,10 +29,10 @@ src/
 
 - `dal/`: Database and external client implementations
 - `services/`: Core business logic and service implementations
-  - `chat/`: Main chat processing and rule engine
-  - `lark/`: Lark platform integration
-  - `media/`: Media handling services
-  - `integrations/`: External service integrations
+    - `chat/`: Main chat processing and rule engine
+    - `lark/`: Lark platform integration
+    - `media/`: Media handling services
+    - `integrations/`: External service integrations
 - `utils/`: Shared utility functions
 - `types/`: TypeScript type definitions
 - `models/`: Shared data models

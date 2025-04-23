@@ -19,12 +19,12 @@ utils/
 ## Categories
 
 - `text/`: Text processing and manipulation utilities
-  - Word segmentation
-  - Text formatting
-  - Natural language processing
+    - Word segmentation
+    - Text formatting
+    - Natural language processing
 - `rate-limiting/`: Rate limiting implementation
-  - Request throttling
-  - Rate control
+    - Request throttling
+    - Rate control
 - `bot/`: Bot-specific utilities
-  - Bot variables
-  - Bot configuration
+    - Bot variables
+    - Bot configuration

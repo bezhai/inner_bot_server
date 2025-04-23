@@ -5,21 +5,21 @@ import { saveLarkMessage } from '../../message-store/service';
 import { MessageTransferer } from './factory';
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
-  try {
-    const [_, message] = await Promise.all([
-      saveLarkMessage(params), // 保存消息
-      (async () => {
-        const builtMessage = await MessageTransferer.transfer(params);
-        if (!builtMessage) {
-          throw new Error('Failed to build message');
-        }
-        return builtMessage;
-      })(),
-    ]);
+    try {
+        const [_, message] = await Promise.all([
+            saveLarkMessage(params), // 保存消息
+            (async () => {
+                const builtMessage = await MessageTransferer.transfer(params);
+                if (!builtMessage) {
+                    throw new Error('Failed to build message');
+                }
+                return builtMessage;
+            })(),
+        ]);
 
-    await runRules(message);
-  } catch (error) {
-    console.error('Error handling message receive:', error);
-    // Could add more sophisticated error handling here if needed
-  }
+        await runRules(message);
+    } catch (error) {
+        console.error('Error handling message receive:', error);
+        // Could add more sophisticated error handling here if needed
+    }
 }

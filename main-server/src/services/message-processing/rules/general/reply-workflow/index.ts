@@ -14,10 +14,10 @@ engine.registerHandler('processMessage', processMessageHandler);
 
 // Export makeCardReply function
 export async function makeCardReply(message: Message) {
-  await engine.execute({
-    ...replyWorkflowDefinition,
-    initialContext: {
-      message,
-    },
-  });
+    await engine.execute({
+        ...replyWorkflowDefinition,
+        initialContext: {
+            message,
+        },
+    });
 }

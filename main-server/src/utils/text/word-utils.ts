@@ -1,5 +1,5 @@
 function loadWordList(): string[] {
-  const words = `$
+    const words = `$
   0
   1
   2
@@ -2142,11 +2142,11 @@ function loadWordList(): string[] {
   是不是
   说说`;
 
-  // 按行分割，并过滤掉空行
-  return words
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
+    // 按行分割，并过滤掉空行
+    return words
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
 }
 
 export const cloudSkipWords = loadWordList();

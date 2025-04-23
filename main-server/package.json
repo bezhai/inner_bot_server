@@ -1,55 +1,55 @@
 {
-  "name": "main-server",
-  "version": "1.0.0",
-  "description": "Lark bot server",
-  "main": "dist/index.js",
-  "type": "commonjs",
-  "scripts": {
-    "start": "ts-node src/index.ts",
-    "build": "tsc",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "prepare": "simple-git-hooks"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "npx lint-staged"
-  },
-  "lint-staged": {
-    "src/**/*.ts": [
-      "prettier --write"
-    ]
-  },
-  "author": "Chiwei",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/lodash": "^4.17.13",
-    "@types/node": "^18.0.0",
-    "@types/uuid": "^10.0.0",
-    "clinic": "^13.0.0",
-    "lint-staged": "^15.4.3",
-    "prettier": "^3.4.2",
-    "simple-git-hooks": "^2.11.1",
-    "ts-node": "^10.0.0",
-    "typescript": "^5.6.3"
-  },
-  "dependencies": {
-    "@koa/router": "^12.0.1",
-    "@larksuiteoapi/node-sdk": "^1.23.0",
-    "@types/koa": "^2.15.0",
-    "@types/koa__router": "^12.0.4",
-    "async-mutex": "^0.5.0",
-    "axios": "^1.6.2",
-    "dayjs": "^1.11.13",
-    "dotenv": "^16.3.1",
-    "feishu-card": "^1.0.0-beta.12",
-    "handlebars": "^4.7.8",
-    "ioredis": "^5.3.2",
-    "koa": "^2.14.2",
-    "koa-body": "^6.0.1",
-    "mongodb": "^5.8.0",
-    "pg": "^8.11.3",
-    "reflect-metadata": "^0.2.1",
-    "saslprep": "^1.0.3",
-    "typeorm": "^0.3.17",
-    "winston": "^3.11.0"
-  }
+    "name": "main-server",
+    "version": "1.0.0",
+    "description": "Lark bot server",
+    "main": "dist/index.js",
+    "type": "commonjs",
+    "scripts": {
+        "start": "ts-node src/index.ts",
+        "build": "tsc",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "prepare": "simple-git-hooks"
+    },
+    "simple-git-hooks": {
+        "pre-commit": "npx lint-staged"
+    },
+    "lint-staged": {
+        "src/**/*.ts": [
+            "prettier --write"
+        ]
+    },
+    "author": "Chiwei",
+    "license": "MIT",
+    "devDependencies": {
+        "@types/lodash": "^4.17.13",
+        "@types/node": "^18.0.0",
+        "@types/uuid": "^10.0.0",
+        "clinic": "^13.0.0",
+        "lint-staged": "^15.4.3",
+        "prettier": "^3.4.2",
+        "simple-git-hooks": "^2.11.1",
+        "ts-node": "^10.0.0",
+        "typescript": "^5.6.3"
+    },
+    "dependencies": {
+        "@koa/router": "^12.0.1",
+        "@larksuiteoapi/node-sdk": "^1.23.0",
+        "@types/koa": "^2.15.0",
+        "@types/koa__router": "^12.0.4",
+        "async-mutex": "^0.5.0",
+        "axios": "^1.6.2",
+        "dayjs": "^1.11.13",
+        "dotenv": "^16.3.1",
+        "feishu-card": "^1.0.0-beta.12",
+        "handlebars": "^4.7.8",
+        "ioredis": "^5.3.2",
+        "koa": "^2.14.2",
+        "koa-body": "^6.0.1",
+        "mongodb": "^5.8.0",
+        "pg": "^8.11.3",
+        "reflect-metadata": "^0.2.1",
+        "saslprep": "^1.0.3",
+        "typeorm": "^0.3.17",
+        "winston": "^3.11.0"
+    }
 }

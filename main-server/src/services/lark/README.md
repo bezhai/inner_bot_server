@@ -13,3 +13,4 @@ lark/
 ├── basic/      # Basic Lark operations
 ├── events/     # Event handlers
 └── adapters/   # Platform adapters
+```

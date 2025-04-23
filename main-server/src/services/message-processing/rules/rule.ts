@@ -12,8 +12,8 @@ type Handler = (message: Message) => Promise<void>;
 
 // 组合规则返回的类型
 export interface GenCombineRule {
-  rule: Rule; // 一个函数，判断消息是否满足至少一个规则
-  handler: Handler; // 一个异步函数，依次执行满足规则的处理函数
+    rule: Rule; // 一个函数，判断消息是否满足至少一个规则
+    handler: Handler; // 一个异步函数，依次执行满足规则的处理函数
 }
 
 /**
@@ -52,58 +52,59 @@ export interface GenCombineRule {
  * }
  */
 export const combineRule = <T>(
-  originRule: { key: T; handler: Handler }[],
-  adaptor: (key: T) => Rule,
+    originRule: { key: T; handler: Handler }[],
+    adaptor: (key: T) => Rule,
 ): GenCombineRule => {
-  const rule: Rule = (message) => originRule.some((rule) => adaptor(rule.key)(message));
-  const handler: Handler = async (message) => {
-    for (const rule of originRule) {
-      if (adaptor(rule.key)(message)) {
-        await rule.handler(message);
-      }
-    }
-  };
-  return { rule, handler };
+    const rule: Rule = (message) => originRule.some((rule) => adaptor(rule.key)(message));
+    const handler: Handler = async (message) => {
+        for (const rule of originRule) {
+            if (adaptor(rule.key)(message)) {
+                await rule.handler(message);
+            }
+        }
+    };
+    return { rule, handler };
 };
 
 // 定义规则和对应处理逻辑的结构
 export interface RuleConfig {
-  rules: Rule[];
-  async_rules?: AsyncRule[];
-  handler: Handler;
-  fallthrough?: boolean;
-  comment?: string;
+    rules: Rule[];
+    async_rules?: AsyncRule[];
+    handler: Handler;
+    fallthrough?: boolean;
+    comment?: string;
 }
 
 // 工具函数：通用规则
-export const NeedRobotMention: Rule = (message) => message.hasMention(getBotUnionId()) || message.isP2P();
+export const NeedRobotMention: Rule = (message) =>
+    message.hasMention(getBotUnionId()) || message.isP2P();
 
 export const TextMessageLimit: Rule = (message) => message.isTextOnly();
 
 export const ContainKeyword =
-  (keyword: string): Rule =>
-  (message) =>
-    message.text().includes(keyword);
+    (keyword: string): Rule =>
+    (message) =>
+        message.text().includes(keyword);
 
 export const RegexpMatch =
-  (pattern: string): Rule =>
-  (message) => {
-    try {
-      return new RegExp(pattern).test(message.clearText());
-    } catch {
-      return false;
-    }
-  };
+    (pattern: string): Rule =>
+    (message) => {
+        try {
+            return new RegExp(pattern).test(message.clearText());
+        } catch {
+            return false;
+        }
+    };
 
 export const OnlyP2P: Rule = (message) => message.isP2P();
 
 export const OnlyGroup: Rule = (message) => !message.isP2P();
 
 export const WhiteGroupCheck =
-  (checkFunc: (chatInfo: LarkBaseChatInfo) => boolean): Rule =>
-  (message) => {
-    const chatInfo = message.basicChatInfo;
-    return chatInfo ? checkFunc(chatInfo) : false;
-  };
+    (checkFunc: (chatInfo: LarkBaseChatInfo) => boolean): Rule =>
+    (message) => {
+        const chatInfo = message.basicChatInfo;
+        return chatInfo ? checkFunc(chatInfo) : false;
+    };
 
 export const IsAdmin: Rule = (message) => message.senderInfo?.is_admin ?? false;
