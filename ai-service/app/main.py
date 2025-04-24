@@ -1,11 +1,29 @@
 import traceback
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse, JSONResponse
 from app.service import ai_chat
 from app.gpt import ChatRequest
 from app.split_word import extract_batch, BatchExtractRequest
+from app.events import init_events
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    应用生命周期管理
+    """
+    # 启动事件
+    await init_events()
+    yield
+    # 关闭事件
+    from app.event_system import get_event_system
+    try:
+        event_system = get_event_system()
+        await event_system.stop()
+    except Exception as e:
+        print(f"关闭事件系统时出错: {e}")
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 async def root():

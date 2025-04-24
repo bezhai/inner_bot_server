@@ -11,6 +11,7 @@ import Router from '@koa/router';
 import koaBody from 'koa-body';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
 import { traceMiddleware } from './middleware/trace';
+import { initEvents } from './events';
 
 async function initializeServer() {
     console.log('Start initialization with bot', getBotAppId());
@@ -18,6 +19,14 @@ async function initializeServer() {
     // Initialize databases in parallel
     await Promise.all([mongoInitPromise(), AppDataSource.initialize()]);
     console.log('Database connections established!');
+
+    // 初始化事件系统
+    const eventsInitialized = initEvents();
+    if (eventsInitialized) {
+        console.log('Event system initialized successfully!');
+    } else {
+        console.warn('Failed to initialize event system, continuing without it');
+    }
 
     await botInitialization();
     console.log('Bot initialized successfully!');
@@ -30,13 +39,41 @@ async function startHttpServer() {
 
     server.use(traceMiddleware);
     server.use(koaBody());
+
+    // Lark Webhook 路由
     router.post('/webhook/event', eventRouter);
     router.post('/webhook/card', cardActionRouter);
+
     server.use(router.routes());
 
     server.listen(3000);
     console.log('HTTP server started on port 3000');
 }
+
+process.on('SIGINT', async function () {
+    console.log('Gracefully shutting down...');
+
+    // 关闭事件系统
+    try {
+        const { getEventSystem } = await import('./events');
+        const eventSystem = getEventSystem();
+        await eventSystem.close();
+        console.log('Event system closed');
+    } catch (error: any) {
+        console.warn('Error while closing event system:', error);
+    }
+
+    // 关闭Redis连接
+    try {
+        const { close } = await import('./dal/redis');
+        await close();
+        console.log('Redis connections closed');
+    } catch (error: any) {
+        console.warn('Error while closing Redis connections:', error);
+    }
+
+    process.exit(0);
+});
 
 (async () => {
     try {
