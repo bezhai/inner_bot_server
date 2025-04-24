@@ -116,7 +116,6 @@ class ResponseFormat(BaseModel):
 class ChatRequest(BaseModel):
     """
     与 OpenAI Chat Completion API 完全对齐的请求参数模型。
-    文档参考：https://platform.openai.com/docs/api-reference/chat
     """
     model: str = Field(..., description="模型名称，例如 'gpt-4', 'gpt-4-32k', 或 'gpt-3.5-turbo'")
     messages: List[Message] = Field(..., description="对话消息列表，包含角色和用户/助手的内容")
@@ -304,7 +303,7 @@ class OpenAIChatModel(BaseChatModel):
     OpenAI 模型封装，自动初始化内部客户端。
     """
 
-    def __init__(self, api_key: str, base_url: str = "https://api.openai.com/v1"):
+    def __init__(self, api_key: str, base_url: str):
         """
         初始化 OpenAI 模型接口。
         :param api_key: OpenAI API 的密钥
