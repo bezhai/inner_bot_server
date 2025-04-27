@@ -187,6 +187,8 @@ class EventSystem:
             
             # 持续处理消息
             async for message in pubsub.listen():
+                logger.info(f"收到消息: {message}")
+                
                 if message["type"] != "pmessage":
                     continue
                     
