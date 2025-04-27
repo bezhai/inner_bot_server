@@ -5,7 +5,7 @@ import uuid
 import time
 from typing import Any, Callable, Dict, List, Optional, Union, TypeVar, Generic
 from datetime import datetime
-from app.meta_info import AsyncRedisClient
+from app.services.meta_info import AsyncRedisClient
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
