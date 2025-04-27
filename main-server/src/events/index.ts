@@ -1,4 +1,5 @@
 import { initEventSystem, getEventSystem } from './event-system';
+import { Subscribe, initEventSubscriptions, clearEventSubscriptions } from './subscription';
 import dotenv from 'dotenv';
 
 // 加载环境变量
@@ -22,6 +23,13 @@ export const initEvents = () => {
 
 // 导出事件系统实例获取函数
 export { getEventSystem };
+
+// 导出装饰器和事件订阅管理函数
+export { 
+    Subscribe, 
+    initEventSubscriptions, 
+    clearEventSubscriptions 
+};
 
 // 导出便捷函数
 /**
@@ -55,25 +63,8 @@ export const publishEventAndWait = async (eventType: string, data: any, options 
     return await eventSystem.publishAndWait(eventType, data, options);
 };
 
-/**
- * 订阅事件
- * @param eventType 事件类型
- * @param handler 事件处理函数
- */
-export const subscribeEvent = (eventType: string, handler: (data: any) => Promise<any> | any) => {
-    const eventSystem = getEventSystem();
-    eventSystem.subscribe(eventType, handler);
-};
-
-/**
- * 取消订阅事件
- * @param eventType 事件类型
- * @param handler 可选，指定要取消的处理函数。如果不指定，取消所有处理函数
- */
-export const unsubscribeEvent = (
-    eventType: string,
-    handler?: (data: any) => Promise<any> | any,
-) => {
-    const eventSystem = getEventSystem();
-    eventSystem.unsubscribe(eventType, handler);
-};
+// 从subscription导出订阅相关函数
+export { 
+    subscribeEvent, 
+    unsubscribeEvent 
+} from './subscription';
