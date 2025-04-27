@@ -3,10 +3,10 @@ import asyncio
 from typing import Dict, Any
 
 # 导入事件系统
-from app.event_system import init_event_system as init_system, get_event_system
+from app.core.event_system import init_event_system as init_system, get_event_system
 
 # 导入装饰器模块
-from app.event_decorator import (
+from app.core.event_decorator import (
     subscribe, 
     init_event_subscriptions,
     clear_event_subscriptions, 

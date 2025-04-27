@@ -6,7 +6,7 @@ import asyncio
 from weakref import WeakKeyDictionary
 
 # 导入现有的事件系统
-from app.event_system import get_event_system, EventSystem
+from app.core.event_system import get_event_system, EventSystem
 
 # 设置日志
 logger = logging.getLogger(__name__)
