@@ -2,7 +2,7 @@ import asyncio
 import os
 import logging
 from typing import Any
-from app.event_system import init_event_system, get_event_system
+from app.core.event_system import init_event_system, get_event_system
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)

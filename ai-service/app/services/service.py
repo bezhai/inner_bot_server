@@ -1,5 +1,5 @@
-from app.meta_info import get_model_setting
-from app.gpt import ChatModelFactory, ChatRequest
+from app.services.meta_info import get_model_setting
+from app.services.gpt import ChatModelFactory, ChatRequest
 
 async def ai_chat(request: ChatRequest):
     """
