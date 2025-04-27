@@ -3,6 +3,7 @@ import os
 import logging
 from typing import Any
 from app.core.event_system import init_event_system, get_event_system
+from app.core.event_decorator import init_event_subscriptions
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -23,34 +24,13 @@ async def init_events():
         
         logger.info("事件系统已初始化")
         
-        # 注册事件处理器
-        register_event_handlers(event_system)
+        # 初始化所有事件订阅
+        init_event_subscriptions()
         
         return True
     except Exception as e:
         logger.error(f"初始化事件系统失败: {e}")
         return False
-    
-
-def register_event_handlers(event_system):
-    """注册事件处理器"""
-    
-    # 新增：处理消息接收事件
-    async def handle_message_receive(message_data):
-        logger.info(f"收到消息接收事件: {message_data}")
-        
-        # 返回默认值
-        return {
-            "status": "received",
-            "message_id": message_data.get("id", "unknown"),
-            "timestamp": asyncio.get_event_loop().time(),
-            "default_response": "这是一个默认的响应"
-        }
-    
-    # 直接注册事件处理函数
-    event_system.subscribe("message_receive", handle_message_receive)
-    
-    logger.info("事件处理器注册完成")
 
 
 async def publish_event(event_type: str, data: Any, **kwargs):
