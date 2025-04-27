@@ -36,7 +36,6 @@ def register_event_handlers(event_system):
     """注册事件处理器"""
     
     # 新增：处理消息接收事件
-    @event_system.subscribe("message_receive")
     async def handle_message_receive(message_data):
         logger.info(f"收到消息接收事件: {message_data}")
         
@@ -47,6 +46,9 @@ def register_event_handlers(event_system):
             "timestamp": asyncio.get_event_loop().time(),
             "default_response": "这是一个默认的响应"
         }
+    
+    # 直接注册事件处理函数
+    event_system.subscribe("message_receive", handle_message_receive)
     
     logger.info("事件处理器注册完成")
 
