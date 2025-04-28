@@ -1,6 +1,9 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+// 初始化事件订阅
+import './services/sub'; 
+
 import './utils/logger';
 import { botInitialization } from './services/initialize/main';
 import { mongoInitPromise } from './dal/mongo/client';
@@ -16,18 +19,15 @@ import { initEvents } from './events';
 async function initializeServer() {
     console.log('Start initialization with bot', getBotAppId());
 
-    // Initialize databases in parallel
+    // 初始化数据库
     await Promise.all([mongoInitPromise(), AppDataSource.initialize()]);
     console.log('Database connections established!');
 
     // 初始化事件系统
-    const eventsInitialized = initEvents();
-    if (eventsInitialized) {
-        console.log('Event system initialized successfully!');
-    } else {
-        console.warn('Failed to initialize event system, continuing without it');
-    }
+    initEvents();
+    console.log('Event system initialized successfully!');
 
+    // 初始化机器人
     await botInitialization();
     console.log('Bot initialized successfully!');
 }

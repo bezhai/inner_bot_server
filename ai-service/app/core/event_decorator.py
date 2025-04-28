@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, Callable, Dict, List, TypeVar
 import functools
 import inspect
 import logging
@@ -6,7 +6,7 @@ import asyncio
 from weakref import WeakKeyDictionary
 
 # 导入现有的事件系统
-from app.core.event_system import get_event_system, EventSystem
+from app.core.event_system import get_event_system
 
 # 设置日志
 logger = logging.getLogger(__name__)

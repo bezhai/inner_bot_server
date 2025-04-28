@@ -1,5 +1,5 @@
 import { initEventSystem, getEventSystem } from './event-system';
-import { Subscribe, initEventSubscriptions, clearEventSubscriptions } from './subscription';
+import { Subscribe, initEventSubscriptions } from './subscription';
 import dotenv from 'dotenv';
 
 // 加载环境变量
@@ -13,11 +13,12 @@ export const initEvents = () => {
             defaultTTL: 30000, // 30秒
         });
 
+        initEventSubscriptions();
+
         console.log('[Events] 事件系统已初始化');
-        return true;
     } catch (error) {
         console.error('[Events] 初始化事件系统失败:', error);
-        return false;
+        throw error;
     }
 };
 
@@ -25,11 +26,7 @@ export const initEvents = () => {
 export { getEventSystem };
 
 // 导出装饰器和事件订阅管理函数
-export { 
-    Subscribe, 
-    initEventSubscriptions, 
-    clearEventSubscriptions 
-};
+export { Subscribe };
 
 // 导出便捷函数
 /**

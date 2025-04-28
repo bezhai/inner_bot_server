@@ -1,5 +1,4 @@
 import { upsertAllChatInfo } from './group';
-import { initializeAIModels, initializeAIPrompts } from './init-ai-models';
 
 export async function botInitialization() {
     if (process.env.NEED_INIT !== 'true') {
@@ -10,6 +9,6 @@ export async function botInitialization() {
     await upsertAllChatInfo();
 
     // 初始化AI模型和提示词
-    await initializeAIModels();
-    await initializeAIPrompts();
+    // await initializeAIModels();
+    // await initializeAIPrompts();
 }

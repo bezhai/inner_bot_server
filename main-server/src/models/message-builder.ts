@@ -1,9 +1,5 @@
 import { LarkReceiveMessage } from '../types/lark';
-import {
-    LarkMessageMetaInfo,
-    LarkUserMessageMetaInfo,
-    LarkRobotMessageMetaInfo,
-} from '../types/mongo';
+import { LarkMessageMetaInfo, LarkUserMessageMetaInfo } from '../types/mongo';
 import { LarkHistoryMessage } from '../types/lark';
 import { MessageMetadata } from './message-metadata';
 import { MessageContent, ContentType, ContentItem } from './message-content';

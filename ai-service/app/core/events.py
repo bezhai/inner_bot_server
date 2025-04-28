@@ -1,5 +1,3 @@
-import asyncio
-import os
 import logging
 from typing import Any
 from app.core.event_system import init_event_system, get_event_system
