@@ -86,6 +86,11 @@ export const ContainKeyword =
     (message) =>
         message.text().includes(keyword);
 
+export const EqualText =
+    (text: string): Rule =>
+    (message) =>
+        message.clearText() === text;
+
 export const RegexpMatch =
     (pattern: string): Rule =>
     (message) => {

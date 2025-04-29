@@ -8,6 +8,7 @@ import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message'
 import { makeCardReply } from './rules/general/reply-workflow';
 import {
     ContainKeyword,
+    EqualText,
     NeedRobotMention,
     OnlyGroup,
     RegexpMatch,
@@ -53,14 +54,14 @@ const chatRules: RuleConfig[] = [
         comment: '复读功能',
     },
     {
-        rules: [ContainKeyword('帮助'), TextMessageLimit, NeedRobotMention],
+        rules: [EqualText('帮助'), TextMessageLimit, NeedRobotMention],
         handler: async (message) => {
             replyTemplate(message.messageId, 'ctp_AAYrltZoypBP', undefined);
         },
         comment: '给用户发送帮助信息',
     },
     {
-        rules: [ContainKeyword('撤回'), TextMessageLimit, NeedRobotMention],
+        rules: [EqualText('撤回'), TextMessageLimit, NeedRobotMention],
         handler: deleteBotMessage,
         comment: '撤回消息',
     },
@@ -70,15 +71,15 @@ const chatRules: RuleConfig[] = [
         comment: '生成水群历史卡片',
     },
     {
-        rules: [ContainKeyword('开启复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
+        rules: [EqualText('开启复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
         handler: changeRepeatStatus(true),
     },
     {
-        rules: [ContainKeyword('关闭复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
+        rules: [EqualText('关闭复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
         handler: changeRepeatStatus(false),
     },
     {
-        rules: [ContainKeyword('模型配置'), TextMessageLimit, NeedRobotMention],
+        rules: [EqualText('模型配置'), TextMessageLimit, NeedRobotMention],
         handler: setAIConfig,
     },
     {
