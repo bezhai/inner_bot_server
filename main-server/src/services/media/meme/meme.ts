@@ -109,6 +109,58 @@ async function generateMemeImage(
     }
 }
 
+/**
+ * 解析命令行文本，支持引号包裹和转义字符
+ * @param text 输入文本
+ * @returns 解析后的文本数组
+ */
+function parseCommandText(text: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    let escapeNext = false;
+    
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        
+        if (escapeNext) {
+            current += char;
+            escapeNext = false;
+            continue;
+        }
+        
+        if (char === '\\') {
+            escapeNext = true;
+            continue;
+        }
+        
+        if (char === '"' || char === "'") {
+            if (inQuotes) {
+                inQuotes = false;
+            } else {
+                inQuotes = true;
+            }
+            continue;
+        }
+        
+        if (char === ' ' && !inQuotes) {
+            if (current.length > 0) {
+                result.push(current);
+                current = '';
+            }
+            continue;
+        }
+        
+        current += char;
+    }
+    
+    if (current.length > 0) {
+        result.push(current);
+    }
+    
+    return result;
+}
+
 export async function genMeme(message: Message) {
     try {
         const response: AxiosResponse<Meme[]> = await axios.get(
@@ -117,7 +169,9 @@ export async function genMeme(message: Message) {
 
         const clearText = message.clearText();
 
-        const textKeyword = clearText.split(' ').filter((keyword) => keyword.length > 0)[0];
+        // 使用新的解析函数
+        const textParts = parseCommandText(clearText);
+        const textKeyword = textParts[0];
 
         const meme = response.data.find((meme) => {
             return meme.keywords.includes(textKeyword);
@@ -128,8 +182,6 @@ export async function genMeme(message: Message) {
         }
 
         // 获取消息中的文本和图片
-        // 注意需要分割包含xxx=xxx的参数,这些是args
-        const textParts = clearText.split(' ').filter((keyword) => keyword.length > 0);
         let rawTexts = textParts.slice(1);
         const args: Record<string, any> = {};
         const texts: string[] = [];
