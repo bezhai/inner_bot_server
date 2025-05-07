@@ -1,3 +1,6 @@
+generate-types:
+	./idl/scripts/generate.sh
+
 start:
 	docker compose up -d --build
 

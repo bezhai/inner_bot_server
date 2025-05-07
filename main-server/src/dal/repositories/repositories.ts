@@ -11,9 +11,9 @@ import {
     ChatPromptMapping,
     ModelProvider,
 } from '../entities';
-import { LarkUserOpenId } from '../entities/LarkUserOpenId';
-import { UserChatMapping } from '../entities/UserChatMapping';
-import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './UserGroupBindingRepository';
+import { LarkUserOpenId } from '../entities/lark-user-open-id';
+import { UserChatMapping } from '../entities/user-chat-mapping';
+import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
 export const UserRepository = AppDataSource.getRepository(LarkUser);
 export const BaseChatInfoRepository = AppDataSource.getRepository(LarkBaseChatInfo);

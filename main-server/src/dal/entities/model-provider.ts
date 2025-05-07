@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { AIModel } from './AIModel';
+import { AIModel } from './ai-model';
 
 @Entity('model_provider')
 export class ModelProvider {

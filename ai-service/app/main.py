@@ -1,4 +1,3 @@
-import traceback
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.router import api_router

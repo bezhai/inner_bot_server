@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { LarkBaseChatInfo } from './LarkBaseChatInfo';
-import { AIPrompt } from './AIPrompt';
+import { LarkBaseChatInfo } from './lark-base-chat-info';
+import { AIPrompt } from './ai-prompt';
 
 @Entity('chat_prompt_mapping')
 @Index(['chat_id'], { unique: true })

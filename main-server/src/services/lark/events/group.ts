@@ -1,5 +1,5 @@
 import { LarkGroupMember, LarkUser } from '../../../dal/entities';
-import { LarkUserOpenId } from '../../../dal/entities/LarkUserOpenId';
+import { LarkUserOpenId } from '../../../dal/entities/lark-user-open-id';
 import {
     GroupMemberRepository,
     UserRepository,

@@ -1,5 +1,5 @@
 import { Repository, DataSource } from 'typeorm';
-import { UserGroupBinding } from '../entities/UserGroupBinding';
+import { UserGroupBinding } from '../entities/user-group-binding';
 
 export class UserGroupBindingRepository extends Repository<UserGroupBinding> {
     constructor(dataSource: DataSource) {

@@ -1,5 +1,5 @@
 import { Entity, PrimaryColumn, Column, OneToOne, JoinColumn } from 'typeorm';
-import { LarkBaseChatInfo } from './LarkBaseChatInfo';
+import { LarkBaseChatInfo } from './lark-base-chat-info';
 
 @Entity('lark_group_chat_info')
 export class LarkGroupChatInfo {
