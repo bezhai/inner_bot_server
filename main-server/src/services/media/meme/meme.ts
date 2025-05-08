@@ -5,6 +5,7 @@ import { Readable } from 'stream';
 import { uploadFile, downloadResource } from '../../../dal/lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '../../lark/basic/message';
+import { GroupChatInfoRepository } from '../../../dal/repositories/repositories';
 
 export async function checkMeme(message: Message): Promise<boolean> {
     try {
@@ -182,7 +183,14 @@ export async function genMeme(message: Message) {
         }
 
         // 如果群聊不允许下载图片, 使用图片的规则需要报错
-        if ((meme.params_type.max_images || 0) > 0 && message.imageKeys().length > 0) {
+
+        const groupInfo = await GroupChatInfoRepository.findOne({
+            where: {
+                chat_id: message.chatId,
+            },
+        });
+
+        if ((meme.params_type.max_images || 0) > 0 && message.imageKeys().length > 0 && groupInfo?.download_has_permission_setting == 'not_anyone') {
             throw new Error(
                 '该类meme需要获取消息中图片, 但当前群聊不允许下载消息中图片, 请在其他群聊或私聊中使用',
             );
