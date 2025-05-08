@@ -6,6 +6,7 @@ import {
     handleChatMemberRemove,
     handleChatRobotAdd,
     handleChatRobotRemove,
+    handleGroupChange,
 } from './group';
 import { handleCardAction } from './card';
 import { handleReaction } from './reaction';
@@ -46,6 +47,7 @@ function createEventDispatcher() {
         'im.message.reaction.created_v1': createVoidDecorator(handleReaction),
         'im.message.reaction.deleted_v1': createVoidDecorator(handleReaction),
         'im.chat.access_event.bot_p2p_chat_entered_v1': createVoidDecorator(handlerEnterChat),
+        'im.chat.updated_v1': createVoidDecorator(handleGroupChange),
     });
 }
 

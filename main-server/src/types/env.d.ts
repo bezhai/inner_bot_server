@@ -31,5 +31,6 @@ declare namespace NodeJS {
         ENABLE_FILE_LOGGING: string; // true or false
         LOG_LEVEL: string; // info, warn, error, debug
         LOG_DIR: string; // /var/log/main-server
+        SYNCHRONIZE_DB: string; // true or false
     }
 }

@@ -7,7 +7,7 @@ import {
     GroupChatInfoRepository,
     UserGroupBindingRepository,
 } from '../../../dal/repositories/repositories';
-import { LarkGroupMemberChangeInfo } from '../../../types/lark';
+import { LarkGroupChangeInfo, LarkGroupMemberChangeInfo } from '../../../types/lark';
 import { getBotAppId } from '../../../utils/bot/bot-var';
 import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '../basic/group';
 
@@ -92,4 +92,10 @@ export async function handleChatRobotRemove(data: LarkGroupMemberChangeInfo) {
     await GroupChatInfoRepository.update(data.chat_id!, {
         is_leave: true,
     });
+}
+
+export async function handleGroupChange(data: LarkGroupChangeInfo) {
+    console.info(`upsert chat ${data.chat_id}`);
+    const { groupInfo } = await searchLarkChatInfo(data.chat_id!);
+    await GroupChatInfoRepository.save(groupInfo);
 }

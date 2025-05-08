@@ -82,6 +82,10 @@ export interface LarkGroupMemberChangeInfo {
     chat_id?: string;
 }
 
+export interface LarkGroupChangeInfo {
+    chat_id?: string;
+}
+
 export interface CardActionTrigger {
     operator?: {
         union_id?: string;
