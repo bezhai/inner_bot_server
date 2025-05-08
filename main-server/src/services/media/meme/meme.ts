@@ -181,6 +181,13 @@ export async function genMeme(message: Message) {
             throw new Error('Meme not found');
         }
 
+        // 如果群聊不允许下载图片, 使用图片的规则需要报错
+        if ((meme.params_type.max_images || 0) > 0 && message.imageKeys().length > 0) {
+            throw new Error(
+                '该类meme需要获取消息中图片, 但当前群聊不允许下载消息中图片, 请在其他群聊或私聊中使用',
+            );
+        }
+
         // 获取消息中的文本和图片
         let rawTexts = textParts.slice(1);
         const args: Record<string, any> = {};
