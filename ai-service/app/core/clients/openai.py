@@ -9,8 +9,8 @@ class OpenAIClient:
     
     def __init__(self):
         self.client = AsyncOpenAI(
-            api_key=openai_settings.api_key,
-            base_url=openai_settings.base_url
+            api_key=openai_settings.openai_api_key,
+            base_url=openai_settings.openai_base_url
         )
     
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
@@ -25,7 +25,7 @@ class OpenAIClient:
         """
         response = await self.client.embeddings.create(
             input=text,
-            model=openai_settings.model
+            model=openai_settings.openai_model
         )
         return response.data[0].embedding
 
