@@ -7,9 +7,9 @@ from app.config.config import settings
 class QdrantService:
     def __init__(self):
         self.client = QdrantClient(
-            host=settings.qdrant_host,
-            port=settings.qdrant_port,
-            api_key=settings.qdrant_api_key
+            host=settings.qdrant_service_host,
+            port=settings.qdrant_service_port,
+            api_key=settings.qdrant_service_api_key
         )
     
     async def create_collection(self, collection_name: str, vector_size: int) -> bool:
