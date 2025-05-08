@@ -8,7 +8,7 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理
     """
-    # 启动事件
+    # 启动事件系统
     await init_events()
     yield
     # 关闭事件
