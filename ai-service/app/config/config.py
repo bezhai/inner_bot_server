@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     postgres_password: str
     postgres_db: str
 
+    # Qdrant配置
+    qdrant_host: str
+    qdrant_port: int
+    qdrant_api_key: str
+
     class Config:
         env_file = ".env"
         extra = "ignore"

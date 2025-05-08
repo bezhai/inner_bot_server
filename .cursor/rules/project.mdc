@@ -19,6 +19,14 @@ This is an event-driven microservice architecture project with the following com
 
 ## Development Guidelines
 
+### Configuration Management
+- Use `pydantic_settings` for configuration management
+- All configurations defined in `app/config/config.py`
+- Config items: lowercase with underscores (e.g., `redis_host`)
+- Env vars: uppercase with underscores (e.g., `REDIS_HOST`)
+- Sensitive info must use env vars
+- Provide `.env.example` as template
+
 ### Command Usage Rules
 1. Docker Commands
    - Use `docker compose` instead of `docker-compose`

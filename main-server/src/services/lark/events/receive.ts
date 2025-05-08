@@ -3,6 +3,7 @@ import { Message } from '../../../models/message';
 import { runRules } from '../../message-processing/rule-engine';
 import { saveLarkMessage } from '../../message-store/service';
 import { MessageTransferer } from './factory';
+import { publishEvent } from '../../../events';
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
     try {
@@ -16,6 +17,15 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
                 return builtMessage;
             })(),
         ]);
+
+        // 发送消息事件
+        if (message.clearText().length > 0) {
+            publishEvent('message.receive', {
+                messageId: message.messageId,
+                chatId: message.chatId,
+                message_context: message.clearText(),
+            });
+        }
 
         await runRules(message);
     } catch (error) {
