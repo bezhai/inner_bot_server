@@ -140,26 +140,26 @@ export async function genHistoryCard(message: Message) {
     const card = new LarkCard().withHeader(new CardHeader('七天水群趋势').color('green'));
     card.addElement(activeChart, personChart, wordCloudChart);
 
-    if (message.chatId === 'oc_a44255e98af05f1359aeb29eeb503536') {
-        // 压抑群hardcode加一下压抑榜
+    // if (message.chatId === 'oc_a44255e98af05f1359aeb29eeb503536') {
+    //     // 压抑群hardcode加一下压抑榜
 
-        const repressionTitle = new MarkdownComponent('repression_title', '**压抑榜**');
+    //     const repressionTitle = new MarkdownComponent('repression_title', '**压抑榜**');
 
-        const repressionList = Object.entries(repressionMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(
-                ([userId, count], index) =>
-                    `[**压抑分**：${count.toFixed(0)}] <at id=${userId}></at> ${getRankEmoji(index)}`,
-            );
+    //     const repressionList = Object.entries(repressionMap)
+    //         .sort((a, b) => b[1] - a[1])
+    //         .slice(0, 10)
+    //         .map(
+    //             ([userId, count], index) =>
+    //                 `[**压抑分**：${count.toFixed(0)}] <at id=${userId}></at> ${getRankEmoji(index)}`,
+    //         );
 
-        const repressionMarkdownComponent = new MarkdownComponent(
-            'repression',
-            repressionList.join('\n'),
-        );
+    //     const repressionMarkdownComponent = new MarkdownComponent(
+    //         'repression',
+    //         repressionList.join('\n'),
+    //     );
 
-        card.addElement(repressionTitle, repressionMarkdownComponent);
-    }
+    //     card.addElement(repressionTitle, repressionMarkdownComponent);
+    // }
 
     // 最后需要发送卡片
     replyCard(message.messageId, card);
