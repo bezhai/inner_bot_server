@@ -125,8 +125,17 @@ class QdrantService:
                     logger.info(f"原始相似度分数低于阈值，跳过: {original_score}")
                     continue
                 
+                # 获取消息时间戳，确保是浮点数类型
+                msg_timestamp = hit.payload.get("timestamp", current_time)
+                if isinstance(msg_timestamp, str):
+                    try:
+                        msg_timestamp = float(msg_timestamp)
+                    except (ValueError, TypeError):
+                        logger.warning(f"无效的时间戳格式: {msg_timestamp}，使用当前时间")
+                        msg_timestamp = current_time
+                
                 # 计算时间差（小时）
-                time_diff_hours = (current_time - hit.payload.get("timestamp", current_time)) / 3600
+                time_diff_hours = (current_time - msg_timestamp) / 3600
                 
                 # 计算时间权重（越早的消息权重越高）
                 # 使用指数衰减函数：exp(-time_diff_hours * time_boost_factor)
@@ -135,7 +144,7 @@ class QdrantService:
                 # 计算最终分数（结合原始相似度和时间权重）
                 final_score = original_score * (1 + time_weight * time_boost_factor)
                 
-                logger.info(f"最终分数: {final_score}")
+                logger.info(f"消息时间戳: {msg_timestamp}, 时间差(小时): {time_diff_hours}, 时间权重: {time_weight}, 最终分数: {final_score}")
                 
                 weighted_results.append({
                     "id": hit.id,
