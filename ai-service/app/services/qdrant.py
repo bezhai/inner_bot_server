@@ -141,21 +141,21 @@ class QdrantService:
                 # 使用指数衰减函数：exp(-time_diff_hours * time_boost_factor)
                 time_weight = np.exp(-time_diff_hours * time_boost_factor)
                 
-                # 计算最终分数（结合原始相似度和时间权重）
-                final_score = original_score * (1 + time_weight * time_boost_factor)
+                # 时间权重只用于排序，不影响原始分数
+                sort_score = original_score + time_weight * time_boost_factor
                 
-                logger.info(f"消息时间戳: {msg_timestamp}, 时间差(小时): {time_diff_hours}, 时间权重: {time_weight}, 最终分数: {final_score}")
+                logger.info(f"消息时间戳: {msg_timestamp}, 时间差(小时): {time_diff_hours}, 时间权重: {time_weight}, 排序分数: {sort_score}, 原始分数: {original_score}")
                 
                 weighted_results.append({
                     "id": hit.id,
-                    "score": final_score,
+                    "score": original_score,  # 保持原始相似度分数
                     "payload": hit.payload,
-                    "original_score": original_score,
+                    "sort_score": sort_score,  # 添加排序分数
                     "time_weight": time_weight
                 })
             
-            # 按最终分数排序
-            weighted_results.sort(key=lambda x: x["score"], reverse=True)
+            # 按排序分数排序
+            weighted_results.sort(key=lambda x: x["sort_score"], reverse=True)
             
             # 返回前limit个结果
             return weighted_results[:limit]
