@@ -82,12 +82,21 @@ export function changeRepeatStatus(
                 if (open_repeat_message) {
                     replyMessage(
                         message.messageId,
-                        `复读功能已开启，当群聊中连续出现相同的三次文本/表情消息，我就会复读`,
+                        `呜哇~复读功能已经开启啦！如果在群聊里看到同样的文字或表情连续出现三次的话，人家也会跟着一起复读呢！(。>︿<)_θ`,
                     );
                 } else {
-                    replyMessage(message.messageId, `复读功能已关闭`);
+                    replyMessage(
+                        message.messageId,
+                        `诶嘿~复读功能已经关闭啦！人家暂时就不会复读了呢 (｡•́︿•̀｡)`,
+                    );
                 }
             })
-            .catch(() => replyMessage(message.messageId, `操作失败`, true));
+            .catch(() =>
+                replyMessage(
+                    message.messageId,
+                    `呜呜呜...人家好像遇到了一点小问题呢 (´;ω;｀) 操作没有成功啦...`,
+                    true,
+                ),
+            );
     };
 }

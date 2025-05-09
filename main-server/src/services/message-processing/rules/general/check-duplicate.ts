@@ -11,21 +11,25 @@ interface FindSimilarMessageResponse {
 
 export async function checkDuplicate(message: Message) {
     if (!message.parentMessageId) {
-        replyMessage(message.messageId, '赤尾不知道你要查重啥消息哦😴你需要回复一条消息w', true);
+        replyMessage(
+            message.messageId,
+            '呜呜~需要查重的话，要回复一条消息给人家看看呢😴 (｡ᵕ ᵕ｡)',
+            true,
+        );
         return;
     }
 
     const storedMessage = await getMessage(message.parentMessageId);
 
     if (!storedMessage) {
-        replyMessage(message.messageId, '赤尾找不到这条消息哦🥺', true);
+        replyMessage(message.messageId, '呜哇...人家翻遍了记忆也找不到这条消息呢🥺 (｡•́︿•̀｡)', true);
         return;
     }
 
     const originalMessage = await Message.fromMessage(storedMessage);
 
     if (!originalMessage) {
-        replyMessage(message.messageId, '赤尾发现这条消息似乎不太对劲哦😮', true);
+        replyMessage(message.messageId, '诶嘿~这条消息看起来怪怪的呢😮 (。>﹏<。)', true);
         return;
     }
 
@@ -42,18 +46,23 @@ export async function checkDuplicate(message: Message) {
             // 回复两次消息, 第一次是查重结果, 第二次是回复原消息
             await replyMessage(
                 originalMessage.messageId,
-                `查重赤尾启动！这条消息可能存在学术不端行为🚨🚨🚨！查重率: ${(result.similarity * 100).toFixed(2)}%`,
+                `哼哼！赤尾的查重雷达启动！(｀･ω･´)ゞ 这条消息可能有点小问题呢🚨！相似度高达: ${(result.similarity * 100).toFixed(2)}% (｡•ˇ‸ˇ•｡)`,
                 false,
             );
-            await replyMessage(
-                result.message_id,
-                `就是这条消息！`,
-            );
+            await replyMessage(result.message_id, `锵锵~就是这条消息啦！(｀・ω・´)`);
         } else {
-            replyMessage(originalMessage.messageId, '恭喜🎉🎉！赤尾觉得这条消息应该是原创的w', false);
+            replyMessage(
+                originalMessage.messageId,
+                '太好啦！赤尾觉得这是原创内容呢🎉！真是太棒啦 (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧',
+                false,
+            );
         }
     } catch (error) {
         console.error('查重失败:', error);
-        replyMessage(originalMessage.messageId, '查重失败，请稍后重试', true);
+        replyMessage(
+            originalMessage.messageId,
+            '呜呜...查重的时候出了点小问题呢 (´;ω;｀) 可以稍后再试试吗？',
+            true,
+        );
     }
 }
