@@ -122,6 +122,7 @@ class QdrantService:
                 
                 # 如果原始分数低于阈值，跳过
                 if original_score < score_threshold:
+                    logger.info(f"原始相似度分数低于阈值，跳过: {original_score}")
                     continue
                 
                 # 计算时间差（小时）
@@ -133,6 +134,8 @@ class QdrantService:
                 
                 # 计算最终分数（结合原始相似度和时间权重）
                 final_score = original_score * (1 + time_weight * time_boost_factor)
+                
+                logger.info(f"最终分数: {final_score}")
                 
                 weighted_results.append({
                     "id": hit.id,
