@@ -12,7 +12,9 @@ class QdrantService:
         self.client = QdrantClient(
             host=settings.qdrant_service_host,
             port=settings.qdrant_service_port,
-            api_key=settings.qdrant_service_api_key
+            api_key=settings.qdrant_service_api_key,
+            prefer_grpc=False,
+            https=False
         )
     
     async def create_collection(self, collection_name: str, vector_size: int) -> bool:
