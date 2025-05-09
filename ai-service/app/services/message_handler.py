@@ -120,6 +120,8 @@ class MessageHandler(EventSubscriber):
             best_match = results[0]
             similarity_score = best_match["score"]
             
+            logger.info(f"带时间权重排序的搜索结果: {results}")
+            
             if similarity_score >= similarity_threshold:
                 return {
                     "found": True,
