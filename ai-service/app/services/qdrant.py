@@ -109,6 +109,8 @@ class QdrantService:
                 limit=limit * 2  # 获取更多结果以便后续重排序
             )
             
+            logger.info(f"搜索结果: {results}")
+            
             if not results:
                 return []
                 

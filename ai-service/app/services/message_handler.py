@@ -88,7 +88,6 @@ class MessageHandler(EventSubscriber):
             # 构建查询过滤器
             # 1. 必须是同一个chat_id
             # 2. 排除当前消息
-            current_vector_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, message_id))
             query_filter = Filter(
                 must=[
                     FieldCondition(
