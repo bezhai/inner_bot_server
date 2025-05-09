@@ -1,9 +1,11 @@
 from typing import List, Dict, Any, Optional
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from qdrant_client.http.models import Distance, VectorParams
+from qdrant_client.http.models import Distance, VectorParams, Filter
 from app.config.config import settings
 import logging
+import numpy as np
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,80 @@ class QdrantService:
             ]
         except Exception as e:
             logger.error(f"搜索向量失败: {str(e)}")
+            return []
+            
+    async def search_vectors_with_score_boost(
+        self,
+        collection_name: str,
+        query_vector: List[float],
+        query_filter: Optional[Filter] = None,
+        limit: int = 10,
+        score_threshold: float = 0.8,
+        time_boost_factor: float = 0.1
+    ) -> List[Dict[str, Any]]:
+        """搜索向量并应用时间权重提升
+        
+        Args:
+            collection_name: 集合名称
+            query_vector: 查询向量
+            query_filter: 查询过滤器
+            limit: 返回结果数量限制
+            score_threshold: 相似度阈值
+            time_boost_factor: 时间权重因子，值越大时间权重影响越大
+            
+        Returns:
+            List[Dict[str, Any]]: 搜索结果列表，每个结果包含id、score和payload
+        """
+        try:
+            # 获取原始搜索结果
+            results = self.client.search(
+                collection_name=collection_name,
+                query_vector=query_vector,
+                query_filter=query_filter,
+                limit=limit * 2  # 获取更多结果以便后续重排序
+            )
+            
+            if not results:
+                return []
+                
+            current_time = datetime.now().timestamp()
+            
+            # 对每个结果应用时间权重
+            weighted_results = []
+            for hit in results:
+                # 获取原始相似度分数
+                original_score = hit.score
+                
+                # 如果原始分数低于阈值，跳过
+                if original_score < score_threshold:
+                    continue
+                
+                # 计算时间差（小时）
+                time_diff_hours = (current_time - hit.payload.get("timestamp", current_time)) / 3600
+                
+                # 计算时间权重（越早的消息权重越高）
+                # 使用指数衰减函数：exp(-time_diff_hours * time_boost_factor)
+                time_weight = np.exp(-time_diff_hours * time_boost_factor)
+                
+                # 计算最终分数（结合原始相似度和时间权重）
+                final_score = original_score * (1 + time_weight * time_boost_factor)
+                
+                weighted_results.append({
+                    "id": hit.id,
+                    "score": final_score,
+                    "payload": hit.payload,
+                    "original_score": original_score,
+                    "time_weight": time_weight
+                })
+            
+            # 按最终分数排序
+            weighted_results.sort(key=lambda x: x["score"], reverse=True)
+            
+            # 返回前limit个结果
+            return weighted_results[:limit]
+            
+        except Exception as e:
+            logger.error(f"带权重搜索向量失败: {str(e)}")
             return []
     
     async def delete_collection(self, collection_name: str) -> bool:
