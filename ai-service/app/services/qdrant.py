@@ -3,6 +3,9 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from qdrant_client.http.models import Distance, VectorParams
 from app.config.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 class QdrantService:
     def __init__(self):
@@ -21,7 +24,7 @@ class QdrantService:
             )
             return True
         except Exception as e:
-            print(f"创建集合失败: {str(e)}")
+            logger.warning(f"创建集合失败: {str(e)}")
             return False
     
     async def upsert_vectors(
@@ -43,7 +46,7 @@ class QdrantService:
             )
             return True
         except Exception as e:
-            print(f"插入向量失败: {str(e)}")
+            logger.error(f"插入向量失败: {str(e)}")
             return False
     
     async def search_vectors(
@@ -68,7 +71,7 @@ class QdrantService:
                 for hit in results
             ]
         except Exception as e:
-            print(f"搜索向量失败: {str(e)}")
+            logger.error(f"搜索向量失败: {str(e)}")
             return []
     
     async def delete_collection(self, collection_name: str) -> bool:
@@ -77,8 +80,23 @@ class QdrantService:
             self.client.delete_collection(collection_name=collection_name)
             return True
         except Exception as e:
-            print(f"删除集合失败: {str(e)}")
+            logger.error(f"删除集合失败: {str(e)}")
             return False
 
 # 创建单例实例
-qdrant_service = QdrantService() 
+qdrant_service = QdrantService()
+
+async def init_qdrant_collections():
+    """初始化所有必要的QDrant集合"""
+    try:
+        # 创建消息集合，向量维度为1536（OpenAI text-embedding-3-small模型的输出维度）
+        result = await qdrant_service.create_collection(
+            collection_name="messages",
+            vector_size=1536
+        )
+        if result:
+            logger.info("QDrant消息集合创建成功")
+        else:
+            logger.warning("QDrant消息集合可能已存在")
+    except Exception as e:
+        logger.error(f"初始化QDrant集合失败: {str(e)}") 

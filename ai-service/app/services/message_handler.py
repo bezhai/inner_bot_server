@@ -2,6 +2,7 @@ import logging
 from typing import Dict, Any
 from app.core.event_decorator import subscribe, EventSubscriber
 from app.core.clients.openai import openai_client
+from app.services.qdrant import qdrant_service
 logger = logging.getLogger(__name__)
 
 class MessageHandler(EventSubscriber):
@@ -24,8 +25,22 @@ class MessageHandler(EventSubscriber):
             
             embedding_result = await openai_client.get_embedding(message_context)
             
-            logger.info(f"收到消息: messageId={message_id}, chatId={chat_id}, context={message_context}, embedding_result[0]={embedding_result[0]}")
+            # 将消息内容和embedding写入QDrant
+            payload = {
+                "message_id": message_id,
+                "chat_id": chat_id,
+                "message_context": message_context,
+                "timestamp": data.get("timestamp", "")
+            }
             
+            await qdrant_service.upsert_vectors(
+                collection_name="messages",
+                vectors=[embedding_result],
+                ids=[message_id],
+                payloads=[payload]
+            )
+            
+            logger.info(f"消息已写入QDrant: messageId={message_id}, chatId={chat_id}, context={message_context}, embedding_result[0]={embedding_result[0]}")
             
         except Exception as e:
             logger.error(f"处理消息接收事件失败: {str(e)}")
