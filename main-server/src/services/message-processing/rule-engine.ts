@@ -18,6 +18,7 @@ import {
 } from './rules/rule';
 import { sendPhoto } from '../media/photo/send-photo';
 import { setAIConfig } from './rules/setting/setting';
+import { checkDuplicate } from './rules/general/check-duplicate';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {
@@ -81,6 +82,11 @@ const chatRules: RuleConfig[] = [
     {
         rules: [EqualText('模型配置'), TextMessageLimit, NeedRobotMention],
         handler: setAIConfig,
+    },
+    {
+        rules: [EqualText('查重'), TextMessageLimit, NeedRobotMention],
+        handler: checkDuplicate,
+        comment: '消息查重功能',
     },
     {
         rules: [CommandRule, TextMessageLimit, NeedRobotMention],
