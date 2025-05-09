@@ -1,90 +1,8 @@
-# Inner Bot Server
-
-Inner Bot Server 是一个基于事件驱动的微服务架构项目，用于提供智能对话和数据处理服务。
-
-## 项目架构
-
-项目由以下主要组件构成：
-
-- **main-server**: 主服务器，负责请求处理和业务逻辑
-- **ai-service**: AI 服务，提供智能对话能力
-- **logstash**: 日志处理服务，负责日志收集和分析
-
-## 技术栈
-
-- 开发语言：TypeScript/JavaScript 和 Python
-- 事件总线：Redis
-- 容器化：Docker
-- 配置管理：pydantic_settings
-
-## 快速开始
-
-### 环境要求
-
-- Node.js >= 16
-- Python >= 3.8
-- Docker
-- Redis
-
-### 安装依赖
-
-1. 安装 Python 依赖：
-
-```bash
-cd main-server
-pip install -r requirements.txt
-```
-
-2. 安装 Node.js 依赖：
-
-```bash
-cd ai-service
-npm install
-```
-
-### 配置
-
-1. 复制环境变量模板：
-
-```bash
-cp .env.example .env
-```
-
-2. 根据实际环境修改 `.env` 文件中的配置
-
-### 启动服务
-
-使用 Docker Compose 启动所有服务：
-
-```bash
-docker compose up
-```
-
-## 文档
-
-- [事件系统使用指南](docs/event_system.md)
-- [部署指南](docs/deployment.md)
-
-## 开发指南
-
-- 代码风格遵循项目配置的 ESLint 和 Black 规范
-- 提交代码前请确保通过所有测试
-- 遵循[语义化提交信息](https://www.conventionalcommits.org/)规范
-
-## 许可证
-
-[MIT](LICENSE)
-
-# README
-
-This README would normally document whatever steps are necessary to get the
-application up and running.
-
-## 事件系统
+# 事件系统
 
 本项目实现了一个基于Redis的跨服务事件发布-订阅系统，支持两种模式：广播模式和请求-响应模式。
 
-### 特性
+## 特性
 
 - **支持两种事件模式**：
   - 广播模式：发布者不关心结果，任何订阅者都可以接收并处理
@@ -94,9 +12,9 @@ application up and running.
 - **消息超时**：自动处理消息超时，防止无限等待
 - **跨语言支持**：同时支持Node.js和Python服务
 
-### 使用方法
+## 使用方法
 
-#### Node.js (TypeScript)
+### Node.js (TypeScript)
 
 ```typescript
 // 发布事件（广播模式）
@@ -131,7 +49,7 @@ eventSystem.subscribe('user.action', async (data) => {
 });
 ```
 
-#### Python
+### Python
 
 ```python
 # 发布事件（广播模式）
@@ -164,7 +82,7 @@ async def handle_data_process(data):
     return {'processed': True, 'result': 'success'}
 ```
 
-### 配置
+## 配置
 
 事件系统依赖Redis进行跨服务通信，需要在环境变量中设置Redis连接URL：
 
@@ -174,7 +92,7 @@ REDIS_URL=redis://localhost:6379
 
 如果不设置此环境变量，或者不想使用Redis，事件系统将退化为本地事件处理模式。
 
-### 事件超时
+## 事件超时
 
 默认情况下，请求-响应模式的事件超时时间为30秒，可以在发布事件时自定义：
 
@@ -185,5 +103,3 @@ await publishEventAndWait('slow.process', data, { ttl: 60000 }); // 60秒超时
 // Python
 await publish_event_and_wait('slow.process', data, ttl=60.0) # 60秒超时
 ```
-
-
