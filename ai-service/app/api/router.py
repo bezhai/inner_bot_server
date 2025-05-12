@@ -15,4 +15,22 @@ api_router.include_router(extraction_router, tags=["Extraction"])
 # 健康检查路由
 @api_router.get("/")
 async def root():
-    return {"message": "FastAPI is running!"} 
+    return {"message": "FastAPI is running!"}
+
+# 专用健康检查端点
+@api_router.get("/health", tags=["Health"])
+async def health_check():
+    """
+    服务健康检查端点
+    """
+    # 可在这里添加更多健康检查的逻辑
+    return {
+        "status": "ok",
+        "timestamp": import_time(),
+        "service": "ai-service"
+    }
+
+def import_time():
+    """获取当前时间字符串"""
+    from datetime import datetime
+    return datetime.now().isoformat() 

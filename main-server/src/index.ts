@@ -44,6 +44,25 @@ async function startHttpServer() {
     router.post('/webhook/event', eventRouter);
     router.post('/webhook/card', cardActionRouter);
 
+    // 健康检查端点
+    router.get('/api/health', (ctx) => {
+        try {
+            // 可在此添加其他健康检查逻辑，比如检查数据库连接状态
+            ctx.body = {
+                status: 'ok',
+                timestamp: new Date().toISOString(),
+                service: 'main-server',
+            };
+            ctx.status = 200;
+        } catch (error) {
+            ctx.body = {
+                status: 'error',
+                message: error instanceof Error ? error.message : 'Unknown error',
+            };
+            ctx.status = 500;
+        }
+    });
+
     server.use(router.routes());
 
     server.listen(3000);
