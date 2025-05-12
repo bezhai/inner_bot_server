@@ -66,3 +66,24 @@ auto-deploy-setup:
 	@crontab /tmp/current_crontab
 	@echo "已添加自动部署定时任务，每3分钟执行一次"
 	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
+
+# 手动执行健康检查
+health-check:
+	./scripts/health_check.sh
+
+# 设置健康检查定时任务（每5分钟检查一次）
+health-check-setup:
+	@echo "正在设置健康检查定时任务..."
+	@crontab -l > /tmp/current_crontab || echo "" > /tmp/current_crontab
+	@if grep -q "health_check.sh" /tmp/current_crontab; then \
+		echo "健康检查任务已存在，正在更新..."; \
+		sed -i.bak '/health_check.sh/d' /tmp/current_crontab; \
+	fi
+	@echo "*/5 * * * * $(shell pwd)/scripts/health_check.sh >> /var/log/inner_bot_server/health_check_cron.log 2>&1" >> /tmp/current_crontab
+	@crontab /tmp/current_crontab
+	@echo "已添加健康检查定时任务，每5分钟执行一次"
+	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
+
+# 设置所有监控任务（自动部署和健康检查）
+monitoring-setup: auto-deploy-setup health-check-setup
+	@echo "所有监控任务已设置完成"
