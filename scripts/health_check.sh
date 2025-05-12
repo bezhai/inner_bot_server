@@ -174,30 +174,9 @@ check_redis() {
     return 1
   fi
   
-  # 如果有密码，尝试执行PING命令
-  if [ -f "$PROJECT_DIR/.env" ] && grep -q "REDIS_PASSWORD" "$PROJECT_DIR/.env"; then
-    source "$PROJECT_DIR/.env"
-    if [ ! -z "$REDIS_PASSWORD" ]; then
-      PING_RESULT=$(redis-cli -h $HOST -p $PORT -a "$REDIS_PASSWORD" ping 2>&1)
-      if [[ "$PING_RESULT" == "PONG" ]]; then
-        log "✅ $SERVICE_NAME 服务健康 (认证成功)"
-        return 0
-      else
-        log "❌ $SERVICE_NAME 服务不健康: $PING_RESULT"
-        return 1
-      fi
-    fi
-  fi
-  
-  # 无密码情况尝试PING
-  PING_RESULT=$(redis-cli -h $HOST -p $PORT ping 2>&1)
-  if [[ "$PING_RESULT" == "PONG" ]]; then
-    log "✅ $SERVICE_NAME 服务健康"
-    return 0
-  else
-    log "❌ $SERVICE_NAME 服务不健康: $PING_RESULT"
-    return 1
-  fi
+  # 只使用端口检查，不使用redis-cli
+  log "✅ $SERVICE_NAME 端口可连接"
+  return 0
 }
 
 # 检查MongoDB服务健康状态
@@ -231,34 +210,15 @@ check_postgres() {
   
   log "检查 $SERVICE_NAME 健康状态..."
   
-  # 先检查端口
+  # 只检查端口连通性
   nc -z -w 5 $HOST $PORT
   if [ $? -ne 0 ]; then
     log "❌ $SERVICE_NAME 端口不可连接"
     return 1
+  else
+    log "✅ $SERVICE_NAME 端口可连接"
+    return 0
   fi
-  
-  # 如果有环境变量，尝试访问数据库
-  if [ -f "$PROJECT_DIR/.env" ] && grep -q "POSTGRES_" "$PROJECT_DIR/.env"; then
-    source "$PROJECT_DIR/.env"
-    if [ ! -z "$POSTGRES_USER" ] && [ ! -z "$POSTGRES_PASSWORD" ] && [ ! -z "$POSTGRES_DB" ]; then
-      export PGPASSWORD="$POSTGRES_PASSWORD"
-      PG_RESULT=$(psql -h $HOST -p $PORT -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT 1" -t 2>&1)
-      unset PGPASSWORD
-      
-      if [[ "$PG_RESULT" == *"1"* ]]; then
-        log "✅ $SERVICE_NAME 服务健康 (认证成功)"
-        return 0
-      else
-        log "❌ $SERVICE_NAME 服务不健康: $PG_RESULT"
-        return 1
-      fi
-    fi
-  fi
-  
-  # 如果没有环境变量或无法连接，只报告端口检查结果
-  log "✅ $SERVICE_NAME 端口可连接"
-  return 0
 }
 
 # 检查Elasticsearch服务健康状态

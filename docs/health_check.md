@@ -24,9 +24,9 @@
 |---------|---------|-------|------------|
 | main-server | HTTP | <http://localhost:3000/api/health> | 返回状态码200 |
 | ai-service | HTTP | <http://localhost:8000/health> | 返回状态码200 |
-| redis | 专用检查 | localhost:6379 | 端口可连接且PING命令返回PONG |
-| mongo | 专用检查 | localhost:27017 | 端口可连接 |
-| postgres | 专用检查 | localhost:5432 | 端口可连接，可执行简单查询 |
+| redis | 端口检查 | localhost:6379 | 端口可连接 |
+| mongo | 端口检查 | localhost:27017 | 端口可连接 |
+| postgres | 端口检查 | localhost:5432 | 端口可连接 |
 | elasticsearch | 专用检查 | localhost:9200 | 端口可连接，集群状态为green或yellow |
 
 此外，还会检查以下内容：
@@ -187,14 +187,11 @@ make monitoring-setup
 1. 必要的工具是否已安装：
    - curl
    - nc (netcat)
-   - redis-cli (Redis检查)
-   - psql (PostgreSQL检查)
-   - bc (计算负载)
+   - bc (用于计算CPU负载)
 
 2. 环境变量是否正确配置：
-   - 数据库连接信息
-   - Redis密码
-   - Elasticsearch凭据
+   - 各服务的端口和地址配置
+   - Elasticsearch凭据（如使用）
 
 3. 网络连接是否正常：
    - 防火墙设置
