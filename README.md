@@ -8,14 +8,12 @@ Inner Bot Server 是一个基于事件驱动的微服务架构项目，用于提
 
 - **main-server**: 主服务器，负责请求处理和业务逻辑
 - **ai-service**: AI 服务，提供智能对话能力
-- **logstash**: 日志处理服务，负责日志收集和分析
 
 ## 技术栈
 
 - 开发语言：TypeScript/JavaScript 和 Python
 - 事件总线：Redis
 - 容器化：Docker
-- 配置管理：pydantic_settings
 
 ## 快速开始
 
