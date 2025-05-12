@@ -38,15 +38,15 @@ try {
   console.error('处理失败:', error);
 }
 
-// 订阅事件
-import { getEventSystem } from './events';
+// 订阅事件（装饰器注册，示例）
+import { eventHandler } from './events';
 
-const eventSystem = getEventSystem();
-eventSystem.subscribe('user.action', async (data) => {
+@eventHandler('user.action')
+async function handleUserAction(data) {
   console.log('收到用户行为事件:', data);
   // 处理逻辑...
   return { status: 'processed' };
-});
+}
 ```
 
 ### Python
@@ -70,12 +70,10 @@ try:
 except Exception as e:
     print(f"处理失败: {e}")
 
-# 订阅事件
-from app.event_system import get_event_system
+# 订阅事件（装饰器注册）
+from app.event_system import event_handler
 
-event_system = get_event_system()
-
-@event_system.subscribe('data.process')
+@event_handler('data.process')
 async def handle_data_process(data):
     print(f"收到数据处理事件: {data}")
     # 处理逻辑...
@@ -104,80 +102,158 @@ await publishEventAndWait('slow.process', data, { ttl: 60000 }); // 60秒超时
 await publish_event_and_wait('slow.process', data, ttl=60.0) # 60秒超时
 ```
 
-## Redis Stream 动态分组与 Topic 事件系统设计
+---
 
-为满足业务中"每个 cardID 为一组，且每组下有不同 topic，事件需严格顺序消费"的需求，事件系统支持基于 Redis Stream 的动态分组与多 topic 机制。
+# Redis Stream 动态分组与 Topic 事件系统设计（统一注册方式）
 
-### 设计要点
+## 设计目标
 
-- **Stream Key 结构**：`event_stream:{topic}:{card_id}`，每个 topic+cardID 组合一个 Stream。
-- **消费者组**：每个 Stream 拥有独立的消费者组，组名可用 `{topic}:{card_id}`。
-- **事件顺序消费**：每个 cardID+topic 只分配一个消费协程，保证严格顺序。
-- **处理函数路由**：不同 topic 路由到不同的事件处理函数。
-- **动态注册/注销 group**：
-  - 新的 cardID+topic 事件到来时，自动注册消费协程。
-  - 消费完毕后，生产者可主动注销 group（如发布注销消息），消费者收到后及时释放资源。
-  - 也可定期检测无事件的 group 自动注销。
-- **毫秒级感知**：推荐通过 Redis PUB/SUB 机制，生产者在注册/注销 group 时发布通知，消费者订阅后毫秒级响应。
+- 支持大规模动态分组（如每个 cardID 为一组）
+- 每组下可有多个 topic，且每个 topic 事件需严格顺序消费
+- 支持多语言（Node.js、Python）服务间协作
+- 动态注册/注销 group，资源高效利用
+- 毫秒级 group 变动感知
+- **统一的消费函数注册方式，业务开发者无需关心底层实现**
 
-### 生产者示例
+## 消费者注册方式
+
+### 推荐模式：装饰器注册
+
+- 业务开发者只需用装饰器声明自己要处理的事件（topic），无需关心事件系统底层实现。
+- 事件系统自动完成 handler 的注册、分发、顺序/并发控制。
+
+#### Python 示例
 
 ```python
-async def produce(redis, topic, card_id, event_data: dict):
-    stream_key = f"event_stream:{topic}:{card_id}"
-    await redis.xadd(stream_key, event_data)
-    # 注册 group 通知（可选）
-    await redis.publish("group_change", f"register:{topic}:{card_id}")
+from app.event_system import event_handler
 
-# 主动注销 group
-async def unregister_group(redis, topic, card_id):
-    await redis.publish("group_change", f"unregister:{topic}:{card_id}")
+@event_handler("comment")
+async def handle_comment_event(data):
+    ...
+
+@event_handler("like")
+async def handle_like_event(data):
+    ...
 ```
 
-### 消费者调度与处理
+#### Node.js 示例
 
-```python
-TOPIC_HANDLERS = {
-    "comment": handle_comment_event,
-    "like": handle_like_event,
-    # ...
+```typescript
+import { eventHandler } from './events';
+
+@eventHandler('user.action')
+async function handleUserAction(data) {
+  ...
 }
-
-async def consume_stream(redis, topic, card_id, consumer_name):
-    stream_key = f"event_stream:{topic}:{card_id}"
-    group_name = f"{topic}:{card_id}"
-    try:
-        await redis.xgroup_create(stream_key, group_name, id='0', mkstream=True)
-    except Exception:
-        pass
-    handler = TOPIC_HANDLERS[topic]
-    while True:
-        events = await redis.xreadgroup(
-            group_name, consumer_name,
-            streams={stream_key: '>'},
-            count=10, block=1000
-        )
-        if not events:
-            continue
-        for _, messages in events:
-            for msg_id, msg in messages:
-                try:
-                    await handler(msg)
-                    await redis.xack(stream_key, group_name, msg_id)
-                except Exception as e:
-                    print(f"处理失败: {e}")
 ```
 
-### group 注册/注销机制
+#### 装饰器实现思路
 
-- 生产者在有新事件时发布 `register:{topic}:{card_id}`，在业务完成后可主动发布 `unregister:{topic}:{card_id}`。
-- 消费者订阅 `group_change` 频道，收到注册消息后启动消费，收到注销消息后及时释放资源。
-- 也可定期轮询 Redis Stream key，发现无事件的 group 自动注销。
+- 装饰器将 handler 注册到全局注册表（如 `EVENT_HANDLERS` 字典）
+- 事件系统内部根据 topic 自动路由到对应 handler
+- handler 只需处理数据，不关心事件分组、顺序等
 
-### 适用场景
+## 系统层面职责
 
-- 动态 group 数量大、事件需分组顺序消费
+- **事件分发**：根据 topic/card_id 自动分配到对应消费协程
+- **顺序保证**：每个 group（topic+card_id）只分配一个消费协程，系统层面保证顺序
+- **并发扩展**：不同 group 可并发消费，系统自动管理
+- **注册/注销**：系统自动感知 group 变动，动态增删消费协程
+
+## 关键接口定义（Python 伪代码）
+
+```python
+# 注册表
+EVENT_HANDLERS = {}
+
+def event_handler(topic):
+    def decorator(func):
+        EVENT_HANDLERS[topic] = func
+        return func
+    return decorator
+
+# 系统内部消费调度
+async def consume_stream(redis, topic, card_id, consumer_name):
+    handler = EVENT_HANDLERS[topic]
+    # ...顺序消费逻辑...
+    while True:
+        # 读取事件
+        # ...
+        await handler(event_data)
+```
+
+## 典型流程图
+
+### 1. 整体架构流程图
+
+```mermaid
+flowchart TD
+    subgraph Producer服务
+      A1(发布事件) --> A2(写入Redis Stream)
+      A1 --> A3(PUB group_change 注册/注销)
+    end
+    subgraph Redis
+      B1(Stream Key: event_stream:topic:card_id)
+      B2(PUB/SUB group_change)
+    end
+    subgraph Consumer服务
+      C1(订阅group_change)
+      C2(动态启动/注销消费协程)
+      C3(消费事件并分发到handler)
+    end
+    A2 --> B1
+    A3 --> B2
+    B2 --> C1
+    C1 --> C2
+    C2 --> C3
+    B1 --> C3
+```
+
+### 2. 消费者注册与事件处理流程
+
+```mermaid
+sequenceDiagram
+    participant Dev as 业务开发者
+    participant System as 事件系统
+    participant Redis
+    participant Handler
+
+    Dev->>System: @event_handler("topic") 注册消费函数
+    System->>Redis: 订阅 group_change
+    Redis->>System: group_change 注册/注销消息
+    System->>System: 动态启动/注销消费协程
+    System->>Redis: XREADGROUP 消费事件
+    System->>Handler: 分发事件数据
+    Handler->>System: 处理结果
+    System->>Redis: XACK 确认
+```
+
+### 3. 事件顺序消费保证
+
+```mermaid
+sequenceDiagram
+    participant Producer
+    participant Redis
+    participant ConsumerManager
+    participant Consumer
+
+    Producer->>Redis: XADD event_stream:topic:card_id
+    Producer->>Redis: PUBLISH group_change register:topic:card_id
+    Redis->>ConsumerManager: group_change 消息
+    ConsumerManager->>Consumer: 启动消费协程
+    Consumer->>Redis: XREADGROUP 消费事件(严格顺序)
+    Consumer->>Redis: XACK 确认
+    Producer->>Redis: PUBLISH group_change unregister:topic:card_id
+    Redis->>ConsumerManager: group_change 消息
+    ConsumerManager->>Consumer: 取消消费协程
+```
+
+## 适用场景
+
+- 需要动态分组、严格顺序消费的业务场景
 - 多 topic 路由不同处理逻辑
-- 需毫秒级感知 group 变动、及时注册/注销
+- 需毫秒级 group 变动感知
+
+---
 
 如需更详细的实现方案，请参考源码或联系维护者。
