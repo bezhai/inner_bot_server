@@ -43,7 +43,7 @@ deploy:
 # 用于自动部署的生产环境部署命令
 deploy-live:
 	# 只构建和更新有代码变更的服务
-	docker compose build --no-deps
+	docker compose build
 	# 先更新基础设施服务（仅当有变更时）
 	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch
 	sleep 5
