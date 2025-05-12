@@ -39,3 +39,30 @@ deploy:
 	sleep 10
 	# 最后更新应用服务
 	docker compose up -d --no-deps ai-app app meme
+
+# 用于自动部署的生产环境部署命令
+deploy-live:
+	# 只构建和更新有代码变更的服务
+	docker compose build --no-deps
+	# 先更新基础设施服务（仅当有变更时）
+	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch
+	sleep 5
+	# 更新日志相关服务（仅当有变更时）
+	docker compose up -d --no-deps --no-recreate logstash kibana
+	sleep 5
+	# 最后更新应用服务（仅当有变更时）
+	docker compose up -d --no-deps ai-app app meme
+	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
+
+# 设置自动部署定时任务（每3分钟检查一次）
+auto-deploy-setup:
+	@echo "正在设置自动部署定时任务..."
+	@crontab -l > /tmp/current_crontab || echo "" > /tmp/current_crontab
+	@if grep -q "auto_deploy.sh" /tmp/current_crontab; then \
+		echo "自动部署任务已存在，正在更新..."; \
+		sed -i.bak '/auto_deploy.sh/d' /tmp/current_crontab; \
+	fi
+	@echo "*/3 * * * * $(shell pwd)/scripts/auto_deploy.sh >> /var/log/inner_bot_server/cron.log 2>&1" >> /tmp/current_crontab
+	@crontab /tmp/current_crontab
+	@echo "已添加自动部署定时任务，每3分钟执行一次"
+	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
