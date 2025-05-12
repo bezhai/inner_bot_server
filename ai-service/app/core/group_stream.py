@@ -9,12 +9,12 @@ logger = logging.getLogger("group_stream")
 class GroupStreamManager:
     def __init__(self, default_timeout: float = 30.0):
         self.redis = None
-        self.handlers: Dict[str, Callable[[Any], Any]] = {}
         self.group_tasks: Dict[str, asyncio.Task] = {}
         self.active_groups: Set[str] = set()
         self.default_timeout = default_timeout
         self._group_change_task = None
         self._started = False
+        # 使用 event_system 的注册机制
 
     async def start(self):
         if self._started:
@@ -35,10 +35,6 @@ class GroupStreamManager:
         self.active_groups.clear()
         self._started = False
         logger.info("GroupStreamManager stopped.")
-
-    def register_handler(self, topic: str, handler: Callable[[Any], Any]):
-        self.handlers[topic] = handler
-        logger.info(f"Registered group stream handler for topic: {topic}")
 
     async def _group_change_listener(self):
         pubsub = self.redis.pubsub()
@@ -90,15 +86,22 @@ class GroupStreamManager:
                 await asyncio.sleep(1)
 
     async def _dispatch_to_handler(self, topic: str, data: Any):
-        handler = self.handlers.get(topic)
-        if handler:
-            result = handler(data)
-            if asyncio.iscoroutine(result):
-                await result
+        # 使用 event_system 的 handlers 分发机制
+        from app.core.event_system import get_event_system
+        event_system = get_event_system()
+        handlers = event_system.handlers.get(topic, [])
+        if handlers:
+            for handler in handlers:
+                try:
+                    result = handler(data)
+                    if asyncio.iscoroutine(result):
+                        await result
+                except Exception as e:
+                    logger.error(f"Error in group stream handler: {e}")
         else:
             logger.warning(f"No handler for group stream topic: {topic}")
 
-# 装饰器注册
+# 单例模式
 _group_stream_manager: Optional[GroupStreamManager] = None
 
 def get_group_stream_manager() -> GroupStreamManager:
@@ -107,8 +110,43 @@ def get_group_stream_manager() -> GroupStreamManager:
         _group_stream_manager = GroupStreamManager()
     return _group_stream_manager
 
-def group_event_handler(topic: str):
-    def decorator(func):
-        get_group_stream_manager().register_handler(topic, func)
-        return func
-    return decorator 
+# 提供统一的 API 接口
+async def register_group(topic: str, group_id: str):
+    """注册分组消费
+    
+    Args:
+        topic: 事件主题
+        group_id: 分组ID
+    """
+    redis = AsyncRedisClient.get_instance()
+    await redis.publish("group_change", json.dumps({
+        "topic": topic,
+        "group_id": group_id,
+        "action": "register"
+    }))
+    
+async def unregister_group(topic: str, group_id: str):
+    """注销分组消费
+    
+    Args:
+        topic: 事件主题
+        group_id: 分组ID
+    """
+    redis = AsyncRedisClient.get_instance()
+    await redis.publish("group_change", json.dumps({
+        "topic": topic,
+        "group_id": group_id,
+        "action": "unregister"
+    }))
+
+async def publish_group_event(topic: str, group_id: str, data: Any):
+    """发布分组事件
+    
+    Args:
+        topic: 事件主题
+        group_id: 分组ID
+        data: 事件数据
+    """
+    redis = AsyncRedisClient.get_instance()
+    stream_key = f"event_stream:{topic}:{group_id}"
+    await redis.xadd(stream_key, {"data": json.dumps(data)}) 

@@ -6,7 +6,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Union, TypeVar, Generic
 from datetime import datetime
 from app.services.meta_info import AsyncRedisClient
-from app.core.group_stream import get_group_stream_manager, group_event_handler
+from app.core.group_stream import get_group_stream_manager, register_group, unregister_group, publish_group_event
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -122,9 +122,14 @@ class EventSystem:
     """事件系统
     
     支持三种模式：
-    1. 广播模式
-    2. 请求-响应模式
-    3. 分组顺序消费模式（通过 group_event_handler 注册 handler）
+    1. 广播模式 - 通过 publish 发布事件
+    2. 请求-响应模式 - 通过 publish_and_wait 发布事件并等待响应
+    3. 分组顺序消费模式 - 通过 register_group 注册分组，通过 publish_group_event 发布事件，使用 subscribe 注册处理函数
+    
+    推荐使用方式：
+    1. 使用 subscribe 统一注册事件处理函数
+    2. 使用 register_group/unregister_group 管理分组消费状态
+    3. 使用 publish_group_event 发布分组事件
     """
     def __init__(
         self,
@@ -504,9 +509,11 @@ def get_event_system() -> EventSystem:
         
     return _event_system 
 
-# group_event_handler 直接暴露，便于业务方注册分组顺序消费 handler
+# 导出分组顺序消费的相关方法
 __all__ = [
     "init_event_system",
     "get_event_system",
-    "group_event_handler",
+    "register_group",
+    "unregister_group",
+    "publish_group_event",
 ] 
