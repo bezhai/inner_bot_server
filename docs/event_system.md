@@ -1,190 +1,153 @@
 # 事件系统
 
-本项目实现了一个基于Redis的跨服务事件发布-订阅系统，支持两种模式：广播模式和请求-响应模式。
+本项目实现了一个基于Redis的跨服务事件发布-订阅系统，支持三种事件模式：广播模式、请求-响应模式、分组顺序消费模式。
 
-## 特性
+## 事件模式概览
 
-- **支持两种事件模式**：
-  - 广播模式：发布者不关心结果，任何订阅者都可以接收并处理
-  - 请求-响应模式：发布者等待订阅者处理并返回结果
-- **本地优先原则**：同一服务内优先使用本地事件机制，提高效率
-- **服务隔离**：发布者和订阅者互不感知，降低耦合
-- **消息超时**：自动处理消息超时，防止无限等待
-- **跨语言支持**：同时支持Node.js和Python服务
-
-## 使用方法
-
-### Node.js (TypeScript)
-
-```typescript
-// 发布事件（广播模式）
-import { publishEvent } from './events';
-
-publishEvent('user.created', { 
-  id: 123, 
-  name: '张三' 
-});
-
-// 发布事件并等待结果（请求-响应模式）
-import { publishEventAndWait } from './events';
-
-try {
-  const result = await publishEventAndWait('ai.request', {
-    requestId: 'req-123',
-    query: '如何使用事件系统？'
-  });
-  console.log('处理结果:', result);
-} catch (error) {
-  console.error('处理失败:', error);
-}
-
-// 订阅事件（装饰器注册，示例）
-import { eventHandler } from './events';
-
-@eventHandler('user.action')
-async function handleUserAction(data) {
-  console.log('收到用户行为事件:', data);
-  // 处理逻辑...
-  return { status: 'processed' };
-}
-```
-
-### Python
-
-```python
-# 发布事件（广播模式）
-from app.events import publish_event
-
-await publish_event('data.update', {
-    'table': 'users',
-    'id': 123,
-    'changes': {'name': '李四'}
-})
-
-# 发布事件并等待结果（请求-响应模式）
-from app.events import publish_event_and_wait
-
-try:
-    result = await publish_event_and_wait('calculate.sum', [1, 2, 3, 4, 5])
-    print(f"计算结果: {result}")
-except Exception as e:
-    print(f"处理失败: {e}")
-
-# 订阅事件（装饰器注册）
-from app.event_system import event_handler
-
-@event_handler('data.process')
-async def handle_data_process(data):
-    print(f"收到数据处理事件: {data}")
-    # 处理逻辑...
-    return {'processed': True, 'result': 'success'}
-```
-
-## 配置
-
-事件系统依赖Redis进行跨服务通信，需要在环境变量中设置Redis连接URL：
-
-```
-REDIS_URL=redis://localhost:6379
-```
-
-如果不设置此环境变量，或者不想使用Redis，事件系统将退化为本地事件处理模式。
-
-## 事件超时
-
-默认情况下，请求-响应模式的事件超时时间为30秒，可以在发布事件时自定义：
-
-```typescript
-// Node.js
-await publishEventAndWait('slow.process', data, { ttl: 60000 }); // 60秒超时
-
-// Python
-await publish_event_and_wait('slow.process', data, ttl=60.0) # 60秒超时
-```
+| 模式                 | 适用场景                         | 特点                           | 实现方式                |
+|----------------------|----------------------------------|--------------------------------|-------------------------|
+| 广播模式             | 通知类事件，无需响应              | 所有订阅者都能收到，无需返回   | Redis Pub/Sub、本地事件 |
+| 请求-响应模式        | 需处理结果的事件                  | 点对点，需返回结果，支持超时   | 回调/消息ID+超时机制    |
+| 分组顺序消费模式     | 分组隔离、严格顺序、高并发场景    | 每组严格顺序消费，动态注册组   | Redis Stream+动态group  |
 
 ---
 
-# Redis Stream 动态分组与 Topic 事件系统设计（统一注册方式）
+## 1. 广播模式（Publish/Subscribe）
 
-## 设计目标
+### 适用场景
 
-- 支持大规模动态分组（如每个 cardID 为一组）
-- 每组下可有多个 topic，且每个 topic 事件需严格顺序消费
-- 支持多语言（Node.js、Python）服务间协作
-- 动态注册/注销 group，资源高效利用
-- 毫秒级 group 变动感知
-- **统一的消费函数注册方式，业务开发者无需关心底层实现**
+- 事件通知、日志、无需响应的消息
 
-## 消费者注册方式
+### 用法示例
 
-### 推荐模式：装饰器注册
+#### Node.js (TypeScript)
 
-- 业务开发者只需用装饰器声明自己要处理的事件（topic），无需关心事件系统底层实现。
-- 事件系统自动完成 handler 的注册、分发、顺序/并发控制。
+```typescript
+import { publishEvent } from './events';
+publishEvent('user.created', { id: 123, name: '张三' });
+```
 
-#### Python 示例
+#### Python
+
+```python
+from app.events import publish_event
+await publish_event('data.update', {'table': 'users', 'id': 123, 'changes': {'name': '李四'}})
+```
+
+### 原理与流程图
+
+- 发布者将事件通过 Redis Pub/Sub 或本地事件系统广播出去
+- 所有订阅者都能收到事件并处理，无需响应
+
+```mermaid
+sequenceDiagram
+    participant Publisher
+    participant Redis
+    participant Subscriber1
+    participant Subscriber2
+    Publisher->>Redis: PUBLISH event
+    Redis->>Subscriber1: 事件推送
+    Redis->>Subscriber2: 事件推送
+    Subscriber1->>Subscriber1: 处理事件
+    Subscriber2->>Subscriber2: 处理事件
+```
+
+### 特点
+
+- 所有订阅者都能收到事件
+- 发布者不关心处理结果
+- 支持本地和跨服务
+
+---
+
+## 2. 请求-响应模式（Request/Response）
+
+### 适用场景
+
+- 需要处理结果的事件，如AI推理、数据计算等
+
+### 用法示例
+
+#### Node.js (TypeScript)
+
+```typescript
+import { publishEventAndWait } from './events';
+const result = await publishEventAndWait('ai.request', { requestId: 'req-123', query: '如何使用事件系统？' });
+```
+
+#### Python
+
+```python
+from app.events import publish_event_and_wait
+result = await publish_event_and_wait('calculate.sum', [1, 2, 3, 4, 5])
+```
+
+### 原理与流程图
+
+- 发布者发送事件并等待响应，事件带唯一ID
+- 订阅者处理事件后返回结果，系统自动路由响应
+- 支持超时机制
+
+```mermaid
+sequenceDiagram
+    participant Publisher
+    participant Redis
+    participant Subscriber
+    Publisher->>Redis: PUBLISH event (with request_id)
+    Redis->>Subscriber: 事件推送
+    Subscriber->>Subscriber: 处理事件
+    Subscriber->>Redis: PUBLISH 响应 (带request_id)
+    Redis->>Publisher: 响应推送
+```
+
+### 特点
+
+- 发布者等待订阅者处理并返回结果
+- 支持超时机制（默认30秒，可自定义）
+- 点对点通信
+
+---
+
+## 3. 分组顺序消费模式（Group Stream）
+
+### 适用场景
+
+- 任意需要分组隔离、严格顺序消费的高并发场景（如：每个 group_id/topic 需严格顺序消费）
+- 例如：订单、卡片、用户、会话等任意分组下的事件顺序处理
+
+### 用法示例
+
+#### Python
 
 ```python
 from app.event_system import event_handler
 
-@event_handler("comment")
+@event_handler('comment')
 async def handle_comment_event(data):
     ...
 
-@event_handler("like")
+@event_handler('like')
 async def handle_like_event(data):
     ...
 ```
 
-#### Node.js 示例
+#### Node.js
 
 ```typescript
 import { eventHandler } from './events';
 
-@eventHandler('user.action')
+@event_handler('user.action')
 async function handleUserAction(data) {
   ...
 }
 ```
 
-#### 装饰器实现思路
+### 原理与流程图
 
-- 装饰器将 handler 注册到全局注册表（如 `EVENT_HANDLERS` 字典）
-- 事件系统内部根据 topic 自动路由到对应 handler
-- handler 只需处理数据，不关心事件分组、顺序等
-
-## 系统层面职责
-
-- **事件分发**：根据 topic/card_id 自动分配到对应消费协程
-- **顺序保证**：每个 group（topic+card_id）只分配一个消费协程，系统层面保证顺序
-- **并发扩展**：不同 group 可并发消费，系统自动管理
-- **注册/注销**：系统自动感知 group 变动，动态增删消费协程
-
-## 关键接口定义（Python 伪代码）
-
-```python
-# 注册表
-EVENT_HANDLERS = {}
-
-def event_handler(topic):
-    def decorator(func):
-        EVENT_HANDLERS[topic] = func
-        return func
-    return decorator
-
-# 系统内部消费调度
-async def consume_stream(redis, topic, card_id, consumer_name):
-    handler = EVENT_HANDLERS[topic]
-    # ...顺序消费逻辑...
-    while True:
-        # 读取事件
-        # ...
-        await handler(event_data)
-```
-
-## 典型流程图
-
-### 1. 整体架构流程图
+- 发布者将事件写入 Redis Stream（event_stream:{topic}:{group_id}）
+- 通过 group_change 频道动态注册/注销 group
+- 消费者服务订阅 group_change，动态启动/注销消费协程
+- 每个 group_id/topic 只分配一个消费协程，保证严格顺序
 
 ```mermaid
 flowchart TD
@@ -193,7 +156,7 @@ flowchart TD
       A1 --> A3(PUB group_change 注册/注销)
     end
     subgraph Redis
-      B1(Stream Key: event_stream:topic:card_id)
+      B1(Stream Key: event_stream:topic:group_id)
       B2(PUB/SUB group_change)
     end
     subgraph Consumer服务
@@ -209,50 +172,31 @@ flowchart TD
     B1 --> C3
 ```
 
-### 2. 消费者注册与事件处理流程
+### 特点
 
-```mermaid
-sequenceDiagram
-    participant Dev as 业务开发者
-    participant System as 事件系统
-    participant Redis
-    participant Handler
+- 事件分发：根据 topic/group_id 自动分配到对应消费协程
+- 顺序保证：每个 group 只分配一个消费协程，系统层面保证顺序
+- 并发扩展：不同 group 可并发消费，系统自动管理
+- 注册/注销：系统自动感知 group 变动，动态增删消费协程
 
-    Dev->>System: @event_handler("topic") 注册消费函数
-    System->>Redis: 订阅 group_change
-    Redis->>System: group_change 注册/注销消息
-    System->>System: 动态启动/注销消费协程
-    System->>Redis: XREADGROUP 消费事件
-    System->>Handler: 分发事件数据
-    Handler->>System: 处理结果
-    System->>Redis: XACK 确认
-```
+---
 
-### 3. 事件顺序消费保证
+## 配置与超时机制
 
-```mermaid
-sequenceDiagram
-    participant Producer
-    participant Redis
-    participant ConsumerManager
-    participant Consumer
+事件系统直接使用系统中已有的 Redis 实例（如依赖注入或全局对象），无需单独通过环境变量配置 Redis 连接。
 
-    Producer->>Redis: XADD event_stream:topic:card_id
-    Producer->>Redis: PUBLISH group_change register:topic:card_id
-    Redis->>ConsumerManager: group_change 消息
-    ConsumerManager->>Consumer: 启动消费协程
-    Consumer->>Redis: XREADGROUP 消费事件(严格顺序)
-    Consumer->>Redis: XACK 确认
-    Producer->>Redis: PUBLISH group_change unregister:topic:card_id
-    Redis->>ConsumerManager: group_change 消息
-    ConsumerManager->>Consumer: 取消消费协程
-```
+### 超时机制
 
-## 适用场景
+- 请求-响应模式默认超时30秒，可自定义
+- 分组顺序消费模式可根据业务需求设置超时
 
-- 需要动态分组、严格顺序消费的业务场景
-- 多 topic 路由不同处理逻辑
-- 需毫秒级 group 变动感知
+---
+
+## 最佳实践与注意事项
+
+- 推荐统一用装饰器注册消费函数，业务开发者无需关心底层实现
+- 事件命名建议：小写+点分隔，如 `user.created`、`ai.request`
+- 复杂业务建议使用分组顺序消费模式，保证顺序与隔离
 
 ---
 
