@@ -6,6 +6,7 @@ import time
 from typing import Any, Callable, Dict, List, Optional, Union, TypeVar, Generic
 from datetime import datetime
 from app.services.meta_info import AsyncRedisClient
+from app.core.group_stream import get_group_stream_manager, group_event_handler
 
 # 设置日志
 logging.basicConfig(level=logging.INFO)
@@ -118,7 +119,13 @@ class ResponseFuture(asyncio.Future, Generic[T]):
 
 
 class EventSystem:
-    """事件系统"""
+    """事件系统
+    
+    支持三种模式：
+    1. 广播模式
+    2. 请求-响应模式
+    3. 分组顺序消费模式（通过 group_event_handler 注册 handler）
+    """
     def __init__(
         self,
         service_name: str,
@@ -144,6 +151,8 @@ class EventSystem:
         # 标记是否已启动
         self.started = False
         
+        self.group_stream_manager = get_group_stream_manager()
+        
         logger.info(f"事件系统初始化: 服务={service_name}, ID={self.service_id}")
 
     async def start(self):
@@ -158,6 +167,8 @@ class EventSystem:
             
             # 启动消息处理任务
             self.loop.create_task(self._process_redis_messages())
+            # 启动 group stream manager
+            await self.group_stream_manager.start()
         except Exception as e:
             logger.error(f"获取Redis客户端失败: {e}")
                 
@@ -172,6 +183,9 @@ class EventSystem:
         for future in self.response_futures.values():
             if not future.done():
                 future.cancel()
+        
+        # 停止 group stream manager
+        await self.group_stream_manager.stop()
         
         self.started = False
         logger.info("事件系统已停止")
@@ -489,3 +503,10 @@ def get_event_system() -> EventSystem:
         raise RuntimeError("事件系统尚未初始化，请先调用 init_event_system")
         
     return _event_system 
+
+# group_event_handler 直接暴露，便于业务方注册分组顺序消费 handler
+__all__ = [
+    "init_event_system",
+    "get_event_system",
+    "group_event_handler",
+] 
