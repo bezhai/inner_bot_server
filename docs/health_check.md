@@ -28,6 +28,7 @@
 | mongo | 端口检查 | localhost:27017 | 端口可连接 |
 | postgres | 端口检查 | localhost:5432 | 端口可连接 |
 | elasticsearch | 专用检查 | localhost:9200 | 端口可连接，集群状态为green或yellow |
+| qdrant | 专用检查 | 从.env读取QDRANT_SERVICE_HOST和QDRANT_SERVICE_PORT | 端口可连接，尝试调用/healthz API |
 
 此外，还会检查以下内容：
 

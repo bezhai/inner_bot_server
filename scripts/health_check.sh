@@ -319,6 +319,45 @@ check_system_resources() {
   fi
 }
 
+# 检查Qdrant服务健康状态
+check_qdrant() {
+  log "检查 Qdrant 健康状态..."
+  
+  # 从.env文件读取Qdrant服务配置
+  if [ -f "$PROJECT_DIR/.env" ]; then
+    source "$PROJECT_DIR/.env"
+  else
+    log "❌ 找不到.env文件，无法获取Qdrant配置"
+    return 1
+  fi
+  
+  # 检查环境变量是否存在
+  if [ -z "$QDRANT_SERVICE_HOST" ] || [ -z "$QDRANT_SERVICE_PORT" ]; then
+    log "❌ 环境变量QDRANT_SERVICE_HOST或QDRANT_SERVICE_PORT未设置"
+    return 1
+  fi
+  
+  log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
+  
+  # 检查端口连通性
+  nc -z -w 5 $QDRANT_SERVICE_HOST $QDRANT_SERVICE_PORT
+  
+  if [ $? -ne 0 ]; then
+    log "❌ Qdrant服务不可连接: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
+    return 1
+  else
+    # 尝试调用健康检查API
+    HEALTH_RESPONSE=$(curl -s -m 10 http://${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}/healthz)
+    
+    if [[ "$HEALTH_RESPONSE" == *"ok"* ]]; then
+      log "✅ Qdrant服务健康"
+    else
+      log "✅ Qdrant端口可连接，但健康检查API可能不可用"
+    fi
+    return 0
+  fi
+}
+
 # 执行健康检查
 perform_health_check() {
   # 首先检查Docker服务状态
@@ -370,8 +409,12 @@ perform_health_check() {
   check_system_resources
   RESOURCE_STATUS=$?
   
+  # 检查Qdrant服务健康状态
+  check_qdrant
+  QDRANT_STATUS=$?
+  
   # 检查是否有服务失败
-  if [ ${#FAILED_SERVICES[@]} -gt 0 ] || [ $DOCKER_STATUS -ne 0 ] || [ $DISK_STATUS -ne 0 ] || [ $RESOURCE_STATUS -ne 0 ]; then
+  if [ ${#FAILED_SERVICES[@]} -gt 0 ] || [ $DOCKER_STATUS -ne 0 ] || [ $DISK_STATUS -ne 0 ] || [ $RESOURCE_STATUS -ne 0 ] || [ $QDRANT_STATUS -ne 0 ]; then
     # 读取当前警报计数
     ALERT_COUNT=$(cat "$ALERT_COUNT_FILE")
     
@@ -392,6 +435,10 @@ perform_health_check() {
     
     if [ $RESOURCE_STATUS -ne 0 ]; then
       ALERT_MESSAGE+="- 系统资源使用率过高\n"
+    fi
+    
+    if [ $QDRANT_STATUS -ne 0 ]; then
+      ALERT_MESSAGE+="- Qdrant服务不可连接\n"
     fi
     
     for SERVICE in "${FAILED_SERVICES[@]}"; do
