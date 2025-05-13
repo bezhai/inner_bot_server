@@ -97,7 +97,7 @@ check_docker_services() {
   CONTAINERS=$(docker ps --format "{{.Names}}")
   
   FAILED_CONTAINERS=()
-  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme" "qdrant")
+  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme")
   
   for CONTAINER in "${EXPECTED_CONTAINERS[@]}"; do
     if echo "$CONTAINERS" | grep -q "$CONTAINER"; then

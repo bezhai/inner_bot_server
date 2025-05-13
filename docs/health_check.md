@@ -42,7 +42,6 @@
    - logstash
    - kibana
    - meme
-   - qdrant
 
 2. **系统资源状态**：
    - 磁盘空间使用率（超过85%会告警）
