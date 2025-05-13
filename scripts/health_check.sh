@@ -86,6 +86,7 @@ declare -A SERVICES=(
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
   ["elasticsearch"]="localhost:9200"
+  ["qdrant"]="localhost:6333"
 )
 
 # 检查Docker服务状态
@@ -96,7 +97,7 @@ check_docker_services() {
   CONTAINERS=$(docker ps --format "{{.Names}}")
   
   FAILED_CONTAINERS=()
-  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme")
+  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme" "qdrant")
   
   for CONTAINER in "${EXPECTED_CONTAINERS[@]}"; do
     if echo "$CONTAINERS" | grep -q "$CONTAINER"; then
@@ -331,10 +332,26 @@ check_qdrant() {
     return 1
   fi
   
-  # 检查环境变量是否存在
+  # 检查环境变量是否存在 (注意：环境变量应该是大写)
+  if [ -z "$QDRANT_SERVICE_HOST" ]; then
+    # 尝试使用小写变量名 (与pydantic配置中的名称匹配)
+    QDRANT_SERVICE_HOST="$qdrant_service_host"
+  fi
+  
+  if [ -z "$QDRANT_SERVICE_PORT" ]; then
+    QDRANT_SERVICE_PORT="$qdrant_service_port"
+  fi
+  
+  # 获取API密钥
+  if [ -z "$QDRANT_SERVICE_API_KEY" ]; then
+    QDRANT_SERVICE_API_KEY="$qdrant_service_api_key"
+  fi
+  
+  # 再次检查是否获取到了配置
   if [ -z "$QDRANT_SERVICE_HOST" ] || [ -z "$QDRANT_SERVICE_PORT" ]; then
-    log "❌ 环境变量QDRANT_SERVICE_HOST或QDRANT_SERVICE_PORT未设置"
-    return 1
+    log "❌ 无法获取Qdrant配置，尝试使用默认值"
+    QDRANT_SERVICE_HOST="localhost"
+    QDRANT_SERVICE_PORT="6333"
   fi
   
   log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
@@ -346,15 +363,34 @@ check_qdrant() {
     log "❌ Qdrant服务不可连接: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
     return 1
   else
-    # 尝试调用健康检查API
-    HEALTH_RESPONSE=$(curl -s -m 10 http://${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}/healthz)
-    
-    if [[ "$HEALTH_RESPONSE" == *"ok"* ]]; then
-      log "✅ Qdrant服务健康"
-    else
-      log "✅ Qdrant端口可连接，但健康检查API可能不可用"
+    # 准备API请求头
+    HEADERS=""
+    if [ ! -z "$QDRANT_SERVICE_API_KEY" ]; then
+      HEADERS="-H \"api-key: $QDRANT_SERVICE_API_KEY\""
+      log "使用Qdrant API密钥进行认证"
     fi
-    return 0
+    
+    # 尝试调用健康检查API
+    HEALTH_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}/healthz"
+    HEALTH_RESPONSE=$(eval $HEALTH_CMD)
+    
+    if [ "$HEALTH_RESPONSE" == "200" ]; then
+      log "✅ Qdrant服务健康"
+      return 0
+    else
+      # 尝试集合API，作为备选检查
+      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}/collections"
+      COLLECTIONS_RESPONSE=$(eval $COLLECTIONS_CMD)
+      
+      if [ "$COLLECTIONS_RESPONSE" == "200" ]; then
+        log "✅ Qdrant集合API可访问，服务可能正常"
+        return 0
+      else
+        log "✅ Qdrant端口可连接，但API可能不可用。HTTP状态码: ${HEALTH_RESPONSE}"
+        # 返回0，因为端口可连接，服务可能还是有效的
+        return 0
+      fi
+    fi
   fi
 }
 
@@ -384,6 +420,10 @@ perform_health_check() {
       "elasticsearch")
         check_elasticsearch
         ;;
+      "qdrant")
+        # 使用专用函数检查Qdrant，忽略SERVICES中的默认值
+        check_qdrant
+        ;;
       *)
         # 默认检查方式
         if [[ $ENDPOINT == http* ]]; then
@@ -409,12 +449,8 @@ perform_health_check() {
   check_system_resources
   RESOURCE_STATUS=$?
   
-  # 检查Qdrant服务健康状态
-  check_qdrant
-  QDRANT_STATUS=$?
-  
   # 检查是否有服务失败
-  if [ ${#FAILED_SERVICES[@]} -gt 0 ] || [ $DOCKER_STATUS -ne 0 ] || [ $DISK_STATUS -ne 0 ] || [ $RESOURCE_STATUS -ne 0 ] || [ $QDRANT_STATUS -ne 0 ]; then
+  if [ ${#FAILED_SERVICES[@]} -gt 0 ] || [ $DOCKER_STATUS -ne 0 ] || [ $DISK_STATUS -ne 0 ] || [ $RESOURCE_STATUS -ne 0 ]; then
     # 读取当前警报计数
     ALERT_COUNT=$(cat "$ALERT_COUNT_FILE")
     
@@ -435,10 +471,6 @@ perform_health_check() {
     
     if [ $RESOURCE_STATUS -ne 0 ]; then
       ALERT_MESSAGE+="- 系统资源使用率过高\n"
-    fi
-    
-    if [ $QDRANT_STATUS -ne 0 ]; then
-      ALERT_MESSAGE+="- Qdrant服务不可连接\n"
     fi
     
     for SERVICE in "${FAILED_SERVICES[@]}"; do

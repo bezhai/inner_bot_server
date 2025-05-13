@@ -24,11 +24,11 @@
 |---------|---------|-------|------------|
 | main-server | HTTP | <http://localhost:3000/api/health> | 返回状态码200 |
 | ai-service | HTTP | <http://localhost:8000/health> | 返回状态码200 |
-| redis | 端口检查 | localhost:6379 | 端口可连接 |
-| mongo | 端口检查 | localhost:27017 | 端口可连接 |
-| postgres | 端口检查 | localhost:5432 | 端口可连接 |
+| redis | 专用检查 | localhost:6379 | 端口可连接 |
+| mongo | 专用检查 | localhost:27017 | 端口可连接 |
+| postgres | 专用检查 | localhost:5432 | 端口可连接 |
 | elasticsearch | 专用检查 | localhost:9200 | 端口可连接，集群状态为green或yellow |
-| qdrant | 专用检查 | 从.env读取QDRANT_SERVICE_HOST和QDRANT_SERVICE_PORT | 端口可连接，尝试调用/healthz API |
+| qdrant | 专用检查 | 从环境变量读取配置（主机、端口和API密钥） | 端口可连接，使用API密钥尝试调用/healthz或/collections API |
 
 此外，还会检查以下内容：
 
@@ -42,6 +42,7 @@
    - logstash
    - kibana
    - meme
+   - qdrant
 
 2. **系统资源状态**：
    - 磁盘空间使用率（超过85%会告警）
@@ -67,9 +68,14 @@
 ```bash
 # 通知Webhook URL
 DEPLOY_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-token
+
+# Qdrant服务配置
+QDRANT_SERVICE_HOST=localhost
+QDRANT_SERVICE_PORT=6333
+QDRANT_SERVICE_API_KEY=your-qdrant-api-key  # 如果Qdrant启用了API密钥认证
 ```
 
-请将`your-webhook-token`替换为您的飞书机器人实际webhook地址。
+请将`your-webhook-token`替换为您的飞书机器人实际webhook地址，并根据您的Qdrant配置修改相关参数。
 
 ### 3. 设置健康检查定时任务
 
