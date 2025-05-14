@@ -6,18 +6,46 @@ import { uploadFile, downloadResource } from '../../../dal/lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '../../lark/basic/message';
 import { GroupChatInfoRepository } from '../../../dal/repositories/repositories';
+import { get, setWithExpire } from '../../../dal/redis';
 
-export async function checkMeme(message: Message): Promise<boolean> {
+// Redis 缓存键名
+const MEME_LIST_CACHE_KEY = 'meme:list';
+// 缓存过期时间（10分钟）
+const MEME_CACHE_EXPIRY = 10 * 60;
+
+// 获取表情包列表，优先从缓存获取
+async function getMemeList(): Promise<Meme[]> {
     try {
+        // 尝试从Redis缓存获取
+        const cachedData = await get(MEME_LIST_CACHE_KEY);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
+        // 缓存不存在，从API获取
         const response: AxiosResponse<Meme[]> = await axios.get(
             `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/list`,
         );
+
+        // 将数据存入缓存
+        await setWithExpire(MEME_LIST_CACHE_KEY, JSON.stringify(response.data), MEME_CACHE_EXPIRY);
+
+        return response.data;
+    } catch (error) {
+        console.error('获取表情包列表失败:', error);
+        throw error;
+    }
+}
+
+export async function checkMeme(message: Message): Promise<boolean> {
+    try {
+        const memeList = await getMemeList();
 
         const clearText = message.clearText();
 
         const textKeyword = clearText.split(' ').filter((keyword) => keyword.length > 0)[0];
 
-        const meme = response.data.find((meme) => {
+        const meme = memeList.find((meme) => {
             return meme.keywords.includes(textKeyword);
         });
 
@@ -120,21 +148,21 @@ function parseCommandText(text: string): string[] {
     let current = '';
     let inQuotes = false;
     let escapeNext = false;
-    
+
     for (let i = 0; i < text.length; i++) {
         const char = text[i];
-        
+
         if (escapeNext) {
             current += char;
             escapeNext = false;
             continue;
         }
-        
+
         if (char === '\\') {
             escapeNext = true;
             continue;
         }
-        
+
         if (char === '"' || char === "'") {
             if (inQuotes) {
                 inQuotes = false;
@@ -143,7 +171,7 @@ function parseCommandText(text: string): string[] {
             }
             continue;
         }
-        
+
         if (char === ' ' && !inQuotes) {
             if (current.length > 0) {
                 result.push(current);
@@ -151,22 +179,20 @@ function parseCommandText(text: string): string[] {
             }
             continue;
         }
-        
+
         current += char;
     }
-    
+
     if (current.length > 0) {
         result.push(current);
     }
-    
+
     return result;
 }
 
 export async function genMeme(message: Message) {
     try {
-        const response: AxiosResponse<Meme[]> = await axios.get(
-            `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/list`,
-        );
+        const memeList = await getMemeList();
 
         const clearText = message.clearText();
 
@@ -174,7 +200,7 @@ export async function genMeme(message: Message) {
         const textParts = parseCommandText(clearText);
         const textKeyword = textParts[0];
 
-        const meme = response.data.find((meme) => {
+        const meme = memeList.find((meme) => {
             return meme.keywords.includes(textKeyword);
         });
 
@@ -190,7 +216,11 @@ export async function genMeme(message: Message) {
             },
         });
 
-        if ((meme.params_type.max_images || 0) > 0 && message.imageKeys().length > 0 && groupInfo?.download_has_permission_setting == 'not_anyone') {
+        if (
+            (meme.params_type.max_images || 0) > 0 &&
+            message.imageKeys().length > 0 &&
+            groupInfo?.download_has_permission_setting == 'not_anyone'
+        ) {
             throw new Error(
                 '该类meme需要获取消息中图片, 但当前群聊不允许下载消息中图片, 请在其他群聊或私聊中使用',
             );
