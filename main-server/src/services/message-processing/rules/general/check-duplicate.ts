@@ -33,6 +33,11 @@ export async function checkDuplicate(message: Message) {
         return;
     }
 
+    if (originalMessage.clearText().length == 0) {
+        replyMessage(message.messageId, '我现在只能查重文字消息呢，其他类型未来再探索吧w', true);
+        return;
+    }
+
     try {
         // 发布查重事件并等待结果
         const result = (await publishEventAndWait('find.similar.message', {
