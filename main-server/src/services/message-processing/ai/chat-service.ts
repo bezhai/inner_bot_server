@@ -54,7 +54,12 @@ async function searchWeb(messages: Message[], enableWebSearch: boolean | undefin
         return '';
     }
 
-    const message = messages.map((message) => `<${message.isRobotMessage ? 'assistant' : 'user'}> ${message.clearText()}`).join('\n');
+    const message = messages.map(
+        (message) => {
+            const tag = message.isRobotMessage ? 'assistant' : 'user';
+            return `<${tag}> ${message.clearText()} </${tag}>`;
+        },
+    ).join('\n');
 
     const webSearchResults = await searchWebWithAI(message);
 

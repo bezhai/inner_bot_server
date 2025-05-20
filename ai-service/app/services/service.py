@@ -70,7 +70,7 @@ async def parse_message_keywords(message: str) -> SearchResult:
 输入：我想了解今年人工智能在医疗影像诊断方面有什么突破性进展
 输出：{"result": ["人工智能", "医疗影像诊断", "2025", "突破性进展"], "need_search": true}
 
-请根据以上标准处理所有用户输入。
+注意，用户的输入是一个多轮对话，用户消息使用<user></user>标签包裹，机器人消息使用<assistant></assistant>标签包裹。
     """
     
     completion = await ai_chat(ChatRequest(
