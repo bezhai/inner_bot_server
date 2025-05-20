@@ -25,7 +25,10 @@ export async function generateChatResponse(options: ChatResponseOptions) {
         options.systemPrompt = `
         ${options.systemPrompt}
 
-        ## 以下是网络搜索结果：
+        # 额外规则
+        1. 请参考以下网络搜索结果，作为知识库的补充，回答用户的问题。
+
+        ## 网络搜索结果：
         ${webSearchResults}
         `;
     }
