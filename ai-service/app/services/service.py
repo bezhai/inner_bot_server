@@ -53,7 +53,7 @@ async def parse_message_keywords(message: str) -> SearchResult:
     """
     解析消息中的关键词
     """
-    prompt = f"""
+    prompt = """
 请分析用户的输入内容，判断是否有必要进行搜索。判断标准包括但不限于：
 
 用户明确要求"搜索"、"查找"、"最新"、"资料"等
