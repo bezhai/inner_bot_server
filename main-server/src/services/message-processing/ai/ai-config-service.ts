@@ -34,6 +34,7 @@ export interface ChatAIConfig {
     params: Partial<CompletionRequest>;
     prompt_id: string;
     model_id: string;
+    enableWebSearch: boolean;
 }
 
 /**
@@ -149,14 +150,11 @@ export async function getChatAIConfig(chatId: string): Promise<ChatAIConfig> {
         },
     };
 
-    // 根据ChatModelMapping中的配置动态写入extra_body
+    let enableWebSearch = false;
+
     if (modelMapping) {
-        // 如果enable_search为true，添加"web-search":true
         if (modelMapping.enable_search) {
-            params.extra_body = {
-                ...(params.extra_body || {}),
-                'web-search': true,
-            };
+            enableWebSearch = true;
         }
 
         // 如果enable_multimodal为true，添加"ocr_model":"gpt-4o-mini"
@@ -175,6 +173,7 @@ export async function getChatAIConfig(chatId: string): Promise<ChatAIConfig> {
         params: params,
         prompt_id: promptMapping?.prompt.prompt_id ?? defaultPrompt?.prompt_id ?? '',
         model_id: modelMapping?.model.model_id ?? defaultModel?.model_id ?? '',
+        enableWebSearch,
     };
 }
 

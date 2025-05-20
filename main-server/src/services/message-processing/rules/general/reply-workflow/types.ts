@@ -15,5 +15,6 @@ export interface ReplyContext extends BaseContext {
         model: string;
         prompt: string;
         params: Partial<CompletionRequest>;
+        enableWebSearch: boolean;
     };
 }

@@ -1,4 +1,4 @@
-import { CompletionRequest } from '../../../types/ai';
+import { CompletionRequest, SearchWithAIResponse } from '../../../types/ai';
 import axios from 'axios';
 
 const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
@@ -45,10 +45,16 @@ export async function fetchChatCompletion(payload: CompletionRequest): Promise<R
     }
 }
 
-export async function fetchAvailableModels(): Promise<string[]> {
+export async function searchWebWithAI(message: string): Promise<string[]> {
     try {
-        const response = await axiosInstance.get('/model/list');
-        return response.data;
+        const response = await axiosInstance.post<SearchWithAIResponse>('/search_with_ai', {
+            message,
+        });
+        const data = response.data;
+        if (Array.isArray(data?.search)) {
+            return data.search.map((item) => item.snippet).filter(Boolean);
+        }
+        return [];
     } catch (error) {
         if (axios.isAxiosError(error)) {
             throw new Error(

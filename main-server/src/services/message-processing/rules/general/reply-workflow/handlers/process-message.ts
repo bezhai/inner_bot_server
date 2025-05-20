@@ -14,6 +14,7 @@ export async function processMessageHandler(context: ReplyContext): Promise<void
             systemPrompt: context.config.prompt,
             chatParams: context.config.params,
             endOfReply: context.cardManager.closeUpdate.bind(context.cardManager),
+            enableWebSearch: context.config.enableWebSearch,
         });
     } catch (error) {
         console.error('回复消息时出错:', error);

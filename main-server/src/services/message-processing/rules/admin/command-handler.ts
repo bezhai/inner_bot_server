@@ -6,7 +6,6 @@ import {
 import { Message } from '../../../../models/message';
 import { getBotUnionId } from '../../../../utils/bot/bot-var';
 import { replyMessage } from '../../../lark/basic/message';
-import { fetchAvailableModels } from '../../ai/http-client';
 import { combineRule, RegexpMatch } from '../rule';
 import { getUserInfo } from '../../../../dal/lark-client';
 
@@ -79,37 +78,6 @@ const commandRules = [
             await UserGroupBindingRepository.deactivateBinding(mentionUser, message.chatId);
 
             replyMessage(message.messageId, `解绑成功，该用户退群后将不会被自动拉回群聊`, true);
-        },
-    },
-    {
-        key: 'model',
-        handler: async (message: Message) => {
-            if (!message.senderInfo?.is_admin) {
-                replyMessage(message.messageId, '当前用户无权限', true);
-                return;
-            }
-
-            const model = new RegExp(`^/model ([\\w-.]+)`).exec(message.clearText())?.[1];
-
-            if (!model) {
-                replyMessage(message.messageId, '参数错误', true);
-                return;
-            }
-
-            const models = await fetchAvailableModels();
-
-            if (!models.includes(model)) {
-                replyMessage(message.messageId, '模型不存在', true);
-                return;
-            }
-
-            set(`lark_chat_model:${message.chatId}`, model)
-                .then(() => {
-                    replyMessage(message.messageId, `模型已切换为${model}`, true);
-                })
-                .catch(() => {
-                    replyMessage(message.messageId, '切换模型失败', true);
-                });
         },
     },
 ];
