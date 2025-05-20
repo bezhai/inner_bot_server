@@ -5,7 +5,7 @@ import requests
 from app.services.meta_info import get_model_setting
 from app.services.gpt import ChatModelFactory, ChatRequest, Message
 import logging
-from app.config.openai_config import openai_settings
+from app.config.config import settings
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ async def search_web(keywords: List[str]) -> List[WebSearchResult]:
         "query": " ".join(keywords)
     })
     headers = {
-        'Authorization': f'Bearer {openai_settings.openai_api_key}',
+        'Authorization': f'Bearer {settings.search_api_key}',
         'Content-Type': 'application/json'
     }
 

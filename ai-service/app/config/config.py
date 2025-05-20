@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     qdrant_service_host: str
     qdrant_service_port: int
     qdrant_service_api_key: str
+    
+    search_api_key: str
 
     class Config:
         env_file = ".env"

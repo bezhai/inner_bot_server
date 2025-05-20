@@ -7,6 +7,9 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from app.services.service import ai_chat, parse_message_keywords, search_web, Message
 from app.services.gpt import ChatRequest
 from app.services.meta_info import get_model_list
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -65,7 +68,7 @@ async def search_with_ai(
         })
     except Exception as e:
         error_stack = traceback.format_exc()
-        print(f"Error occurred: {error_stack}")
+        logger.error(f"search_with_ai failed: {error_stack}")
         return JSONResponse(
             status_code=500,
             content={"error": "Internal Server Error", "details": str(e)}
