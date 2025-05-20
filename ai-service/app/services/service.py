@@ -1,5 +1,14 @@
+import json
+from typing import List
+from pydantic import BaseModel
+import requests
 from app.services.meta_info import get_model_setting
-from app.services.gpt import ChatModelFactory, ChatRequest
+from app.services.gpt import ChatModelFactory, ChatRequest, Message
+import logging
+from app.config.openai_config import openai_settings
+import httpx
+
+logger = logging.getLogger(__name__)
 
 async def ai_chat(request: ChatRequest):
     """
@@ -30,3 +39,82 @@ async def ai_chat(request: ChatRequest):
                 message.role = 'developer'
 
     return await client.chat(request)
+
+class SearchResult(BaseModel):
+    result: List[str]
+    need_search: bool
+
+class WebSearchResult(BaseModel):
+    title: str
+    link: str
+    snippet: str
+
+async def parse_message_keywords(message: str) -> SearchResult:
+    """
+    解析消息中的关键词
+    """
+    prompt = f"""
+请分析用户的输入内容，判断是否有必要进行搜索。判断标准包括但不限于：
+
+用户明确要求"搜索"、"查找"、"最新"、"资料"等
+主题涉及专业性较强、知识库中可能缺乏或更新较快的内容
+涉及特定年份、数字、事件等时效性要求高的内容
+如果需要进行搜索，请：
+
+1. 提取3-5个核心搜索关键词，优先提取专有名词、技术术语、关键实体、保留数字和年份等量化信息，并包含隐含的上下文要素（如"最新"对应当前年份）。
+2. 以如下JSON格式返回：{"result": [关键词], "need_search": true}
+3. 如果不需要搜索，仅返回：{"need_search": false}
+
+示例：
+输入：我想了解今年人工智能在医疗影像诊断方面有什么突破性进展
+输出：{"result": ["人工智能", "医疗影像诊断", "2025", "突破性进展"], "need_search": true}
+
+请根据以上标准处理所有用户输入。
+    """
+    
+    completion = await ai_chat(ChatRequest(
+        model="gpt-4o-mini",
+        messages=[
+            Message(
+                role="system",
+                content=prompt
+            ),
+            Message(
+                role="user",
+                content=message
+            )
+        ],
+        stream=False
+    ))
+    
+    content = completion.choices[0].message.content
+    
+    try:
+        return SearchResult.model_validate_json(content)
+    except Exception as e:
+        logger.error(f"parse message keywords failed: {e}")
+        return SearchResult(result=[], need_search=False)
+    
+    
+async def search_web(keywords: List[str]) -> List[WebSearchResult]:
+    """
+    搜索网络上的信息，并返回结构化的搜索结果
+    """
+    url = "https://api.302.ai/search1api/search"
+
+    payload = json.dumps({
+        "query": " ".join(keywords)
+    })
+    headers = {
+        'Authorization': f'Bearer {openai_settings.openai_api_key}',
+        'Content-Type': 'application/json'
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, data=payload)
+        response.raise_for_status()
+        data = response.json()
+
+    results = data.get("results", [])
+    return [WebSearchResult(**item) for item in results]
+

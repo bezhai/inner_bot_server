@@ -2,9 +2,9 @@
 聊天相关API路由
 """
 import traceback
-from fastapi import APIRouter
+from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse, JSONResponse
-from app.services.service import ai_chat
+from app.services.service import ai_chat, parse_message_keywords, search_web, Message
 from app.services.gpt import ChatRequest
 from app.services.meta_info import get_model_list
 
@@ -42,4 +42,31 @@ async def get_model_list_api():
     :return: 模型列表
     """
     model_list = await get_model_list()
-    return JSONResponse(content=model_list) 
+    return JSONResponse(content=model_list)
+
+@router.post("/search_with_ai")
+async def search_with_ai(
+    message: str = Body(..., embed=True)
+):
+    """
+    智能搜索接口：
+    1. 解析用户输入关键词
+    2. 如需搜索则返回搜索结果
+    """
+    try:
+        keywords_result = await parse_message_keywords(message)
+        search_results = []
+        if keywords_result.need_search and keywords_result.result:
+            search_results = await search_web(keywords_result.result)
+        return JSONResponse(content={
+            "keywords": keywords_result.result,
+            "need_search": keywords_result.need_search,
+            "search": [item.model_dump() for item in search_results]
+        })
+    except Exception as e:
+        error_stack = traceback.format_exc()
+        print(f"Error occurred: {error_stack}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal Server Error", "details": str(e)}
+        ) 
