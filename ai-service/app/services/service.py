@@ -110,12 +110,12 @@ async def search_web(keywords: List[str]) -> WebSearchResult:
     """
     url = "https://api.302.ai/searchapi/search"
 
-    query = json.dumps({
+    query = {
         "q": " ".join(keywords),
         "engine": "google",
         "api_key": settings.search_api_key,
         "hl": "zh-cn",
-    })
+    }
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, params=query)
