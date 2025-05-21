@@ -108,18 +108,17 @@ async def search_web(keywords: List[str]) -> WebSearchResult:
     """
     搜索网络上的信息，并返回结构化的搜索结果
     """
-    url = "https://api.302.ai//searchapi/search"
+    url = "https://api.302.ai/searchapi/search"
 
-    payload = json.dumps({
-        "query": " ".join(keywords)
+    query = json.dumps({
+        "q": " ".join(keywords),
+        "engine": "google",
+        "api_key": settings.search_api_key,
+        "hl": "zh-cn",
     })
-    headers = {
-        'Authorization': f'Bearer {settings.search_api_key}',
-        'Content-Type': 'application/json'
-    }
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(url, headers=headers, data=payload)
+        response = await client.get(url, params=query)
         response.raise_for_status()
         data = response.json()
 
