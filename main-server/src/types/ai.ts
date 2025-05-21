@@ -143,14 +143,23 @@ export interface NonStreamedCompletion {
 // 一个联合类型，可以表示流式或非流式的响应
 export type CompletionResponse = StreamedCompletionChunk | NonStreamedCompletion;
 
-export interface WebSearchResult {
+export interface AnswerBox {
+    snippet: string;
+}
+
+export interface OrganicResult {
     title: string;
     link: string;
     snippet: string;
 }
 
+export interface WebSearchResult {
+    answer_box?: AnswerBox | null;
+    organic_results: OrganicResult[];
+}
+
 export interface SearchWithAIResponse {
     keywords: string[];
     need_search: boolean;
-    search: WebSearchResult[];
+    search: WebSearchResult | null;
 }

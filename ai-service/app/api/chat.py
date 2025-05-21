@@ -58,13 +58,13 @@ async def search_with_ai(
     """
     try:
         keywords_result = await parse_message_keywords(message)
-        search_results = []
+        search_result = None
         if keywords_result.need_search and keywords_result.result:
-            search_results = await search_web(keywords_result.result)
+            search_result = await search_web(keywords_result.result)
         return JSONResponse(content={
             "keywords": keywords_result.result,
             "need_search": keywords_result.need_search,
-            "search": [item.model_dump() for item in search_results]
+            "search": search_result.model_dump() if search_result else None
         })
     except Exception as e:
         error_stack = traceback.format_exc()

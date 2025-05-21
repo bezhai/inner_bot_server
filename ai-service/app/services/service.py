@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 import requests
 from app.services.meta_info import get_model_setting
@@ -43,11 +43,18 @@ async def ai_chat(request: ChatRequest):
 class SearchResult(BaseModel):
     result: List[str]
     need_search: bool
-
-class WebSearchResult(BaseModel):
+    
+class AnswerBox(BaseModel):
+    snippet: str
+    
+class OrganicResult(BaseModel):
     title: str
     link: str
     snippet: str
+
+class WebSearchResult(BaseModel):
+    answer_box: Optional[AnswerBox] = None
+    organic_results: List[OrganicResult]
 
 async def parse_message_keywords(message: str) -> SearchResult:
     """
@@ -97,11 +104,11 @@ async def parse_message_keywords(message: str) -> SearchResult:
         return SearchResult(result=[], need_search=False)
     
     
-async def search_web(keywords: List[str]) -> List[WebSearchResult]:
+async def search_web(keywords: List[str]) -> WebSearchResult:
     """
     搜索网络上的信息，并返回结构化的搜索结果
     """
-    url = "https://api.302.ai/search1api/search"
+    url = "https://api.302.ai//searchapi/search"
 
     payload = json.dumps({
         "query": " ".join(keywords)
@@ -116,6 +123,5 @@ async def search_web(keywords: List[str]) -> List[WebSearchResult]:
         response.raise_for_status()
         data = response.json()
 
-    results = data.get("results", [])
-    return [WebSearchResult(**item) for item in results]
+    return WebSearchResult(**data)
 

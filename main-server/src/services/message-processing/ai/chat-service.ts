@@ -1,4 +1,4 @@
-import { CompletionRequest } from '../../../types/ai';
+import { CompletionRequest, WebSearchResult } from '../../../types/ai';
 import { Message } from '../../../models/message';
 import { processChatCompletion } from './chat-completion';
 import { formatMessages, getMessageImagesBase64 } from './message-formatter';
@@ -18,10 +18,10 @@ export interface ChatResponseOptions {
 export async function generateChatResponse(options: ChatResponseOptions) {
     const imageBase64Map = await getMessageImagesBase64(options.messages);
 
-    const webSearchResults = await searchWeb(options.messages, options.enableWebSearch);
+    const webSearchResult = await searchWeb(options.messages, options.enableWebSearch);
 
-    // 如果 webSearchResults 不为空，临时改写系统Prompt
-    if (webSearchResults) {
+    // 如果 webSearchResult 不为空，临时改写系统Prompt
+    if (webSearchResult) {
         options.systemPrompt = `
         ${options.systemPrompt}
 
@@ -29,7 +29,9 @@ export async function generateChatResponse(options: ChatResponseOptions) {
         1. 请参考以下网络搜索结果，作为知识库的补充，回答用户的问题。
 
         ## 网络搜索结果：
-        ${webSearchResults}
+        
+        ${webSearchResult.answer_box ? `- 直接回答：${webSearchResult.answer_box.snippet}` : ''}
+        ${webSearchResult.organic_results.map((result) => `- 辅助搜索结果：${result.title}\n${result.link}\n${result.snippet}`).join('\n')}
         `;
     }
 
@@ -52,9 +54,9 @@ export async function generateChatResponse(options: ChatResponseOptions) {
 }
 
 
-async function searchWeb(messages: Message[], enableWebSearch: boolean | undefined): Promise<string> {
+async function searchWeb(messages: Message[], enableWebSearch: boolean | undefined): Promise<WebSearchResult | null> {
     if (!enableWebSearch) {
-        return '';
+        return null;
     }
 
     const message = messages.map(
@@ -64,8 +66,6 @@ async function searchWeb(messages: Message[], enableWebSearch: boolean | undefin
         },
     ).join('\n');
 
-    const webSearchResults = await searchWebWithAI(message);
-
-    return webSearchResults.join('\n');
+    return await searchWebWithAI(message);
 }
 
