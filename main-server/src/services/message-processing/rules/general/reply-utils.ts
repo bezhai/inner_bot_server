@@ -13,7 +13,7 @@ export interface MessageContext {
 export async function prepareContextMessages(message: Message): Promise<Message[]> {
     const mongoMessages = await searchMessageByRootId(message.rootId!);
 
-    const messages = mongoMessages.map((msg) => Message.fromMessage(msg));
+    const messages = await Promise.all(mongoMessages.map((msg) => Message.fromMessage(msg)));
 
     const userIds = messages.filter((msg) => !msg.isRobotMessage).map((msg) => msg.sender);
 

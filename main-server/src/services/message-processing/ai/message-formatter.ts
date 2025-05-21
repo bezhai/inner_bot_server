@@ -15,7 +15,7 @@ export function formatMessages(
         if (msg.isRobotMessage) {
             return {
                 role: 'assistant',
-                content: msg.text(),
+                content: msg.withMentionNameText(),
             };
         } else {
             if (!userNameList.includes(msg.sender)) {
@@ -29,7 +29,7 @@ export function formatMessages(
             };
 
             if (msg.isTextOnly()) {
-                userMessage.content = `${msg.senderName ?? msg.sender}: ${msg.clearText()}`;
+                userMessage.content = `${msg.senderName ?? msg.sender}: ${msg.withMentionNameText()}`;
             } else {
                 // Multi-modal message
                 userMessage.content = [];

@@ -6,40 +6,34 @@ import { uploadFile, downloadResource } from '../../../dal/lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '../../lark/basic/message';
 import { GroupChatInfoRepository } from '../../../dal/repositories/repositories';
-import { get, setWithExpire } from '../../../dal/redis';
+import { cache } from '../../../utils/cache/cache-decorator';
 
-// Redis 缓存键名
-const MEME_LIST_CACHE_KEY = 'meme:list';
 // 缓存过期时间（10分钟）
 const MEME_CACHE_EXPIRY = 10 * 60;
 
-// 获取表情包列表，优先从缓存获取
-async function getMemeList(): Promise<Meme[]> {
-    try {
-        // 尝试从Redis缓存获取
-        const cachedData = await get(MEME_LIST_CACHE_KEY);
-        if (cachedData) {
-            return JSON.parse(cachedData);
+// 获取表情包列表服务类
+class MemeService {
+    /**
+     * 获取表情包列表，优先从缓存获取
+     */
+    @cache({ type: 'redis', ttl: MEME_CACHE_EXPIRY })
+    static async getMemeList(): Promise<Meme[]> {
+        try {
+            // 直接从API获取
+            const response: AxiosResponse<Meme[]> = await axios.get(
+                `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/list`,
+            );
+            return response.data;
+        } catch (error) {
+            console.error('获取表情包列表失败:', error);
+            throw error;
         }
-
-        // 缓存不存在，从API获取
-        const response: AxiosResponse<Meme[]> = await axios.get(
-            `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/list`,
-        );
-
-        // 将数据存入缓存
-        await setWithExpire(MEME_LIST_CACHE_KEY, JSON.stringify(response.data), MEME_CACHE_EXPIRY);
-
-        return response.data;
-    } catch (error) {
-        console.error('获取表情包列表失败:', error);
-        throw error;
     }
 }
 
 export async function checkMeme(message: Message): Promise<boolean> {
     try {
-        const memeList = await getMemeList();
+        const memeList = await MemeService.getMemeList();
 
         const clearText = message.clearText();
 
@@ -192,7 +186,7 @@ function parseCommandText(text: string): string[] {
 
 export async function genMeme(message: Message) {
     try {
-        const memeList = await getMemeList();
+        const memeList = await MemeService.getMemeList();
 
         const clearText = message.clearText();
 

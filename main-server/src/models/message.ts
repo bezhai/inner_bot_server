@@ -4,6 +4,7 @@ import { LarkBaseChatInfo, LarkUser } from '../dal/entities';
 import { MessageMetadata, MessageMetadataUtils } from './message-metadata';
 import { MessageContent, MessageContentUtils } from './message-content';
 import { MessageBuilder } from './message-builder';
+import { batchGetUserName } from '../services/message-store/user';
 
 export class Message {
     private metadata: MessageMetadata;
@@ -20,9 +21,13 @@ export class Message {
         return new Message(metadata, content);
     }
 
-    static fromMessage(message: LarkMessageMetaInfo): Message {
+    static async fromMessage(message: LarkMessageMetaInfo): Promise<Message> {
         const metadata = MessageBuilder.buildMetadataFromInfo(message);
         const content = MessageBuilder.buildContentFromInfo(message);
+
+        const mentionMap = content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
+        content.mentionMap = mentionMap;
+
         return new Message(metadata, content);
     }
 
@@ -104,6 +109,10 @@ export class Message {
 
     withMentionText(): string {
         return MessageContentUtils.withMentionText(this.content);
+    }
+
+    withMentionNameText(): string {
+        return MessageContentUtils.withMentionNameText(this.content);
     }
 
     imageKeys(): string[] {

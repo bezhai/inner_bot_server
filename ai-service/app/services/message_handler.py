@@ -53,7 +53,7 @@ class MessageHandler(EventSubscriber):
             logger.info(f"消息已写入QDrant: messageId={message_id}, vectorId={vector_id}, chatId={chat_id}, context={message_context}, embedding_result[0]={embedding_result[0]}")
             
         except Exception as e:
-            logger.exception("处理消息接收事件失败")
+            logger.error(f"处理消息接收事件失败: {str(e)}")
 
     @subscribe("find.similar.message")
     async def find_similar_message(self, data: Dict[str, Any]) -> Dict[str, Any]:

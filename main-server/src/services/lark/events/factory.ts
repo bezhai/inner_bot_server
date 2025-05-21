@@ -38,6 +38,7 @@ export class MessageTransferer {
         return Message.fromEvent(event, {
             items,
             mentions: MentionUtils.addMentions(event.message.mentions),
+            mentionMap: MentionUtils.addMentionMap(event.message.mentions),
         });
     }
 }
