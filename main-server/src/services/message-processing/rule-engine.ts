@@ -49,12 +49,6 @@ export async function runRules(message: Message) {
 // 定义规则和对应处理逻辑
 const chatRules: RuleConfig[] = [
     {
-        rules: [OnlyGroup, WhiteGroupCheck((chatInfo) => chatInfo.open_repeat_message ?? false)],
-        handler: repeatMessage,
-        fallthrough: true,
-        comment: '复读功能',
-    },
-    {
         rules: [EqualText('帮助'), TextMessageLimit, NeedRobotMention],
         handler: async (message) => {
             replyTemplate(message.messageId, 'ctp_AAYrltZoypBP', undefined);
@@ -108,5 +102,11 @@ const chatRules: RuleConfig[] = [
         rules: [NeedRobotMention],
         handler: makeCardReply,
         comment: '聊天',
+    },
+    {
+        rules: [OnlyGroup, WhiteGroupCheck((chatInfo) => chatInfo.open_repeat_message ?? false)],
+        handler: repeatMessage,
+        fallthrough: true,
+        comment: '复读功能',
     },
 ];
