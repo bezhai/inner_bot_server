@@ -11,7 +11,7 @@ export async function handleUpdatePhotoCard(data: LarkCallbackInfo, tags: string
 
         const updatedCard = await searchAndBuildPhotoCard(
             tags,
-            basicChatInfo?.allow_send_limit_photo,
+            basicChatInfo?.permission_config?.allow_send_limit_photo,
         );
 
         const delayCard = {

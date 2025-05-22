@@ -70,33 +70,24 @@ export function changeRepeatStatus(
     open_repeat_message: boolean,
 ): (message: Message) => Promise<void> {
     return async function (message: Message) {
-        BaseChatInfoRepository.update(
-            {
-                chat_id: message.chatId,
-            },
-            {
-                open_repeat_message,
-            },
-        )
-            .then(() => {
-                if (open_repeat_message) {
-                    replyMessage(
-                        message.messageId,
-                        `呜哇~复读功能已经开启啦！如果在群聊里看到同样的文字或表情连续出现三次的话，人家也会跟着一起复读呢！(。>︿<)_θ`,
-                    );
-                } else {
-                    replyMessage(
-                        message.messageId,
-                        `诶嘿~复读功能已经关闭啦！人家暂时就不会复读了呢 (｡•́︿•̀｡)`,
-                    );
-                }
+        await BaseChatInfoRepository.createQueryBuilder()
+            .update()
+            .set({
+                permission_config: () =>
+                    `COALESCE(permission_config, '{}'::jsonb) || '{"open_repeat_message": ${open_repeat_message}}'`,
             })
-            .catch(() =>
-                replyMessage(
-                    message.messageId,
-                    `呜呜呜...人家好像遇到了一点小问题呢 (´;ω;｀) 操作没有成功啦...`,
-                    true,
-                ),
+            .where('chat_id = :chatId', { chatId: message.chatId })
+            .execute();
+        if (open_repeat_message) {
+            replyMessage(
+                message.messageId,
+                `呜哇~复读功能已经开启啦！如果在群聊里看到同样的文字或表情连续出现三次的话，人家也会跟着一起复读呢！(。>︿<)_θ`,
             );
+        } else {
+            replyMessage(
+                message.messageId,
+                `诶嘿~复读功能已经关闭啦！人家暂时就不会复读了呢 (｡•́︿•̀｡)`,
+            );
+        }
     };
 }

@@ -104,7 +104,10 @@ const chatRules: RuleConfig[] = [
         comment: '聊天',
     },
     {
-        rules: [OnlyGroup, WhiteGroupCheck((chatInfo) => chatInfo.open_repeat_message ?? false)],
+        rules: [
+            OnlyGroup,
+            WhiteGroupCheck((chatInfo) => chatInfo.permission_config?.open_repeat_message ?? false),
+        ],
         handler: repeatMessage,
         fallthrough: true,
         comment: '复读功能',

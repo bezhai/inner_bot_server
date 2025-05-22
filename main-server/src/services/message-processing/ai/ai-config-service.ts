@@ -51,7 +51,7 @@ export async function getAvailableModelsForChat(chatId: string): Promise<ModelCo
 
     // 如果聊天不能访问受限模型，则只返回非受限模型
     // 注意：当 can_access_restricted_models 为 null 或 undefined 时，默认为不能访问
-    if (chatInfo?.can_access_restricted_models !== true) {
+    if (chatInfo?.permission_config?.can_access_restricted_models !== true) {
         whereCondition.is_restricted = false;
     }
 
@@ -82,7 +82,7 @@ export async function getAvailablePromptsForChat(chatId: string): Promise<Prompt
 
     // 如果聊天不能访问受限提示词，则只返回非受限提示词
     // 注意：当 can_access_restricted_prompts 为 null 或 undefined 时，默认为不能访问
-    if (chatInfo?.can_access_restricted_prompts !== true) {
+    if (chatInfo?.permission_config?.can_access_restricted_prompts !== true) {
         whereCondition.is_restricted = false;
     }
 
@@ -199,7 +199,10 @@ export async function setChatModel(chatId: string, modelId: string): Promise<boo
         }
 
         // 检查权限
-        if (model.is_restricted && chatInfo.can_access_restricted_models !== true) {
+        if (
+            model.is_restricted &&
+            chatInfo.permission_config?.can_access_restricted_models !== true
+        ) {
             return false;
         }
 
@@ -251,7 +254,10 @@ export async function setChatPrompt(chatId: string, promptId: string): Promise<b
         }
 
         // 检查权限
-        if (prompt.is_restricted && chatInfo.can_access_restricted_prompts !== true) {
+        if (
+            prompt.is_restricted &&
+            chatInfo.permission_config?.can_access_restricted_prompts !== true
+        ) {
             return false;
         }
 

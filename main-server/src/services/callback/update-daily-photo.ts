@@ -16,7 +16,7 @@ export async function handleUpdateDailyPhotoCard(data: LarkCallbackInfo, start_t
 
         const delayCard = (await searchAndBuildDailyPhotoCard(
             start_time,
-            basicChatInfo?.allow_send_limit_photo,
+            basicChatInfo?.permission_config?.allow_send_limit_photo,
         )) as DelayUpdatedCard;
         delayCard.open_ids = [data.operator.open_id]; // 非共享卡片需要更新卡片的open_ids
 

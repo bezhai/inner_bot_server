@@ -16,7 +16,7 @@ export async function sendPhoto(message: Message) {
 
         const photoCard = await searchAndBuildPhotoCard(
             tags,
-            message.basicChatInfo?.allow_send_limit_photo,
+            message.basicChatInfo?.permission_config?.allow_send_limit_photo,
         );
 
         await replyCard(message.messageId, photoCard);
