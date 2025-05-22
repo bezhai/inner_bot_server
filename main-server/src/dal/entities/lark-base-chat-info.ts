@@ -8,7 +8,7 @@ export class LarkBaseChatInfo {
     @Column({ type: 'varchar', length: 10 })
     chat_mode!: 'group' | 'topic' | 'p2p'; // 对话类型
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'jsonb', nullable: true })
     permission_config?: {
         allow_send_message?: boolean;
         allow_send_pixiv_image?: boolean;
