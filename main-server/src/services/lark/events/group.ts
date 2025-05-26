@@ -43,6 +43,7 @@ export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
         GroupMemberRepository.save(updateUsers),
         UserRepository.save(users),
         LarkUserOpenIdRepository.save(openIds),
+        GroupChatInfoRepository.increment({ chat_id: data.chat_id! }, 'user_count', 1),
     ]);
 }
 
@@ -58,7 +59,10 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
 
     console.log('removeUsers', updateUsers);
 
-    await GroupMemberRepository.save(updateUsers);
+    await Promise.all([
+        GroupMemberRepository.save(updateUsers),
+        GroupChatInfoRepository.increment({ chat_id: data.chat_id! }, 'user_count', -1),
+    ]);
 
     // 检查是否有绑定关系，如果有则重新拉入群
     for (const user of data.users || []) {
@@ -68,7 +72,10 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
         );
         if (binding && binding.isActive) {
             // 重新拉入群
-            await addChatMember(data.chat_id!, user.user_id?.open_id!);
+            await Promise.all([
+                addChatMember(data.chat_id!, user.user_id?.open_id!),
+                GroupChatInfoRepository.increment({ chat_id: data.chat_id! }, 'user_count', 1),
+            ]);
         }
     }
 }
