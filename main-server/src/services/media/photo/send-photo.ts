@@ -51,6 +51,6 @@ export async function sendPhoto(message: Message) {
                 ? e.message
                 : '呜呜...好像遇到奇怪的小问题了呢 (´;ω;｀) 要不稍后再试试？';
         console.error(e);
-        replyMessage(message.messageId, `呜哇，发图失败啦：${errorMessage}`, true);
+        replyMessage(message.messageId, errorMessage, true);
     }
 }
