@@ -18,7 +18,7 @@ export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_p
         page: 1,
         page_size: 6,
         random_mode: true,
-        tags,
+        tag_and_author: tags,
     });
 
     if (images.length <= 0) {

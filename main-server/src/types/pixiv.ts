@@ -104,6 +104,7 @@ export interface ListPixivImageDto {
     start_time?: number;
     tags?: string[];
     pixiv_addrs?: string[];
+    tag_and_author?: string[];
 }
 
 export interface UploadImageToLarkDto {
