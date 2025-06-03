@@ -2,11 +2,16 @@
 聊天相关API路由
 """
 import traceback
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, Request
 from fastapi.responses import StreamingResponse, JSONResponse
+from sse_starlette.sse import EventSourceResponse
+import asyncio
 from app.services.service import ai_chat, parse_message_keywords, search_web, Message
 from app.services.gpt import ChatRequest
 from app.services.meta_info import get_model_list
+from app.types.chat import ChatRequest as NewChatRequest, Step, ChatProcessResponse, ChatNormalResponse
+from app.orm.crud import create_formated_message
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -72,4 +77,30 @@ async def search_with_ai(
         return JSONResponse(
             status_code=500,
             content={"error": "Internal Server Error", "details": str(e)}
-        ) 
+        )
+
+@router.post("/chat/sse")
+async def chat_sse(request: NewChatRequest):
+    """
+    SSE 聊天接口，接收消息写入数据库，并依次推送 step。
+    """
+    async def event_generator():
+        # 1. accept
+        yield ChatNormalResponse(step=Step.ACCEPT).model_dump_json()
+        await asyncio.sleep(0.5)
+        # 2. start_reply
+        yield ChatNormalResponse(step=Step.START_REPLY).model_dump_json()
+        await asyncio.sleep(0.5)
+        # 3. send
+        yield ChatProcessResponse(step=Step.SEND, content="已收到消息").model_dump_json()
+        await asyncio.sleep(0.5)
+        # 4. end
+        yield ChatNormalResponse(step=Step.END).model_dump_json()
+
+    # 写入数据库
+    data = request.model_dump()
+    # create_time 字段需转为 datetime
+    data["create_time"] = datetime.fromisoformat(data["create_time"])
+    await create_formated_message(data)
+
+    return EventSourceResponse(event_generator(), media_type="text/event-stream") 
