@@ -85,22 +85,58 @@ async def chat_sse(request: NewChatRequest):
     SSE 聊天接口，接收消息写入数据库，并依次推送 step。
     """
     async def event_generator():
-        # 1. accept
-        yield ChatNormalResponse(step=Step.ACCEPT).model_dump_json()
-        await asyncio.sleep(0.5)
-        # 2. start_reply
-        yield ChatNormalResponse(step=Step.START_REPLY).model_dump_json()
-        await asyncio.sleep(0.5)
-        # 3. send
-        yield ChatProcessResponse(step=Step.SEND, content="已收到消息").model_dump_json()
-        await asyncio.sleep(0.5)
-        # 4. end
-        yield ChatNormalResponse(step=Step.END).model_dump_json()
+        try:
+            # 1. accept
+            yield ChatNormalResponse(step=Step.ACCEPT).model_dump_json()
+            await asyncio.sleep(0.5)
 
-    # 写入数据库
-    data = request.model_dump()
-    # create_time 字段需转为 datetime
-    data["create_time"] = datetime.fromisoformat(data["create_time"])
-    await create_formated_message(data)
+            # 写入数据库
+            try:
+                data = request.model_dump()
+                # create_time 字段需转为 datetime
+                data["create_time"] = datetime.fromisoformat(data["create_time"])
+                await create_formated_message(data)
+            except Exception as e:
+                logger.error(f"写入数据库失败: {str(e)}\n{traceback.format_exc()}")
+                yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
+                return
 
-    return EventSourceResponse(event_generator(), media_type="text/event-stream") 
+            # 2. start_reply
+            yield ChatNormalResponse(step=Step.START_REPLY).model_dump_json()
+            await asyncio.sleep(0.5)
+
+            # 3. send
+            try:
+                # TODO: 这里应该调用 AI 服务生成回复
+                yield ChatProcessResponse(step=Step.SEND, content="已收到消息").model_dump_json()
+                await asyncio.sleep(0.5)
+
+                # 4. success
+                yield ChatNormalResponse(step=Step.SUCCESS).model_dump_json()
+            except Exception as e:
+                logger.error(f"生成回复失败: {str(e)}\n{traceback.format_exc()}")
+                yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
+                return
+
+            # 5. end
+            yield ChatNormalResponse(step=Step.END).model_dump_json()
+
+        except Exception as e:
+            logger.error(f"SSE 处理失败: {str(e)}\n{traceback.format_exc()}")
+            yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
+
+    try:
+        return EventSourceResponse(
+            event_generator(),
+            media_type="text/event-stream"
+        )
+    except Exception as e:
+        logger.error(f"创建 SSE 响应失败: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "Internal Server Error",
+                "details": str(e),
+                "traceback": traceback.format_exc()
+            }
+        ) 
