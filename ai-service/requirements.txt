@@ -20,7 +20,9 @@ hyperframe==6.1.0
 idna==3.10
 isort==6.0.1
 jieba==0.42.1
+Jinja2==3.1.6
 jiter==0.7.1
+MarkupSafe==3.0.2
 mypy-extensions==1.0.0
 numpy==2.2.5
 ollama==0.4.4

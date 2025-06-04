@@ -41,22 +41,7 @@ async def chat_completion(request: ChatRequest):
             status_code=500, 
             content={"error": "Internal Server Error", "details": str(e)}
         )
-        
-@router.get("/model/list")
-async def get_model_list_api():
-    """
-    获取所有可用的模型列表。
-    :return: 模型列表
-    """
-    try:
-        model_list = await get_model_list()
-        return JSONResponse(content=model_list)
-    except Exception as e:
-        logger.error(f"获取模型列表失败: {str(e)}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Internal Server Error", "details": str(e)}
-        )
+
 
 @router.post("/search_with_ai")
 async def search_with_ai(
@@ -84,6 +69,7 @@ async def search_with_ai(
             status_code=500,
             content={"error": "Internal Server Error", "details": str(e)}
         )
+
 
 @router.post("/chat/sse")
 async def chat_sse(request: NewChatRequest):
