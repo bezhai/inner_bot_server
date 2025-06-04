@@ -93,8 +93,6 @@ async def chat_sse(request: NewChatRequest):
             # 写入数据库
             try:
                 data = request.model_dump()
-                # create_time 字段需转为 datetime
-                data["create_time"] = datetime.fromisoformat(data["create_time"])
                 await create_formated_message(data)
             except Exception as e:
                 logger.error(f"写入数据库失败: {str(e)}\n{traceback.format_exc()}")
