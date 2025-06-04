@@ -14,7 +14,7 @@ class Step(str, Enum):
     SUCCESS = 'success'       # 回复成功 / Reply succeeded
     END = 'end'               # 结束 / End
 
-class ChatRequest(BaseModel):
+class NewChatRequest(BaseModel):
     """
     聊天消息
     Chat message request
