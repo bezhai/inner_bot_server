@@ -40,7 +40,7 @@ class ChatService:
         
         try:
             # 获取流式响应
-            async for chunk in await ModelService.chat_completion_stream(
+            async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
                 messages=messages,
                 temperature=temperature
