@@ -29,7 +29,7 @@ async def get_model_and_provider_info(model_id: str):
             return None
         # 查询供应商
         provider_result = await session.execute(
-            select(ModelProvider).where(ModelProvider.id == model.provider_id)
+            select(ModelProvider).where(ModelProvider.provider_id == model.provider_id)
         )
         provider = provider_result.scalar_one_or_none()
         if not provider:
