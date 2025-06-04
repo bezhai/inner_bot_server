@@ -108,7 +108,7 @@ async def chat_sse(request: NewChatRequest):
             # 3. send
             try:
                 # TODO: 这里应该调用 AI 服务生成回复
-                yield ChatProcessResponse(step=Step.SEND, content="已收到消息").model_dump_json()
+                yield ChatProcessResponse(step=Step.SEND, content="已收到消息\n测试").model_dump_json()
                 await asyncio.sleep(0.5)
 
                 # 4. success
