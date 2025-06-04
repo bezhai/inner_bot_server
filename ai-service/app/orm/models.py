@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Boolean, Integer, Text, TIMESTAMP, UniqueConstraint, ForeignKey, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from .base import Base
 
 class FormatedMessage(Base):
@@ -20,7 +21,7 @@ class FormatedMessage(Base):
 
 class ModelProvider(Base):
     __tablename__ = "model_provider"
-    provider_id = Column(String, primary_key=True)  # 供应商ID，主键为UUID字符串
+    provider_id = Column(UUID(as_uuid=True), primary_key=True)  # 供应商ID，UUID类型
     name = Column(String(100), nullable=False)      # 供应商名称，如 "OpenAI"
     api_key = Column(Text, nullable=False)          # API密钥
     base_url = Column(Text, nullable=False)         # API基础URL
@@ -42,4 +43,4 @@ class AIModel(Base):
     is_thinking = Column(Boolean, default=False, nullable=False)    # 是否思维链
     created_at = Column(TIMESTAMP, nullable=False)
     updated_at = Column(TIMESTAMP, nullable=False)
-    provider_id = Column(String, ForeignKey('model_provider.provider_id'), nullable=False)  # 供应商外键 
+    provider_id = Column(UUID(as_uuid=True), ForeignKey('model_provider.provider_id'), nullable=False)  # 供应商外键 
