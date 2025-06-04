@@ -2,16 +2,15 @@
 聊天相关API路由
 """
 import traceback
-from fastapi import APIRouter, Body, Request
+from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse, JSONResponse
 from sse_starlette.sse import EventSourceResponse
-import asyncio
-from app.services.service import ai_chat, parse_message_keywords, search_web, Message
+
+from app.services.service import ai_chat, parse_message_keywords, search_web
 from app.services.gpt import ChatRequest
 from app.services.meta_info import get_model_list
-from app.types.chat import ChatRequest as NewChatRequest, Step, ChatProcessResponse, ChatNormalResponse
-from app.orm.crud import create_formated_message
-from datetime import datetime
+from app.services.chat_service import chat_service
+from app.types.chat import NewChatRequest, Step, ChatNormalResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ async def chat_completion(request: ChatRequest):
     except Exception as e:
         # 捕获完整的异常堆栈
         error_stack = traceback.format_exc()
-        print(f"Error occurred: {error_stack}")  # 打印到控制台
+        logger.error(f"聊天完成接口调用失败: {error_stack}")
         return JSONResponse(
             status_code=500, 
             content={"error": "Internal Server Error", "details": str(e)}
@@ -49,8 +48,15 @@ async def get_model_list_api():
     获取所有可用的模型列表。
     :return: 模型列表
     """
-    model_list = await get_model_list()
-    return JSONResponse(content=model_list)
+    try:
+        model_list = await get_model_list()
+        return JSONResponse(content=model_list)
+    except Exception as e:
+        logger.error(f"获取模型列表失败: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal Server Error", "details": str(e)}
+        )
 
 @router.post("/search_with_ai")
 async def search_with_ai(
@@ -73,7 +79,7 @@ async def search_with_ai(
         })
     except Exception as e:
         error_stack = traceback.format_exc()
-        logger.error(f"search_with_ai failed: {error_stack}")
+        logger.error(f"智能搜索接口调用失败: {error_stack}")
         return JSONResponse(
             status_code=500,
             content={"error": "Internal Server Error", "details": str(e)}
@@ -82,52 +88,17 @@ async def search_with_ai(
 @router.post("/chat/sse")
 async def chat_sse(request: NewChatRequest):
     """
-    SSE 聊天接口，接收消息写入数据库，并依次推送 step。
+    SSE 聊天接口，接收消息并通过服务端推送事件返回处理步骤。
+    
+    Args:
+        request: 聊天请求对象
+        
+    Returns:
+        EventSourceResponse: SSE 响应流
     """
-    async def event_generator():
-        try:
-            # 1. accept
-            yield ChatNormalResponse(step=Step.ACCEPT).model_dump_json()
-            await asyncio.sleep(0.5)
-
-            # 写入数据库
-            try:
-                data = request.model_dump()
-                # 将毫秒时间戳转换为datetime对象
-                data["create_time"] = datetime.fromtimestamp(int(data["create_time"]) / 1000)
-                await create_formated_message(data)
-            except Exception as e:
-                logger.error(f"写入数据库失败: {str(e)}\n{traceback.format_exc()}")
-                yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
-                return
-
-            # 2. start_reply
-            yield ChatNormalResponse(step=Step.START_REPLY).model_dump_json()
-            await asyncio.sleep(0.5)
-
-            # 3. send
-            try:
-                # TODO: 这里应该调用 AI 服务生成回复
-                yield ChatProcessResponse(step=Step.SEND, content="已收到消息\n测试").model_dump_json()
-                await asyncio.sleep(0.5)
-
-                # 4. success
-                yield ChatNormalResponse(step=Step.SUCCESS).model_dump_json()
-            except Exception as e:
-                logger.error(f"生成回复失败: {str(e)}\n{traceback.format_exc()}")
-                yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
-                return
-
-            # 5. end
-            yield ChatNormalResponse(step=Step.END).model_dump_json()
-
-        except Exception as e:
-            logger.error(f"SSE 处理失败: {str(e)}\n{traceback.format_exc()}")
-            yield ChatNormalResponse(step=Step.FAILED).model_dump_json()
-
     try:
         return EventSourceResponse(
-            event_generator(),
+            chat_service.process_chat_sse(request),
             media_type="text/event-stream"
         )
     except Exception as e:
@@ -136,7 +107,6 @@ async def chat_sse(request: NewChatRequest):
             status_code=500,
             content={
                 "error": "Internal Server Error",
-                "details": str(e),
-                "traceback": traceback.format_exc()
+                "details": str(e)
             }
         ) 
