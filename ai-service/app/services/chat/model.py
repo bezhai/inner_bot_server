@@ -6,8 +6,11 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from collections import defaultdict
-
 from app.tools import get_tool_manager
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ModelService:
     # 类级别缓存，用于存储OpenAI客户端实例
@@ -208,10 +211,11 @@ class ModelService:
                         "tool_call_id": tool_call['id'],
                         "role": "tool",
                         "name": function_name,
-                        "content": json.dumps(function_response) if not isinstance(function_response, str) else function_response
+                        "content": function_response.model_dump_json() if hasattr(function_response, 'model_dump_json') else (json.dumps(function_response) if not isinstance(function_response, str) else function_response)
                     })
                     
                 except Exception as e:
+                    logger.error(f"工具执行错误: {e}")
                     # 工具执行错误处理
                     current_messages.append({
                         "tool_call_id": tool_call['id'],
