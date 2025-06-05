@@ -53,6 +53,7 @@ class ChatService:
         """
         async for chunk in AIChatService.generate_ai_reply(
             user_input=request.content,
+            model_id="gpt-4o",
             enable_tools=True,
         ):
             yield chunk
