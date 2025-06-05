@@ -3,7 +3,6 @@ import { v4 as uuidv4 } from 'uuid';
 // 导入已有的Redis实例
 import * as redisClient from '../dal/redis';
 // 导入 GroupStreamManager
-import { getGroupStreamManager } from './group-stream';
 
 // 事件数据结构
 export interface EventData {
@@ -67,13 +66,6 @@ export class EventSystem {
         try {
             // 确保已有Redis客户端存在并可用
             if (redisClient) {
-                // 启动分组顺序消费管理器
-                getGroupStreamManager()
-                    .start()
-                    .catch((err) => {
-                        console.error('[EventSystem] 启动分组顺序消费管理器失败:', err);
-                    });
-
                 // 使用模式订阅来监听所有事件频道
                 redisClient
                     .psubscribe('event:*', this.handleRedisPMessage.bind(this))
@@ -460,13 +452,6 @@ export class EventSystem {
      */
     public async close(): Promise<void> {
         try {
-            // 停止分组顺序消费管理器
-            await getGroupStreamManager()
-                .stop()
-                .catch((err) => {
-                    console.error('[EventSystem] 停止分组顺序消费管理器失败:', err);
-                });
-
             // 清理所有超时计时器
             for (const { timeoutId } of this.responseHandlers.values()) {
                 clearTimeout(timeoutId);

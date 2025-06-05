@@ -1,11 +1,11 @@
 import { Message } from '../../models/message';
-import { replyTemplate } from '../lark/basic/message';
+import { replyMessage, replyTemplate } from '../lark/basic/message';
 import { CommandHandler, CommandRule } from './rules/admin/command-handler';
 import { deleteBotMessage } from './rules/admin/delete-message';
 import { genHistoryCard } from './rules/general/gen-history';
 import { checkMeme, genMeme } from '../media/meme/meme';
 import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message';
-import { makeCardReply } from './rules/general/reply-workflow';
+import { makeCardReply } from '../ai/reply';
 import {
     ContainKeyword,
     EqualText,
@@ -17,7 +17,6 @@ import {
     WhiteGroupCheck,
 } from './rules/rule';
 import { sendPhoto } from '../media/photo/send-photo';
-import { setAIConfig } from './rules/setting/setting';
 import { checkDuplicate } from './rules/general/check-duplicate';
 
 // 工具函数：执行规则链
@@ -75,7 +74,9 @@ const chatRules: RuleConfig[] = [
     },
     {
         rules: [EqualText('模型配置'), TextMessageLimit, NeedRobotMention],
-        handler: setAIConfig,
+        handler: async (message) => {
+            replyMessage(message.messageId, '功能已下线');
+        },
     },
     {
         rules: [EqualText('查重'), TextMessageLimit, NeedRobotMention],
@@ -100,7 +101,13 @@ const chatRules: RuleConfig[] = [
     },
     {
         rules: [NeedRobotMention],
-        handler: makeCardReply,
+        // handler: makeCardReply,
+        handler: async (message) => {
+            replyMessage(
+                message.messageId,
+                '呜呜，这个聊天功能正在维护中呢，还不能陪你聊天了……不过我会很快回来陪你的！请再等我一下下，好吗？(｡•́︿•̀｡)',
+            );
+        },
         comment: '聊天',
     },
     {

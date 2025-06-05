@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // 初始化事件订阅
-import './services/sub'; 
 
 import './utils/logger';
 import { botInitialization } from './services/initialize/main';

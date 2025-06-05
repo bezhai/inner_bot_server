@@ -66,9 +66,3 @@ export {
     unsubscribeEvent 
 } from './subscription';
 
-// 导出分组顺序消费模式相关方法
-export {
-    registerGroup,
-    unregisterGroup,
-    publishGroupEvent
-} from './group-stream';

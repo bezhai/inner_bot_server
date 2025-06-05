@@ -7,7 +7,7 @@ export class MentionUtils {
 
     static addMentionMap(mentions: LarkMention[] | undefined): Record<string, string> {
         return mentions ? mentions.reduce((acc, m) => {
-            acc[m.id.union_id!] = m.id.union_id!;
+            acc[m.id.union_id!] = m.name;
             return acc;
         }, {} as Record<string, string>) : {};
     }

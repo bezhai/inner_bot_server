@@ -146,4 +146,8 @@ export class Message {
             content: this.content,
         };
     }
+
+    toMarkdown(): string {
+        return MessageContentUtils.toMarkdown(this.content);
+    }
 }

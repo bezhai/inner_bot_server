@@ -18,6 +18,29 @@ export interface MessageContent {
 }
 
 export class MessageContentUtils {
+    static toMarkdown(content: MessageContent): string {
+        let markdown = content.items
+            .map((item) => {
+                if (item.type === ContentType.Text) {
+                    return item.value;
+                }
+                if (item.type === ContentType.Image) {
+                    return `![${item.value}](${item.value})`;
+                }
+                if (item.type === ContentType.Sticker) {
+                    return `[${item.value}](${item.value})`;
+                }
+            })
+            .join('');
+
+        content.mentions.forEach((mention, index) => {
+            const name = content.mentionMap?.[mention];
+            markdown = markdown.replace(`@_user_${index + 1}`, !!name ? `@${name}` : '');
+        });
+
+        return markdown;
+    }
+
     static texts(content: MessageContent): string[] {
         return content.items
             .filter((item) => item.type === ContentType.Text)

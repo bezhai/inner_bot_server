@@ -5,11 +5,6 @@ import {
     LarkGroupMember,
     LarkUser,
     LarkCardContext,
-    AIModel,
-    AIPrompt,
-    ChatModelMapping,
-    ChatPromptMapping,
-    ModelProvider,
 } from '../entities';
 import { LarkUserOpenId } from '../entities/lark-user-open-id';
 import { UserChatMapping } from '../entities/user-chat-mapping';
@@ -23,10 +18,3 @@ export const LarkUserOpenIdRepository = AppDataSource.getRepository(LarkUserOpen
 export const CardContextRepository = AppDataSource.getRepository(LarkCardContext);
 export const UserChatMappingRepository = AppDataSource.getRepository(UserChatMapping);
 export const UserGroupBindingRepository = new CustomUserGroupBindingRepository(AppDataSource);
-
-// AI相关仓库
-export const AIModelRepository = AppDataSource.getRepository(AIModel);
-export const AIPromptRepository = AppDataSource.getRepository(AIPrompt);
-export const ChatModelMappingRepository = AppDataSource.getRepository(ChatModelMapping);
-export const ChatPromptMappingRepository = AppDataSource.getRepository(ChatPromptMapping);
-export const ModelProviderRepository = AppDataSource.getRepository(ModelProvider);

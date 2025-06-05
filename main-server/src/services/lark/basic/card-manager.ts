@@ -63,7 +63,7 @@ export class CardManager {
     /**
      * 初始化一个基础卡片，不包含任何组件
      */
-    private static initCard(): CardManager {
+    public static init(): CardManager {
         const instance = new CardManager();
         instance.card.withConfig(
             new Config()
@@ -97,11 +97,21 @@ export class CardManager {
     }
 
     /**
-     * 创建一个新的回复卡片
+     * 注册回复卡片
+     */
+    private async registerReply() {
+        // 创建卡片实体
+        await this.create();
+        // 增加初始化组件
+        await this.addInitialElements();
+    }
+
+    /**
+     * @deprecated 创建一个新的回复卡片
      */
     public static async createReplyCard(): Promise<CardManager> {
         // 初始化不带组件的卡片
-        const instance = this.initCard();
+        const instance = this.init();
         // 创建卡片实体
         await instance.create();
         // 增加初始化组件
@@ -121,7 +131,7 @@ export class CardManager {
         }
 
         // 初始化不带组件的卡片
-        const instance = this.initCard();
+        const instance = this.init();
         instance.cardId = cardContext.card_id;
         instance.messageId = messageId;
         instance.sequence = cardContext.sequence;
@@ -139,7 +149,7 @@ export class CardManager {
      */
     public async complete(): Promise<void> {
         if (!this.cardId) {
-            throw new Error('Card not created yet');
+            return;
         }
         await this.saveContext();
     }
@@ -381,7 +391,7 @@ export class CardManager {
         const body = this.card.getBody();
         const index = body.getAll().findIndex((e: CardElement) => e.element_id === elementId);
         if (index === -1) {
-            throw new Error(`Element with id ${elementId} not found`);
+            return;
         }
         body.remove(index);
         await sendReq(
@@ -494,36 +504,6 @@ export class CardManager {
     }
 
     /**
-     * 完成卡片更新
-     */
-    public async closeUpdate(fullText: string | null, error?: Error): Promise<void> {
-        if (!this.cardId) {
-            throw new Error('Card not created yet');
-        }
-
-        try {
-            // 移除加载状态
-            await this.removeLoadingElements();
-
-            if (error) {
-                // 处理错误状态
-                await this.handleError(error);
-            } else if (fullText) {
-                // 处理成功状态
-                await this.handleSuccess(fullText);
-                // 添加交互组件
-                await this.addInteractionElements();
-            }
-
-            // 完成卡片创建
-            await this.complete();
-        } catch (err) {
-            console.error('关闭更新时出错:', err);
-            throw err;
-        }
-    }
-
-    /**
      * 更新卡片配置
      */
     private async updateCardConfig(config: Partial<LarkCard['config']>): Promise<void> {
@@ -545,6 +525,8 @@ export class CardManager {
     public createActionHandler(): (action: StreamAction) => Promise<void> {
         return async (action) => {
             try {
+                // ChatStateMachineManager 已经保证了 onStartReply 完成后才会调用这里
+                // 不再需要 isReady 检查
                 switch (action.type) {
                     case 'think':
                         if (action.content.length > 0) {
@@ -555,9 +537,6 @@ export class CardManager {
                         if (action.content.length > 0) {
                             await this.updateContent(action.content);
                         }
-                        break;
-                    case 'function_call':
-                        // Handle function calls if needed
                         break;
                 }
             } catch (error) {
@@ -576,5 +555,115 @@ export class CardManager {
 
     public getCardId(): string | undefined {
         return this.cardId;
+    }
+
+    // ==================== sseChatAdvanced 适配方法 ====================
+
+    /**
+     * 消息接收回调 - 对应 onAccept
+     */
+    public createAcceptHandler(): () => Promise<void> {
+        return async () => {
+            console.debug('消息已被接收');
+            // 这里可以添加消息接收的处理逻辑
+        };
+    }
+
+    /**
+     * 开始回复回调 - 对应 onStartReply
+     */
+    public createStartReplyHandler(): () => Promise<void> {
+        return async () => {
+            console.debug('开始注册卡片回复...');
+            await this.registerReply();
+        };
+    }
+
+    /**
+     * 回复到消息的回调 - 需要在 onStartReply 之后调用
+     */
+    public createReplyToMessageHandler(messageId: string): () => Promise<void> {
+        return async () => {
+            await this.replyToMessage(messageId);
+            console.debug('卡片回复注册完成');
+        };
+    }
+
+    /**
+     * 成功完成回调 - 对应 onSuccess
+     */
+    public createSuccessHandler(): (content: string) => Promise<void> {
+        return async (content: string) => {
+            console.debug('聊天处理成功');
+            await this.handleSuccessOnly(content);
+        };
+    }
+
+    /**
+     * 失败处理回调 - 对应 onFailed
+     */
+    public createFailedHandler(): (error: Error) => Promise<void> {
+        if (!this.cardId) {
+            // 实际未创建卡片无需处理
+            return async () => {};
+        }
+
+        return async (error: Error) => {
+            console.error('聊天处理失败:', error);
+            await this.handleErrorOnly(error);
+        };
+    }
+
+    /**
+     * 结束回调 - 对应 onEnd
+     */
+    public createEndHandler(): () => Promise<void> {
+        return async () => {
+            console.debug('聊天会话结束');
+            // 最终完成
+            await this.complete();
+        };
+    }
+
+    /**
+     * 一键创建所有高级回调 - 适配 sseChatAdvanced
+     */
+    public createAdvancedCallbacks(messageId: string) {
+        return {
+            onAccept: this.createAcceptHandler(),
+            onStartReply: async () => {
+                await this.createStartReplyHandler()();
+                await this.createReplyToMessageHandler(messageId)();
+            },
+            onSend: this.createActionHandler(),
+            onSuccess: this.createSuccessHandler(),
+            onFailed: this.createFailedHandler(),
+            onEnd: this.createEndHandler(),
+        };
+    }
+
+    /**
+     * 只处理成功状态 - 从 closeUpdate 拆分出来
+     */
+    private async handleSuccessOnly(fullText: string): Promise<void> {
+        // 移除加载状态
+        await this.removeLoadingElements();
+
+        // 处理成功状态
+        await this.handleSuccess(fullText);
+
+        // 添加交互组件
+        await this.addInteractionElements();
+    }
+
+    /**
+     * 只处理错误状态 - 从 closeUpdate 拆分出来
+     */
+    private async handleErrorOnly(error: Error): Promise<void> {
+        // 移除加载状态
+        await this.removeLoadingElements();
+
+        // 处理错误状态
+        await this.handleError(error);
     }
 }

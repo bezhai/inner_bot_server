@@ -49,6 +49,7 @@ export class MessageBuilder {
             basicChatInfo: finalBasicChatInfo ?? undefined,
             groupChatInfo: groupChatInfo ?? undefined,
             senderInfo: senderInfo ?? undefined,
+            createTime: event.message.create_time,
         };
     }
 
