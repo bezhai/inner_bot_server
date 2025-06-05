@@ -13,10 +13,10 @@ import {
     TableComponent,
     WordCloudChartSpec,
 } from 'feishu-card';
-import { LarkUserOpenIdRepository } from '../../../../dal/repositories/repositories';
-import { Message } from '../../../../models/message';
-import { buildWeeklyWordCloud } from '../../../../utils/text/jieba';
-import { replyCard, searchGroupMessage } from '../../../lark/basic/message';
+import { LarkUserOpenIdRepository } from 'dal/repositories/repositories';
+import { Message } from 'models/message';
+import { buildWeeklyWordCloud } from 'utils/text/jieba';
+import { replyCard, searchGroupMessage } from '@lark-basic/message';
 
 function splitTime(start: number, end: number, splitSize: number): number[][] {
     // 确保输入有效

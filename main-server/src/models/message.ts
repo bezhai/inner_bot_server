@@ -1,10 +1,10 @@
-import { LarkReceiveMessage, LarkHistoryMessage } from '../types/lark';
-import { LarkMessageMetaInfo } from '../types/mongo';
-import { LarkBaseChatInfo, LarkUser } from '../dal/entities';
+import { LarkReceiveMessage, LarkHistoryMessage } from 'types/lark';
+import { LarkMessageMetaInfo } from 'types/mongo';
+import { LarkBaseChatInfo, LarkUser } from 'dal/entities';
 import { MessageMetadata, MessageMetadataUtils } from './message-metadata';
 import { MessageContent, MessageContentUtils } from './message-content';
 import { MessageBuilder } from './message-builder';
-import { batchGetUserName } from '../services/message-store/user';
+import { batchGetUserName } from 'services/message-store/user';
 
 export class Message {
     private metadata: MessageMetadata;
@@ -25,7 +25,8 @@ export class Message {
         const metadata = MessageBuilder.buildMetadataFromInfo(message);
         const content = MessageBuilder.buildContentFromInfo(message);
 
-        const mentionMap = content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
+        const mentionMap =
+            content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
         content.mentionMap = mentionMap;
 
         return new Message(metadata, content);

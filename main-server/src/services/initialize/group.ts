@@ -1,12 +1,12 @@
-import { LarkGroupChatInfo, LarkGroupMember } from '../../dal/entities';
+import { LarkGroupChatInfo, LarkGroupMember } from 'dal/entities';
 import {
     GroupChatInfoRepository,
     GroupMemberRepository,
     LarkUserOpenIdRepository,
     UserRepository,
-} from '../../dal/repositories/repositories';
+} from 'dal/repositories/repositories';
 import { setTimeout } from 'timers/promises';
-import { searchAllLarkGroup, searchLarkChatInfo, searchLarkChatMember } from '../lark/basic/group';
+import { searchAllLarkGroup, searchLarkChatInfo, searchLarkChatMember } from '@lark-basic/group';
 
 export async function upsertAllChatInfo() {
     const chatList = await searchAllLarkGroup();

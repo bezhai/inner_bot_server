@@ -1,5 +1,5 @@
 import { Context, Next } from 'koa';
-import { trace } from '../utils/trace';
+import { trace } from 'utils/trace';
 
 export const traceMiddleware = async (ctx: Context, next: Next) => {
     const traceId = ctx.request.headers['x-trace-id'] as string;

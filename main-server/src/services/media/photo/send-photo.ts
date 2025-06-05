@@ -1,6 +1,6 @@
-import { GroupChatInfoRepository } from '../../../dal/repositories/repositories';
-import { Message } from '../../../models/message';
-import { replyCard, replyMessage } from '../../lark/basic/message';
+import { GroupChatInfoRepository } from 'dal/repositories/repositories';
+import { Message } from 'models/message';
+import { replyCard, replyMessage } from '@lark-basic/message';
 import { searchAndBuildPhotoCard } from './photo-card';
 
 export async function sendPhoto(message: Message) {

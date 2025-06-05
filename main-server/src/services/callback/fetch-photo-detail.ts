@@ -1,8 +1,8 @@
-import { sendReq } from '../../dal/lark-client';
-import { BaseChatInfoRepository, UserRepository } from '../../dal/repositories/repositories';
-import { LarkCallbackInfo } from '../../types/lark';
-import { replyCard } from '../lark/basic/message';
-import { getPhotoDetailCard } from '../media/photo/photo-card';
+import { sendReq } from '@lark-client';
+import { BaseChatInfoRepository } from 'dal/repositories/repositories';
+import { LarkCallbackInfo } from 'types/lark';
+import { replyCard } from '@lark-basic/message';
+import { getPhotoDetailCard } from '@media/photo/photo-card';
 
 export async function fetchAndSendPhotoDetail(data: LarkCallbackInfo, pixivAddrs: string[]) {
     try {

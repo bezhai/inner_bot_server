@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 import { MongoCollection } from './collection';
-import { LarkMessageMetaInfo } from '../../types/mongo';
-import { LarkOperateReactionInfo } from '../../types/lark';
+import { LarkMessageMetaInfo } from 'types/mongo';
+import { LarkOperateReactionInfo } from 'types/lark';
 
 class MongoService {
     private static instance: MongoService;

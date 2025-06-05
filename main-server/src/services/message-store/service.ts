@@ -1,8 +1,8 @@
 import dayjs from 'dayjs';
-import { LarkReceiveMessage } from '../../types/lark';
-import { LarkRobotMessageMetaInfo, LarkUserMessageMetaInfo } from '../../types/mongo';
+import { LarkReceiveMessage } from 'types/lark';
+import { LarkRobotMessageMetaInfo, LarkUserMessageMetaInfo } from 'types/mongo';
 import { saveMessage } from './basic';
-import { Message } from '../../models/message';
+import { Message } from 'models/message';
 
 export async function saveLarkMessage(params: LarkReceiveMessage) {
     const mongoMessage: LarkUserMessageMetaInfo = {

@@ -1,7 +1,7 @@
-import { Message } from '../../../../models/message';
-import { replyMessage } from '../../../lark/basic/message';
-import { publishEventAndWait } from '../../../../events';
-import { getMessage } from '../../../message-store/basic';
+import { Message } from 'models/message';
+import { replyMessage } from '@lark-basic/message';
+import { publishEventAndWait } from '@events';
+import { getMessage } from 'services/message-store/basic';
 
 interface FindSimilarMessageResponse {
     found: boolean;

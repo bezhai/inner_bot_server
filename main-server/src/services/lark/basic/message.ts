@@ -1,8 +1,8 @@
 import { ValidLarkCard } from 'feishu-card';
-import { reply, getMessageList, send } from '../../../dal/lark-client';
-import { PostContent } from '../../../types/content-types';
-import { RateLimiter } from '../../../utils/rate-limiting/rate-limiter';
-import { Message } from '../../../models/message';
+import { reply, getMessageList, send } from '@lark-client';
+import { PostContent } from 'types/content-types';
+import { RateLimiter } from 'utils/rate-limiting/rate-limiter';
+import { Message } from 'models/message';
 
 export async function sendMsg(chat_id: string, message: string) {
     await send(chat_id, { text: message }, 'text');

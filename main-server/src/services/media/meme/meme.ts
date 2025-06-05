@@ -1,12 +1,12 @@
 import axios, { AxiosResponse } from 'axios';
-import { Message } from '../../../models/message';
-import { Meme } from '../../../types/meme';
+import { Message } from 'models/message';
+import { Meme } from 'types/meme';
 import { Readable } from 'stream';
-import { uploadFile, downloadResource } from '../../../dal/lark-client';
+import { uploadFile, downloadResource } from '@lark-client';
 import FormData from 'form-data';
-import { replyImage, replyMessage } from '../../lark/basic/message';
-import { GroupChatInfoRepository } from '../../../dal/repositories/repositories';
-import { cache } from '../../../utils/cache/cache-decorator';
+import { replyImage, replyMessage } from '@lark-basic/message';
+import { GroupChatInfoRepository } from 'dal/repositories/repositories';
+import { cache } from 'utils/cache/cache-decorator';
 
 // 缓存过期时间（10分钟）
 const MEME_CACHE_EXPIRY = 10 * 60;

@@ -1,6 +1,6 @@
-import { LarkBaseChatInfo, UserChatMapping } from '../../../dal/entities';
-import AppDataSource from '../../../ormconfig';
-import { LarkEnterChatEvent } from '../../../types/lark';
+import { LarkBaseChatInfo, UserChatMapping } from 'dal/entities';
+import AppDataSource from 'ormconfig';
+import { LarkEnterChatEvent } from 'types/lark';
 
 export async function handlerEnterChat(data: LarkEnterChatEvent) {
     await AppDataSource.transaction(async (manager) => {

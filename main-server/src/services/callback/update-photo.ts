@@ -1,7 +1,7 @@
-import { LarkCallbackInfo } from '../../types/lark';
-import { BaseChatInfoRepository } from '../../dal/repositories/repositories';
-import { sendReq } from '../../dal/lark-client';
-import { searchAndBuildPhotoCard } from '../media/photo/photo-card';
+import { LarkCallbackInfo } from 'types/lark';
+import { BaseChatInfoRepository } from 'dal/repositories/repositories';
+import { sendReq } from '@lark-client';
+import { searchAndBuildPhotoCard } from '@media/photo/photo-card';
 
 export async function handleUpdatePhotoCard(data: LarkCallbackInfo, tags: string[]) {
     try {

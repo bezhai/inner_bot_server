@@ -1,15 +1,15 @@
-import { LarkGroupMember, LarkUser } from '../../../dal/entities';
-import { LarkUserOpenId } from '../../../dal/entities/lark-user-open-id';
+import { LarkGroupMember, LarkUser } from 'dal/entities';
+import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
 import {
     GroupMemberRepository,
     UserRepository,
     LarkUserOpenIdRepository,
     GroupChatInfoRepository,
     UserGroupBindingRepository,
-} from '../../../dal/repositories/repositories';
-import { LarkGroupChangeInfo, LarkGroupMemberChangeInfo } from '../../../types/lark';
-import { getBotAppId } from '../../../utils/bot/bot-var';
-import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '../basic/group';
+} from 'dal/repositories/repositories';
+import { LarkGroupChangeInfo, LarkGroupMemberChangeInfo } from 'types/lark';
+import { getBotAppId } from 'utils/bot/bot-var';
+import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark-basic/group';
 
 export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
     const updateUsers: LarkGroupMember[] =

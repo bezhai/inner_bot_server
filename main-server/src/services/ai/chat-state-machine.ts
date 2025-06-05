@@ -1,6 +1,6 @@
-import { StreamAction } from '../../types/ai';
-import { Step } from '../../types/chat';
-import { StateMachine, StateTransition } from '../../utils/state-machine/state-machine';
+import { StreamAction } from 'types/ai';
+import { Step } from 'types/chat';
+import { StateMachine, StateTransition } from 'utils/state-machine/state-machine';
 
 /**
  * 聊天状态机的数据类型

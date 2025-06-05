@@ -6,7 +6,7 @@
     "type": "commonjs",
     "scripts": {
         "start": "ts-node src/index.ts",
-        "build": "tsc",
+        "build": "tsc && tsc-alias",
         "format": "prettier --write \"src/**/*.ts\"",
         "prepare": "simple-git-hooks"
     },
@@ -29,6 +29,7 @@
         "prettier": "^3.4.2",
         "simple-git-hooks": "^2.11.1",
         "ts-node": "^10.0.0",
+        "tsc-alias": "^1.8.16",
         "typescript": "^5.6.3"
     },
     "dependencies": {

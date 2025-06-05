@@ -1,13 +1,13 @@
-import AppDataSource from '../../ormconfig';
+import AppDataSource from 'ormconfig';
 import {
     LarkBaseChatInfo,
     LarkGroupChatInfo,
     LarkGroupMember,
     LarkUser,
     LarkCardContext,
-} from '../entities';
-import { LarkUserOpenId } from '../entities/lark-user-open-id';
-import { UserChatMapping } from '../entities/user-chat-mapping';
+    LarkUserOpenId,
+    UserChatMapping,
+} from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
 export const UserRepository = AppDataSource.getRepository(LarkUser);

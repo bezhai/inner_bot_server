@@ -1,9 +1,8 @@
-import { LarkReceiveMessage } from '../../../types/lark';
-import { Message } from '../../../models/message';
-import { runRules } from '../../message-processing/rule-engine';
-import { saveLarkMessage } from '../../message-store/service';
+import { LarkReceiveMessage } from 'types/lark';
+import { runRules } from 'services/message-processing/rule-engine';
+import { saveLarkMessage } from 'services/message-store/service';
 import { MessageTransferer } from './factory';
-import { publishEvent } from '../../../events';
+import { publishEvent } from '@events';
 
 export async function handleMessageReceive(params: LarkReceiveMessage) {
     try {

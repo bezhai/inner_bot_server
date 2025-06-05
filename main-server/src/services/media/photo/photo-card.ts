@@ -7,10 +7,10 @@ import {
     MarkdownComponent,
     CardHeader,
 } from 'feishu-card';
-import { UpdatePhotoCard, FetchPhotoDetails, UpdateDailyPhotoCard } from '../../../types/lark';
-import { StatusMode } from '../../../types/pixiv';
-import { calcBestChunks } from '../../../utils/calc-photo';
-import { getPixivImages, uploadToLark } from '../../integrations/aliyun/proxy';
+import { UpdatePhotoCard, FetchPhotoDetails, UpdateDailyPhotoCard } from 'types/lark';
+import { StatusMode } from 'types/pixiv';
+import { calcBestChunks } from 'utils/calc-photo';
+import { getPixivImages, uploadToLark } from 'services/integrations/aliyun/proxy';
 
 export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_photo?: boolean) {
     let images = await getPixivImages({

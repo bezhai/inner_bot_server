@@ -13,17 +13,12 @@ import {
     CardElement,
     StandardIcon,
 } from 'feishu-card';
-import { StreamAction } from '../../../types/ai';
-import { sendReq, reply, send } from '../../../dal/lark-client';
-import {
-    AddElementType,
-    LarkCardRetry,
-    LarkCardThumbsDown,
-    LarkCardThumbsUp,
-} from '../../../types/lark';
+import { StreamAction } from 'types/ai';
+import { sendReq, reply, send } from '@lark-client';
+import { AddElementType, LarkCardRetry, LarkCardThumbsDown, LarkCardThumbsUp } from 'types/lark';
 import { v4 as uuidv4 } from 'uuid';
-import { CardContextRepository } from '../../../dal/repositories/repositories';
-import { updateRobotMessageText } from '../../message-store/basic';
+import { CardContextRepository } from 'dal/repositories/repositories';
+import { updateRobotMessageText } from 'services/message-store/basic';
 
 /**
  * CardManager 统一管理飞书卡片的全生命周期

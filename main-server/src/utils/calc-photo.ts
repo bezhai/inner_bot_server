@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { ImageForLark } from '../types/pixiv';
+import { ImageForLark } from 'types/pixiv';
 
 function combinations<T>(arr: T[], n: number): T[][] {
     if (n === 0) return [[]];

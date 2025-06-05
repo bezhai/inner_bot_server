@@ -11,7 +11,17 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true
+        "emitDecoratorMetadata": true,
+        "baseUrl": "src",
+        "paths": {
+            "@/*": ["./*"],
+            "@entities": ["dal/entities"],
+            "@events": ["./events"],
+            "@lark-client": ["services/integrations/lark-client"],
+            "@lark-basic/*": ["services/lark/basic/*"],
+            "@callback/*": ["services/callback/*"],
+            "@media/*": ["services/media/*"]
+        }
     },
     "include": ["src/**/*.ts"],
     "exclude": ["node_modules"]

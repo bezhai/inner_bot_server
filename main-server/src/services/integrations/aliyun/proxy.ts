@@ -7,12 +7,12 @@ import {
     PaginationResponse,
     UploadImageToLarkDto,
     UploadLarkResp,
-} from '../../../types/pixiv';
+} from 'types/pixiv';
 import {
     LarkFileTransferInfo,
     LarkFileTransferRequest,
     LarkFileTransferResponse,
-} from '../../../types/aliyun';
+} from 'types/aliyun';
 
 // 生成盐
 const generateSalt = (length: number): string => {

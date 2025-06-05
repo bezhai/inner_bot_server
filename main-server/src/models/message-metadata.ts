@@ -1,4 +1,4 @@
-import { LarkBaseChatInfo, LarkGroupChatInfo, LarkUser } from '../dal/entities';
+import { LarkBaseChatInfo, LarkGroupChatInfo, LarkUser } from 'dal/entities';
 
 export interface MessageMetadata {
     rootId?: string;

@@ -3,12 +3,10 @@ import {
     UpdatePhotoCard,
     FetchPhotoDetails,
     UpdateDailyPhotoCard,
-    SetLLMConfig,
-    SetLLMConfigFormValue,
-} from '../../../types/lark';
-import { fetchAndSendPhotoDetail } from '../../callback/fetch-photo-detail';
-import { handleUpdateDailyPhotoCard } from '../../callback/update-daily-photo';
-import { handleUpdatePhotoCard } from '../../callback/update-photo';
+} from 'types/lark';
+import { fetchAndSendPhotoDetail } from '@callback/fetch-photo-detail';
+import { handleUpdateDailyPhotoCard } from '@callback/update-daily-photo';
+import { handleUpdatePhotoCard } from '@callback/update-photo';
 
 export async function handleCardAction(data: LarkCallbackInfo) {
     switch (data.action.value?.type) {

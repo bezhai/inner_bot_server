@@ -1,12 +1,7 @@
-import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from '../../../dal/entities';
-import { LarkUserOpenId } from '../../../dal/entities/lark-user-open-id';
-import {
-    getChatList,
-    getChatInfo,
-    searchAllMembers,
-    addChatMember,
-} from '../../../dal/lark-client';
-import { getBotAppId } from '../../../utils/bot/bot-var';
+import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from 'dal/entities';
+import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
+import { getChatList, getChatInfo, searchAllMembers, addChatMember } from '@lark-client';
+import { getBotAppId } from 'utils/bot/bot-var';
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {

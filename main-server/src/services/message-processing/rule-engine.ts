@@ -1,11 +1,10 @@
-import { Message } from '../../models/message';
-import { replyMessage, replyTemplate } from '../lark/basic/message';
+import { Message } from 'models/message';
+import { replyMessage, replyTemplate } from '@lark-basic/message';
 import { CommandHandler, CommandRule } from './rules/admin/command-handler';
 import { deleteBotMessage } from './rules/admin/delete-message';
 import { genHistoryCard } from './rules/general/gen-history';
-import { checkMeme, genMeme } from '../media/meme/meme';
+import { checkMeme, genMeme } from 'services/media/meme/meme';
 import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message';
-import { makeCardReply } from '../ai/reply';
 import {
     ContainKeyword,
     EqualText,
@@ -16,7 +15,7 @@ import {
     TextMessageLimit,
     WhiteGroupCheck,
 } from './rules/rule';
-import { sendPhoto } from '../media/photo/send-photo';
+import { sendPhoto } from 'services/media/photo/send-photo';
 import { checkDuplicate } from './rules/general/check-duplicate';
 
 // 工具函数：执行规则链

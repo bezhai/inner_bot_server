@@ -15,7 +15,7 @@ import {
     getBotAppSecret,
     getVerificationToken,
     getEncryptKey,
-} from '../../../utils/bot/bot-var';
+} from 'utils/bot/bot-var';
 import { handlerEnterChat } from './enter';
 
 // Helper function to create void decorators for async handlers

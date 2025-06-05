@@ -1,7 +1,7 @@
 import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 // 导入已有的Redis实例
-import * as redisClient from '../dal/redis';
+import * as redisClient from 'dal/redis';
 // 导入 GroupStreamManager
 
 // 事件数据结构

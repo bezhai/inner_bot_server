@@ -1,6 +1,6 @@
-import { Message } from '../../models/message';
+import { Message } from 'models/message';
 import { sseChat } from './chat';
-import { CardManager } from '../lark/basic/card-manager';
+import { CardManager } from '@lark-basic/card-manager';
 
 export async function makeCardReply(message: Message): Promise<void> {
     const cardManager = CardManager.init();

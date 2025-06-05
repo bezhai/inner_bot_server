@@ -1,5 +1,5 @@
-import { getMessageCollection } from '../../dal/mongo/client';
-import { LarkMessageMetaInfo } from '../../types/mongo';
+import { getMessageCollection } from 'dal/mongo/client';
+import { LarkMessageMetaInfo } from 'types/mongo';
 
 export async function saveMessage(message: LarkMessageMetaInfo) {
     return getMessageCollection().insertOne(message);

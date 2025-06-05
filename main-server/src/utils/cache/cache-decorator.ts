@@ -1,4 +1,4 @@
-import { get as redisGet, setWithExpire as redisSetWithExpire } from '../../dal/redis';
+import { get as redisGet, setWithExpire as redisSetWithExpire } from 'dal/redis';
 
 interface CacheOptions {
     type: 'local' | 'redis';

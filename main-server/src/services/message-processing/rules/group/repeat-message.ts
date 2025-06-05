@@ -1,8 +1,8 @@
 import { createHash } from 'crypto';
-import { get, setWithExpire } from '../../../../dal/redis';
-import { BaseChatInfoRepository } from '../../../../dal/repositories/repositories';
-import { Message } from '../../../../models/message';
-import { sendMsg, sendSticker, replyMessage } from '../../../lark/basic/message';
+import { get, setWithExpire } from 'dal/redis';
+import { BaseChatInfoRepository } from 'dal/repositories/repositories';
+import { Message } from 'models/message';
+import { sendMsg, sendSticker, replyMessage } from '@lark-basic/message';
 
 interface RepeatMsg {
     chatId: string;

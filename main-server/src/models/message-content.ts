@@ -1,4 +1,4 @@
-import { TextUtils } from '../utils/text/text-utils';
+import { TextUtils } from 'utils/text/text-utils';
 
 export enum ContentType {
     Text = 'text',

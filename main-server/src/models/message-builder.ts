@@ -1,15 +1,15 @@
-import { LarkReceiveMessage } from '../types/lark';
-import { LarkMessageMetaInfo, LarkUserMessageMetaInfo } from '../types/mongo';
-import { LarkHistoryMessage } from '../types/lark';
+import { LarkReceiveMessage } from 'types/lark';
+import { LarkMessageMetaInfo, LarkUserMessageMetaInfo } from 'types/mongo';
+import { LarkHistoryMessage } from 'types/lark';
 import { MessageMetadata } from './message-metadata';
 import { MessageContent, ContentType, ContentItem } from './message-content';
-import { MentionUtils } from '../utils/mention-utils';
+import { MentionUtils } from 'utils/mention-utils';
 import {
     BaseChatInfoRepository,
     GroupChatInfoRepository,
     UserRepository,
-} from '../dal/repositories/repositories';
-import { MessageTransferer } from '../services/lark/events/factory';
+} from 'dal/repositories/repositories';
+import { MessageTransferer } from 'services/lark/events/factory';
 
 export class MessageBuilder {
     static async buildMetadataFromEvent(event: LarkReceiveMessage): Promise<MessageMetadata> {
