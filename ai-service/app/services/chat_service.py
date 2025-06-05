@@ -8,7 +8,7 @@ import traceback
 from datetime import datetime
 from typing import AsyncGenerator
 
-from app.types.chat import NewChatRequest, Step, ChatProcessResponse, ChatNormalResponse
+from app.types.chat import ChatRequest, Step, ChatProcessResponse, ChatNormalResponse
 from app.orm.crud import create_formated_message
 from app.utils.decorators import auto_json_serialize
 from app.services.chat.chat_service import ChatService as AIChatService
@@ -20,7 +20,7 @@ class ChatService:
     """聊天服务类"""
     
     @staticmethod
-    async def save_message_to_db(request: NewChatRequest) -> None:
+    async def save_message_to_db(request: ChatRequest) -> None:
         """
         将聊天消息保存到数据库
         
@@ -41,7 +41,7 @@ class ChatService:
             raise
     
     @staticmethod
-    async def generate_ai_reply(request: NewChatRequest) -> AsyncGenerator[str, None]:
+    async def generate_ai_reply(request: ChatRequest) -> AsyncGenerator[str, None]:
         """
         生成 AI 回复内容
         
@@ -59,7 +59,7 @@ class ChatService:
     
     @staticmethod
     @auto_json_serialize
-    async def process_chat_sse(request: NewChatRequest) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse, None]:
+    async def process_chat_sse(request: ChatRequest) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse, None]:
         """
         处理 SSE 聊天流程
         
