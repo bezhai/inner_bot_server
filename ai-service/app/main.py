@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.api.router import api_router
 from app.core.events import init_events
 from app.services.qdrant import init_qdrant_collections
+from app.tools.startup import startup_tools
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,9 +15,15 @@ async def lifespan(app: FastAPI):
     """
     # 启动事件系统
     await init_events()
+    
+    # 启动工具系统
+    await startup_tools()
+    
     # 初始化QDrant集合
     await init_qdrant_collections()
+    
     yield
+    
     # 关闭事件
     from app.core.event_system import get_event_system
     try:

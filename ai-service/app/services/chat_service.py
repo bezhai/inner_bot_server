@@ -52,7 +52,8 @@ class ChatService:
             str: AI 生成的回复内容片段
         """
         async for chunk in AIChatService.generate_ai_reply(
-            user_input=request.content
+            user_input=request.content,
+            enable_tools=True,
         ):
             yield chunk
     
