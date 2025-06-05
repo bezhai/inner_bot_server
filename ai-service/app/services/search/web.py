@@ -3,6 +3,7 @@ from typing import List, Optional
 import httpx
 from app.config import settings
 from app.tools import tool
+from app.utils.log_decorator import log_io
 
 class SearchResult(BaseModel):
     need_search: bool
@@ -22,7 +23,8 @@ class WebSearchResult(BaseModel):
     answer_box: Optional[AnswerBox] = None
     organic_results: Optional[List[OrganicResult]] = None
     
-@tool()
+@tool
+@log_io
 async def search_web(query: str) -> WebSearchResult:
     """
     搜索网络上的信息，并返回结构化的搜索结果

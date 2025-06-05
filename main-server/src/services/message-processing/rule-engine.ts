@@ -17,6 +17,7 @@ import {
 } from './rules/rule';
 import { sendPhoto } from 'services/media/photo/send-photo';
 import { checkDuplicate } from './rules/general/check-duplicate';
+import { makeCardReply } from 'services/ai/reply';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {
@@ -100,12 +101,16 @@ const chatRules: RuleConfig[] = [
     },
     {
         rules: [NeedRobotMention],
-        // handler: makeCardReply,
         handler: async (message) => {
-            replyMessage(
-                message.messageId,
-                '呜呜，这个聊天功能正在维护中呢，还不能陪你聊天了……不过我会很快回来陪你的！请再等我一下下，好吗？(｡•́︿•̀｡)',
-            );
+            // 暂时只开放给管理员使用
+            if (message.senderInfo?.is_admin) {
+                makeCardReply(message);
+            } else {
+                replyMessage(
+                    message.messageId,
+                    '呜呜，这个聊天功能正在维护中呢，还不能陪你聊天了……不过我会很快回来陪你的！请再等我一下下，好吗？(｡•́︿•̀｡)',
+                );
+            }
         },
         comment: '聊天',
     },
