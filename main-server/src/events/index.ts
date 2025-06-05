@@ -18,6 +18,14 @@ export const initEvents = () => {
         console.log('[Events] 事件系统已初始化');
     } catch (error) {
         console.error('[Events] 初始化事件系统失败:', error);
+        console.error(
+            '[Events] 错误详情:',
+            JSON.stringify(error, Object.getOwnPropertyNames(error)),
+        );
+        console.error(
+            '[Events] 错误堆栈:',
+            error instanceof Error ? error.stack : 'No stack trace',
+        );
         throw error;
     }
 };
