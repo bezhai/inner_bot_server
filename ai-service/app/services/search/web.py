@@ -8,16 +8,19 @@ class SearchResult(BaseModel):
     need_search: bool
     
 class AnswerBox(BaseModel):
-    snippet: str
+    snippet: Optional[str] = None
+    answer: Optional[str] = None
+    answer_list: Optional[List[str]] = None
     
 class OrganicResult(BaseModel):
-    title: str
-    link: str
-    snippet: str
+    title: Optional[str] = None
+    link: Optional[str] = None
+    snippet: Optional[str] = None
+    snippet_highlighted_words: Optional[List[str]] = None
 
 class WebSearchResult(BaseModel):
     answer_box: Optional[AnswerBox] = None
-    organic_results: List[OrganicResult]
+    organic_results: Optional[List[OrganicResult]] = None
     
 @tool()
 async def search_web(query: str) -> WebSearchResult:
