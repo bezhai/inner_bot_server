@@ -25,9 +25,6 @@ function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params:
 
         console.log('receive event_type: ' + (params as { event_type: string })['event_type']);
 
-        // 增加一个用于测试多行日志的代码
-        console.log('[test]receive event_type: \n\n' + (params as { event_type: string })['event_type']);
-
         asyncFn(params).catch((err) => {
             console.error('Error in async operation:', err);
         });
