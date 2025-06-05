@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
 import { Message } from 'models/message';
 import { Meme } from 'types/meme';
-import { Readable } from 'stream';
+import { Readable } from 'node:stream';
 import { uploadFile, downloadResource } from '@lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '@lark-basic/message';

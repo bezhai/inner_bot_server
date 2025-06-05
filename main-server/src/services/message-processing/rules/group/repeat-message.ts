@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 import { get, setWithExpire } from 'dal/redis';
 import { BaseChatInfoRepository } from 'dal/repositories/repositories';
 import { Message } from 'models/message';

@@ -1,5 +1,5 @@
 import winston from 'winston';
-import path from 'path';
+import path from 'node:path';
 import { trace } from './trace';
 
 // 获取环境变量，决定是否写入文件

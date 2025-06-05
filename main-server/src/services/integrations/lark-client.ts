@@ -1,7 +1,8 @@
 import * as lark from '@larksuiteoapi/node-sdk';
 import { getBotAppId, getBotAppSecret } from 'utils/bot/bot-var';
-import { Readable } from 'stream';
-import { ReadStream } from 'fs';
+import axios, { AxiosRequestConfig } from 'axios';
+import { Readable } from 'node:stream';
+import { ReadStream } from 'node:fs';
 
 const errorMap: Record<number, string> = {
     41050: '无用户权限，请将当前操作的用户添加到应用或用户的权限范围内',
