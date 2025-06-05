@@ -22,8 +22,9 @@ class OrganicResult(BaseModel):
 class WebSearchResult(BaseModel):
     answer_box: Optional[AnswerBox] = None
     organic_results: Optional[List[OrganicResult]] = None
-    
-@tool
+
+
+@tool()
 @log_io
 async def search_web(query: str) -> WebSearchResult:
     """
