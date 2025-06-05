@@ -28,7 +28,13 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
 
         await runRules(message);
     } catch (error) {
-        console.error('Error handling message receive:', error);
+        console.error(
+            'Error handling message receive:',
+            error instanceof Error ? error.message : String(error),
+        );
+        if (error instanceof Error && error.stack) {
+            console.error('Stack trace:', error.stack);
+        }
         // Could add more sophisticated error handling here if needed
     }
 }
