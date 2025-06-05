@@ -131,7 +131,7 @@ class ToolManager:
             return result
             
         except Exception as e:
-            logger.error(f"工具 {tool_name} 执行失败: {str(e)}")
+            logger.error(f"工具 {tool_name} 执行失败: {type(e).__name__}: {repr(e)}")
             raise
     
     def get_tool_info(self, tool_name: str) -> Optional[Dict[str, Any]]:
