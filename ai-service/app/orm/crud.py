@@ -8,7 +8,9 @@ async def create_formated_message(data: dict):
     async with AsyncSessionLocal() as session:
         # 使用 PostgreSQL 的 INSERT ... ON CONFLICT DO UPDATE
         stmt = insert(FormatedMessage).values(**data)
-        stmt = stmt.on_conflict_do_update(constraint="uq_message_id", set_=data)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["message_id"], set_=data  # 使用列名而不是约束名
+        )
         try:
             await session.execute(stmt)
             await session.commit()
