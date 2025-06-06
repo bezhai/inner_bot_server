@@ -46,7 +46,7 @@ async def search_web(query: str) -> WebSearchResult:
         "hl": "zh-cn",
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=15) as client:
         response = await client.get(url, params=query)
         response.raise_for_status()
         data = response.json()
