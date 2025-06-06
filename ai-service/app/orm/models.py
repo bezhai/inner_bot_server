@@ -5,7 +5,6 @@ from sqlalchemy import (
     Integer,
     Text,
     TIMESTAMP,
-    UniqueConstraint,
     ForeignKey,
     JSON,
 )

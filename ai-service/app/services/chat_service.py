@@ -169,7 +169,7 @@ class ChatService:
             # 5. 回复成功，返回完整内容
             yield ChatProcessResponse(
                 step=Step.SUCCESS,
-                content=chunk.complete_content,  # 先保留一下肯定会报错的代码调试调试, 后面改成content
+                content=chunk.content,
                 # reason_content=chunk.reason_content,
             )
 
