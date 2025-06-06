@@ -1,3 +1,4 @@
+import logging
 from typing import AsyncGenerator
 from .model import ModelService
 from .prompt import PromptService
@@ -6,6 +7,7 @@ from app.types.chat import ChatStreamChunk
 # 使用新的工具系统
 from app.tools import get_tool_manager
 
+logger = logging.getLogger(__name__)
 
 class AIChatService:
 
@@ -60,6 +62,7 @@ class AIChatService:
             ):
                 # 提取文本内容并直接输出
                 if chunk.delta:
+                    logger.info(f"chunk.delta: {chunk.delta}")
                     yield ChatStreamChunk(
                         content=chunk.delta.content,
                         # reason_content=chunk.delta.reason_content if hasattr(chunk.delta, "reason_content") else None,

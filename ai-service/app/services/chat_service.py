@@ -70,10 +70,10 @@ class ChatService:
             yield_interval: 输出间隔时间，用于控制客户端接收频率
 
         Yields:
-            ChatStreamChunk: AI 生成的回复内容片段
+            ChatStreamChunk: AI 生成的回复内容片段，包含当前chunk和累积的完整内容
         """
         # 用于累积内容
-        accumulated_content = ChatStreamChunk(content="", reason_content="")
+        complete_content = ChatStreamChunk(content="", reason_content="")
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
@@ -85,43 +85,42 @@ class ChatService:
             ):
                 # 累积内容
                 if chunk.content:
-                    accumulated_content.content += chunk.content
+                    complete_content.content += chunk.content
                 if chunk.reason_content:
-                    accumulated_content.reason_content += chunk.reason_content
+                    complete_content.reason_content += chunk.reason_content
                 if chunk.tool_call_feedback:
-                    accumulated_content.tool_call_feedback = chunk.tool_call_feedback
+                    complete_content.tool_call_feedback = chunk.tool_call_feedback
 
                 # 检查是否到了输出间隔时间
                 current_time = asyncio.get_event_loop().time()
                 if current_time - last_yield_time >= yield_interval:
-                    if (
-                        accumulated_content.content.strip()
-                        or accumulated_content.reason_content.strip()
-                    ):
-                        # 创建新的chunk对象，包含累积的内容
+                    if complete_content.content.strip() or complete_content.reason_content.strip():
+                        # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
-                            content=accumulated_content.content,
-                            reason_content=accumulated_content.reason_content,
-                            tool_call_feedback=accumulated_content.tool_call_feedback,
+                            content=complete_content.content,
+                            reason_content=complete_content.reason_content,
+                            tool_call_feedback=complete_content.tool_call_feedback,
                         )
+                        logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")
                         yield yield_chunk
 
-                        # 重置累积内容和时间
-                        accumulated_content = ChatStreamChunk(
-                            content="", reason_content=""
-                        )
                         last_yield_time = current_time
 
             # 输出最后剩余的内容
-            if (
-                accumulated_content.content.strip()
-                or accumulated_content.reason_content.strip()
-            ):
-                yield accumulated_content
+            if complete_content.content.strip() or complete_content.reason_content.strip():
+                final_chunk = ChatStreamChunk(
+                    content=complete_content.content,
+                    reason_content=complete_content.reason_content,
+                    tool_call_feedback=complete_content.tool_call_feedback,
+                )
+                yield final_chunk
 
         except Exception as e:
             logger.error(f"生成AI回复时出错: {str(e)}\n{traceback.format_exc()}")
-            yield ChatStreamChunk(content=f"生成回复时出现错误: {str(e)}")
+            yield ChatStreamChunk(
+                content=f"生成回复时出现错误: {str(e)}",
+                complete_content=f"生成回复时出现错误: {str(e)}",
+            )
 
     @staticmethod
     @auto_json_serialize
@@ -157,31 +156,22 @@ class ChatService:
             yield ChatNormalResponse(step=Step.START_REPLY)
 
             # 4. 生成并发送回复
-            complete_content = ChatStreamChunk(
-                content="", reason_content=""
-            )  # 用于累积完整内容, 注意函数调用不用缓存
             async for chunk in ChatService.generate_ai_reply(
                 message, yield_interval=yield_interval
             ):
-                response = ChatProcessResponse(
-                    step=Step.SEND
-                )  # 这里不能直接拿chunk的content, 必须要完整累积
-                if chunk.content:
-                    complete_content.content += chunk.content
-                    response.content = complete_content.content
-                if chunk.reason_content:
-                    complete_content.reason_content += chunk.reason_content
-                    response.reason_content = complete_content.reason_content
-                if chunk.tool_call_feedback:
-                    response.tool_call_feedback = chunk.tool_call_feedback
-                yield response
-
-                # 5. 回复成功，返回完整内容
                 yield ChatProcessResponse(
-                    step=Step.SUCCESS,
-                    content=complete_content.content,
-                    # reason_content=complete_content.reason_content,
+                    step=Step.SEND,
+                    content=chunk.content,
+                    # reason_content=chunk.reason_content,
+                    tool_call_feedback=chunk.tool_call_feedback,
                 )
+
+            # 5. 回复成功，返回完整内容
+            yield ChatProcessResponse(
+                step=Step.SUCCESS,
+                content=chunk.complete_content,
+                # reason_content=chunk.complete_reason_content,
+            )
 
             # 6. 流程结束
             yield ChatNormalResponse(step=Step.END)
