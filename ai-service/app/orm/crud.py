@@ -1,13 +1,16 @@
 from .models import FormatedMessage, AIModel, ModelProvider
 from .base import AsyncSessionLocal
 from sqlalchemy.future import select
+from sqlalchemy.dialects.postgresql import insert
 
 
 async def create_formated_message(data: dict):
     async with AsyncSessionLocal() as session:
-        obj = FormatedMessage(**data)
-        session.add(obj)
+        # 使用 PostgreSQL 的 INSERT ... ON CONFLICT DO UPDATE
+        stmt = insert(FormatedMessage).values(**data)
+        stmt = stmt.on_conflict_do_update(constraint="uq_message_id", set_=data)
         try:
+            await session.execute(stmt)
             await session.commit()
         except Exception as e:
             await session.rollback()
