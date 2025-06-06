@@ -1,7 +1,8 @@
 import asyncio
-from typing import AsyncGenerator, Optional, List, Dict, Any
+from typing import AsyncGenerator
 from .model import ModelService
 from .prompt import PromptService
+from app.types.chat import ChatStreamChunk
 
 # 使用新的工具系统
 from app.tools import get_tool_manager
@@ -17,7 +18,7 @@ class ChatService:
         yield_interval: float = 0.5,
         enable_tools: bool = False,
         max_tool_iterations: int = 10,
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncGenerator[ChatStreamChunk, None]:
         """
         生成AI回复的流式响应，支持工具调用
 
@@ -52,7 +53,8 @@ class ChatService:
                 enable_tools = False
 
         # 用于累积文本内容
-        accumulated_text = ""
+        reason_accumulated_content = "" # 思维链累积内容
+        accumulated_text = "" # 回复累积内容
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
@@ -65,15 +67,22 @@ class ChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 提取文本内容
-                if chunk.delta and chunk.delta.content:
-                    accumulated_text += chunk.delta.content
+                if chunk.delta:
+                    if chunk.delta.content:
+                        accumulated_text += chunk.delta.content
+                    if hasattr(chunk.delta, "reason_content"):
+                        reason_accumulated_content += chunk.delta.reason_content
 
                     # 检查是否到了输出间隔时间
                     current_time = asyncio.get_event_loop().time()
                     if current_time - last_yield_time >= yield_interval:
-                        if accumulated_text.strip():  # 只有当有内容时才输出
-                            yield accumulated_text
+                        if accumulated_text.strip() or reason_accumulated_content.strip():  # 只有当有内容时才输出
+                            yield ChatStreamChunk(
+                                content=accumulated_text,
+                                reason_content=reason_accumulated_content,
+                            )
                             accumulated_text = ""  # 重置累积内容
+                            reason_accumulated_content = ""  # 重置思维链累积内容
                             last_yield_time = current_time
 
                 # 如果收到finish_reason，说明完成了
@@ -81,10 +90,14 @@ class ChatService:
                     break
 
             # 输出最后剩余的内容
-            if accumulated_text.strip():
-                yield accumulated_text
+            if accumulated_text.strip() or reason_accumulated_content.strip():
+                yield ChatStreamChunk(
+                    content=accumulated_text,
+                    reason_content=reason_accumulated_content,
+                )
 
         except Exception as e:
             # 如果出现错误，输出错误信息
-            error_msg = f"生成回复时出现错误: {str(e)}"
-            yield error_msg
+            yield ChatStreamChunk(
+                content=f"生成回复时出现错误: {str(e)}"
+            )

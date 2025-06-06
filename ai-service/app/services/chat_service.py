@@ -100,7 +100,7 @@ class ChatService:
                 raise ValueError("message is required")
 
             if request.is_replay:
-                message = await ChatService.get_message_by_id(message.message_id)
+                message = await ChatService.get_message_by_id(request.message_id)
             else:
                 await ChatService.save_message_to_db(message)
 
@@ -108,31 +108,25 @@ class ChatService:
             yield ChatNormalResponse(step=Step.START_REPLY)
 
             # 4. 生成并发送回复
-            try:
-                complete_content = ChatStreamChunk(
-                    content="", reason_content=""
-                )  # 用于累积完整内容, 注意函数调用不用缓存
-                async for chunk in ChatService.generate_ai_reply(message):
-                    response = ChatProcessResponse(
-                        step=Step.SEND
-                    )  # 这里不能直接拿chunk的content, 必须要完整累积
-                    if chunk.content:
-                        complete_content.content += chunk.content
-                        response.content = complete_content.content
-                    if chunk.reason_content:
-                        complete_content.reason_content += chunk.reason_content
-                        response.reason_content = complete_content.reason_content
-                    if chunk.tool_call_feedback:
-                        response.tool_call_feedback = chunk.tool_call_feedback
-                    yield response
+            complete_content = ChatStreamChunk(
+                content="", reason_content=""
+            )  # 用于累积完整内容, 注意函数调用不用缓存
+            async for chunk in ChatService.generate_ai_reply(message):
+                response = ChatProcessResponse(
+                    step=Step.SEND
+                )  # 这里不能直接拿chunk的content, 必须要完整累积
+                if chunk.content:
+                    complete_content.content += chunk.content
+                    response.content = complete_content.content
+                if chunk.reason_content:
+                    complete_content.reason_content += chunk.reason_content
+                    response.reason_content = complete_content.reason_content
+                if chunk.tool_call_feedback:
+                    response.tool_call_feedback = chunk.tool_call_feedback
+                yield response
 
                 # 5. 回复成功，返回完整内容
                 yield ChatProcessResponse(step=Step.SUCCESS, content=complete_content)
-
-            except Exception as e:
-                logger.error(f"生成回复失败: {str(e)}")
-                yield ChatNormalResponse(step=Step.FAILED)
-                return
 
             # 6. 流程结束
             yield ChatNormalResponse(step=Step.END)
