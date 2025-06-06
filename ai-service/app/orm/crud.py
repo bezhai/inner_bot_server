@@ -6,11 +6,9 @@ from sqlalchemy.dialects.postgresql import insert
 
 async def create_formated_message(data: dict):
     async with AsyncSessionLocal() as session:
-        # 使用 PostgreSQL 的 INSERT ... ON CONFLICT DO UPDATE
+        # 使用 PostgreSQL 的 INSERT ... ON CONFLICT (column_name) 语法
         stmt = insert(FormatedMessage).values(**data)
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["message_id"], set_=data  # 使用列名而不是约束名
-        )
+        stmt = stmt.on_conflict_do_update(index_elements=["message_id"], set_=data)
         try:
             await session.execute(stmt)
             await session.commit()

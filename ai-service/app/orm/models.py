@@ -15,7 +15,6 @@ from .base import Base
 
 class FormatedMessage(Base):
     __tablename__ = "formated_message"
-    __table_args__ = (UniqueConstraint("message_id", name="uq_message_id"),)
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, nullable=False)
@@ -25,7 +24,9 @@ class FormatedMessage(Base):
     role = Column(String, nullable=False)
     root_message_id = Column(String, nullable=True)
     reply_message_id = Column(String, nullable=True)
-    message_id = Column(String, nullable=False)
+    message_id = Column(
+        String, nullable=False, unique=True
+    )  # 使用unique=True直接定义唯一约束
     chat_id = Column(String, nullable=False)
     chat_type = Column(String, nullable=False)
     create_time = Column(TIMESTAMP, nullable=False)
