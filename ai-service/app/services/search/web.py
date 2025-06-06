@@ -3,7 +3,7 @@ from typing import List, Optional
 import httpx
 from app.config import settings
 from app.tools import tool
-from app.utils.log_decorator import log_io
+from app.utils.decorators import log_io
 
 
 class SearchResult(BaseModel):

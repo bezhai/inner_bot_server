@@ -1,10 +1,11 @@
 """
-工具装饰器
+序列化相关装饰器
 """
 
 import functools
-from typing import AsyncGenerator, Any
+from typing import AsyncGenerator
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +26,6 @@ def auto_json_serialize(func):
                 elif hasattr(item, "json"):  # 兼容 Pydantic v1
                     yield item.json()
                 elif isinstance(item, dict):
-                    import json
-
                     yield json.dumps(item, ensure_ascii=False)
                 else:
                     # 其他类型直接返回字符串

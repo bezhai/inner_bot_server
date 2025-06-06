@@ -2,9 +2,7 @@
 聊天相关API路由
 """
 
-import traceback
 from fastapi import APIRouter
-from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 from app.services.chat_service import chat_service
@@ -13,6 +11,7 @@ from app.types.chat import (
     StoreRobotMessageRequest,
     StoreRobotMessageResponse,
 )
+from app.utils.decorators import handle_errors
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,6 +20,7 @@ router = APIRouter()
 
 
 @router.post("/chat/sse")
+@handle_errors()
 async def chat_sse(request: ChatRequest):
     """
     SSE 聊天接口，接收消息并通过服务端推送事件返回处理步骤。
@@ -31,19 +31,13 @@ async def chat_sse(request: ChatRequest):
     Returns:
         EventSourceResponse: SSE 响应流
     """
-    try:
-        return EventSourceResponse(
-            chat_service.process_chat_sse(request), media_type="text/event-stream"
-        )
-    except Exception as e:
-        logger.error(f"创建 SSE 响应失败: {str(e)}\n{traceback.format_exc()}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Internal Server Error", "details": str(e)},
-        )
+    return EventSourceResponse(
+        chat_service.process_chat_sse(request), media_type="text/event-stream"
+    )
 
 
 @router.post("/chat/store_message")
+@handle_errors()
 async def store_message(request: StoreRobotMessageRequest) -> StoreRobotMessageResponse:
     """
     获取机器人消息
