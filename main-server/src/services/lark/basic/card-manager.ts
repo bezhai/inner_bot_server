@@ -52,6 +52,7 @@ export class CardManager {
     private hasReasoningElement: boolean = false;
     private hasResponseElement: boolean = false;
     private createTime: string; // 创建时间, 毫秒时间戳
+    private cardContext: Record<string, any> = {}; // 额外数据, 会写到回调里
 
     private constructor() {
         this.card = new LarkCard();
@@ -60,6 +61,13 @@ export class CardManager {
 
     public getCreateTime(): string {
         return this.createTime;
+    }
+
+    /**
+     * 添加额外数据到卡片上下文
+     */
+    public appendCardContext(context: Record<string, any>): void {
+        this.cardContext = { ...this.cardContext, ...context };
     }
 
     /**
@@ -106,19 +114,6 @@ export class CardManager {
         await this.create();
         // 增加初始化组件
         await this.addInitialElements();
-    }
-
-    /**
-     * @deprecated 创建一个新的回复卡片
-     */
-    public static async createReplyCard(): Promise<CardManager> {
-        // 初始化不带组件的卡片
-        const instance = this.init();
-        // 创建卡片实体
-        await instance.create();
-        // 增加初始化组件
-        await instance.addInitialElements();
-        return instance;
     }
 
     /**
@@ -233,8 +228,10 @@ export class CardManager {
         await sendReq(
             `/open-apis/cardkit/v1/cards/${this.cardId}`,
             {
-                type: 'card_json',
-                data: JSON.stringify(this.card),
+                card: {
+                    type: 'card_json',
+                    data: JSON.stringify(this.card),
+                },
                 uuid: uuidv4(),
                 sequence: this.getSequence(),
             },
@@ -466,6 +463,8 @@ export class CardManager {
                     )
                     .addCallbackBehavior({
                         type: LarkCardRetry,
+                        message_id: this.messageId!,
+                        ...this.cardContext,
                     })
                     .setCornerRadius('2px')
                     .setPadding('0px')
@@ -473,7 +472,7 @@ export class CardManager {
             )
             .setWidth('30px');
 
-        columnSet.addColumns(thumbsUpColumn, thumbsDownColumn); // TODO: 补充重试逻辑后添加重试按钮
+        columnSet.addColumns(thumbsUpColumn, thumbsDownColumn, retryColumn);
 
         await this.addElements('append', [columnSet]);
     }
@@ -481,10 +480,10 @@ export class CardManager {
     /**
      * 处理错误状态
      */
-    private async handleError(error: Error): Promise<void> {
+    private async handleError(): Promise<void> {
         const errorElement = new MarkdownComponent(
             CardManager.ELEMENT_IDS.ERROR_MESSAGE,
-            `**<font color='red'>错误: ${error.message}</font>**`,
+            `**<font color='red-500'>赤尾似乎遇到了一些问题，可以重试一下看看！</font>**`,
         );
         await this.addElements('append', [errorElement]);
     }
@@ -605,14 +604,9 @@ export class CardManager {
      * 失败处理回调 - 对应 onFailed
      */
     public createFailedHandler(): (error: Error) => Promise<void> {
-        if (!this.cardId) {
-            // 实际未创建卡片无需处理
-            return async () => {};
-        }
-
         return async (error: Error) => {
             console.error('聊天处理失败:', error);
-            await this.handleErrorOnly(error);
+            await this.handleErrorOnly();
         };
     }
 
@@ -648,6 +642,11 @@ export class CardManager {
      * 只处理成功状态 - 从 closeUpdate 拆分出来
      */
     private async handleSuccessOnly(fullText: string): Promise<void> {
+        // 实际未创建卡片无需处理
+        if (!this.cardId) {
+            return;
+        }
+
         // 移除加载状态
         await this.removeLoadingElements();
 
@@ -661,11 +660,19 @@ export class CardManager {
     /**
      * 只处理错误状态 - 从 closeUpdate 拆分出来
      */
-    private async handleErrorOnly(error: Error): Promise<void> {
+    private async handleErrorOnly(): Promise<void> {
+        // 实际未创建卡片无需处理
+        if (!this.cardId) {
+            return;
+        }
+
         // 移除加载状态
         await this.removeLoadingElements();
 
         // 处理错误状态
-        await this.handleError(error);
+        await this.handleError();
+
+        // 添加交互组件
+        await this.addInteractionElements();
     }
 }

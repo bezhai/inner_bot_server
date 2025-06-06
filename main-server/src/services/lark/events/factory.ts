@@ -28,6 +28,7 @@ export class MessageTransferer {
         );
         const items = contentFactory.generateContent();
         if (items.length === 0) {
+            console.warn('Failed to generate content:', event.message.message_id);
             return null;
         }
         return Message.fromEvent(event, {

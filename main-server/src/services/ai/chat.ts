@@ -34,10 +34,13 @@ export async function storeRobotMessage(message: ChatMessage): Promise<void> {
     const res = await fetch(`${BASE_URL}/chat/store_message`, {
         method: 'POST',
         body: JSON.stringify(req),
+        headers: {
+            'Content-Type': 'application/json',
+        },
     });
 
     if (!res.ok) {
-        throw new Error('Failed to store robot message');
+        console.error('Failed to store robot message:', await res.json());
     }
 }
 

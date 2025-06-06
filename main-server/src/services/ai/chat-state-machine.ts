@@ -51,7 +51,7 @@ export function createChatStateMachine(
             console.error(`聊天状态机无效转换: ${error}`);
         },
         onStateChange: (from, to, context) => {
-            // console.debug(`聊天状态转换: ${from} -> ${to}`);
+            console.debug(`聊天状态转换: ${from} -> ${to}`);
         },
     });
 
@@ -90,11 +90,11 @@ export function createChatStateMachine(
             const content = `${data.content ?? ''}\n${data.reason_content ?? ''}`.trim();
             await callbacks.onSuccess?.(content);
         })
-        .on(Step.FAILED, async (data) => {
+        .on(Step.FAILED, async (_) => {
             const error = new Error('聊天处理失败');
             await callbacks.onFailed?.(error);
         })
-        .on(Step.END, async (data) => {
+        .on(Step.END, async (_) => {
             await callbacks.onEnd?.();
         });
 

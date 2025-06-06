@@ -183,6 +183,11 @@ export interface LarkCardThumbsDownCallback {
 
 export interface LarkCardRetryCallback {
     type: typeof LarkCardRetry;
+    message_id: string;
+    chat_id: string;
+    root_id: string;
+    is_p2p: boolean;
+    parent_message_id: string;
 }
 
 export interface SetLLMConfigCallback {
