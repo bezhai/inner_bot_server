@@ -177,7 +177,11 @@ class ChatService:
                 yield response
 
                 # 5. 回复成功，返回完整内容
-                yield ChatProcessResponse(step=Step.SUCCESS, content=complete_content)
+                yield ChatProcessResponse(
+                    step=Step.SUCCESS,
+                    content=complete_content.content,
+                    # reason_content=complete_content.reason_content,
+                )
 
             # 6. 流程结束
             yield ChatNormalResponse(step=Step.END)
