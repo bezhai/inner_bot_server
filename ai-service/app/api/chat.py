@@ -40,6 +40,7 @@ async def chat_sse(request: ChatRequest):
 @handle_errors()
 async def store_message(request: StoreRobotMessageRequest) -> StoreRobotMessageResponse:
     """
-    获取机器人消息
+    存储机器人消息
     """
-    return await chat_service.save_message_to_db(request.message)
+    await chat_service.save_message_to_db(request.message)
+    return StoreRobotMessageResponse(code=0, message="success")
