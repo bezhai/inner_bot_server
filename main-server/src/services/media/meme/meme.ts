@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import { Message } from 'models/message';
 import { Meme } from 'types/meme';
 import { Readable } from 'node:stream';
@@ -7,6 +7,7 @@ import FormData from 'form-data';
 import { replyImage, replyMessage } from '@lark-basic/message';
 import { GroupChatInfoRepository } from 'dal/repositories/repositories';
 import { cache } from 'utils/cache/cache-decorator';
+import http from 'utils/http';
 
 // 缓存过期时间（10分钟）
 const MEME_CACHE_EXPIRY = 10 * 60;
@@ -20,7 +21,7 @@ class MemeService {
     static async getMemeList(): Promise<Meme[]> {
         try {
             // 直接从API获取
-            const response: AxiosResponse<Meme[]> = await axios.get(
+            const response: AxiosResponse<Meme[]> = await http.get(
                 `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/list`,
             );
             return response.data;
@@ -84,7 +85,7 @@ async function generateMemeImage(
         }
 
         // 发送请求到表情包服务
-        const response = await axios.post(
+        const response = await http.post(
             `${process.env.MEME_HOST}:${process.env.MEME_PORT}/memes/${name}/`,
             formData,
             {

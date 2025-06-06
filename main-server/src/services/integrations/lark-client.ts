@@ -1,6 +1,5 @@
 import * as lark from '@larksuiteoapi/node-sdk';
 import { getBotAppId, getBotAppSecret } from 'utils/bot/bot-var';
-import axios, { AxiosRequestConfig } from 'axios';
 import { Readable } from 'node:stream';
 import { ReadStream } from 'node:fs';
 

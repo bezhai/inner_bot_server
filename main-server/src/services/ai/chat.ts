@@ -2,6 +2,8 @@ import { StreamAction } from 'types/ai';
 import { ChatMessage, ChatRequest, ChatResponse, Step, StoreRobotMessageRequest } from 'types/chat';
 import { SSEClient } from 'utils/sse/client';
 import { ChatStateMachineManager } from './chat-state-machine';
+import { AxiosError } from 'axios';
+import http from 'utils/http';
 
 const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
 
@@ -24,23 +26,25 @@ export interface SSEChatOptions {
 /**
  * 存储机器人发送的消息, 这是因为发消息是main-server负责的, ai-service并不能直接去存储机器人发的消息
  * @param message 消息
- * @returns 
+ * @returns
  */
 export async function storeRobotMessage(message: ChatMessage): Promise<void> {
     const req: StoreRobotMessageRequest = {
         message,
     };
 
-    const res = await fetch(`${BASE_URL}/chat/store_message`, {
-        method: 'POST',
-        body: JSON.stringify(req),
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    if (!res.ok) {
-        console.error('Failed to store robot message:', await res.json());
+    try {
+        await http.post(`${BASE_URL}/chat/store_message`, req, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+    } catch (error: unknown) {
+        const axiosError = error as AxiosError;
+        console.error(
+            'Failed to store robot message:',
+            axiosError.response?.data || axiosError.message,
+        );
     }
 }
 

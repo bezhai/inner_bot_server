@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import crypto from 'node:crypto';
 import {
     ListPixivImageDto,
@@ -13,6 +13,7 @@ import {
     LarkFileTransferRequest,
     LarkFileTransferResponse,
 } from 'types/aliyun';
+import http from 'utils/http';
 
 // 生成盐
 const generateSalt = (length: number): string => {
@@ -42,7 +43,7 @@ async function sendAuthenticatedRequest<T>(url: string, reqBody: Record<string, 
     const token = generateToken(salt, JSON.stringify(reqBody), process.env.HTTP_SECRET!);
 
     try {
-        const response: AxiosResponse<T> = await axios.post<T>(url, reqBody, {
+        const response: AxiosResponse<T> = await http.post<T>(url, reqBody, {
             headers: {
                 'X-Salt': salt,
                 'X-Token': token,

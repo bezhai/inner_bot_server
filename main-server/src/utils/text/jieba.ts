@@ -1,6 +1,6 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import axios from 'axios';
+import http from 'utils/http';
 
 /**
  * 检查一个词是否有意义
@@ -27,7 +27,7 @@ async function extractBatchWithWeight(
     topN: number,
 ): Promise<{ text: string; keywords: { word: string; weight: number }[] }[]> {
     try {
-        const response = await axios.post(
+        const response = await http.post(
             `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
             {
                 texts,

@@ -17,11 +17,15 @@ import {
     getEncryptKey,
 } from 'utils/bot/bot-var';
 import { handlerEnterChat } from './enter';
+import { trace } from 'utils/trace';
 
 // Helper function to create void decorators for async handlers
 function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params: T) => void {
     return function (params: T): void {
         // 异步调用原函数，但不等待结果
+
+        const traceId = trace.get();
+        console.log('traceId: ' + traceId);
 
         console.log('receive event_type: ' + (params as { event_type: string })['event_type']);
 
