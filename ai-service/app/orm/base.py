@@ -6,4 +6,4 @@ DATABASE_URL = f"postgresql+asyncpg://{settings.postgres_user}:{settings.postgre
 
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-Base = declarative_base() 
+Base = declarative_base()

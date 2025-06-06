@@ -6,6 +6,7 @@ from app.services.meta_info import AsyncRedisClient
 
 logger = logging.getLogger("group_stream")
 
+
 class GroupStreamManager:
     def __init__(self, default_timeout: float = 30.0):
         self.redis = None
@@ -51,7 +52,9 @@ class GroupStreamManager:
                 if action == "register":
                     if key not in self.active_groups:
                         self.active_groups.add(key)
-                        self.group_tasks[key] = asyncio.create_task(self._group_consumer(topic, group_id))
+                        self.group_tasks[key] = asyncio.create_task(
+                            self._group_consumer(topic, group_id)
+                        )
                         logger.info(f"Started group consumer for {key}")
                 elif action == "unregister":
                     if key in self.active_groups:
@@ -68,13 +71,19 @@ class GroupStreamManager:
         last_id = "$"
         while True:
             try:
-                events = await self.redis.xread({stream_key: last_id}, block=int(self.default_timeout * 1000), count=10)
+                events = await self.redis.xread(
+                    {stream_key: last_id},
+                    block=int(self.default_timeout * 1000),
+                    count=10,
+                )
                 if not events:
                     continue
                 for stream, entries in events:
                     for entry_id, entry in entries:
                         try:
-                            data = json.loads(entry.get("data") or entry.get(b"data").decode())
+                            data = json.loads(
+                                entry.get("data") or entry.get(b"data").decode()
+                            )
                             await self._dispatch_to_handler(topic, data)
                             last_id = entry_id
                         except Exception as e:
@@ -88,6 +97,7 @@ class GroupStreamManager:
     async def _dispatch_to_handler(self, topic: str, data: Any):
         # 使用 event_system 的 handlers 分发机制
         from app.core.event_system import get_event_system
+
         event_system = get_event_system()
         handlers = event_system.handlers.get(topic, [])
         if handlers:
@@ -101,8 +111,10 @@ class GroupStreamManager:
         else:
             logger.warning(f"No handler for group stream topic: {topic}")
 
+
 # 单例模式
 _group_stream_manager: Optional[GroupStreamManager] = None
+
 
 def get_group_stream_manager() -> GroupStreamManager:
     global _group_stream_manager
@@ -110,38 +122,39 @@ def get_group_stream_manager() -> GroupStreamManager:
         _group_stream_manager = GroupStreamManager()
     return _group_stream_manager
 
+
 # 提供统一的 API 接口
 async def register_group(topic: str, group_id: str):
     """注册分组消费
-    
+
     Args:
         topic: 事件主题
         group_id: 分组ID
     """
     redis = AsyncRedisClient.get_instance()
-    await redis.publish("group_change", json.dumps({
-        "topic": topic,
-        "group_id": group_id,
-        "action": "register"
-    }))
-    
+    await redis.publish(
+        "group_change",
+        json.dumps({"topic": topic, "group_id": group_id, "action": "register"}),
+    )
+
+
 async def unregister_group(topic: str, group_id: str):
     """注销分组消费
-    
+
     Args:
         topic: 事件主题
         group_id: 分组ID
     """
     redis = AsyncRedisClient.get_instance()
-    await redis.publish("group_change", json.dumps({
-        "topic": topic,
-        "group_id": group_id,
-        "action": "unregister"
-    }))
+    await redis.publish(
+        "group_change",
+        json.dumps({"topic": topic, "group_id": group_id, "action": "unregister"}),
+    )
+
 
 async def publish_group_event(topic: str, group_id: str, data: Any):
     """发布分组事件
-    
+
     Args:
         topic: 事件主题
         group_id: 分组ID
@@ -149,4 +162,4 @@ async def publish_group_event(topic: str, group_id: str, data: Any):
     """
     redis = AsyncRedisClient.get_instance()
     stream_key = f"event_stream:{topic}:{group_id}"
-    await redis.xadd(stream_key, {"data": json.dumps(data)}) 
+    await redis.xadd(stream_key, {"data": json.dumps(data)})

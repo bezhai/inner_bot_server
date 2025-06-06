@@ -16,15 +16,15 @@ async def init_events():
             service_name="ai-service",
             default_ttl=30.0,  # 30秒
         )
-        
+
         # 启动事件系统
         await event_system.start()
-        
+
         logger.info("事件系统已初始化")
-        
+
         # 初始化所有事件订阅
         init_event_subscriptions()
-        
+
         return True
     except Exception as e:
         logger.error(f"初始化事件系统失败: {e}")
@@ -50,4 +50,4 @@ async def publish_event_and_wait(event_type: str, data: Any, **kwargs):
         return result
     except Exception as e:
         logger.error(f"发布事件并等待结果失败: {e}")
-        raise 
+        raise

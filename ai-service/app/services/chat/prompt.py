@@ -48,7 +48,9 @@ class PromptService:
 """
 
         template = Template(template_str)
-        return template.render({
-            'currDate': datetime.now().strftime('%Y-%m-%d'),
-            'currTime': datetime.now().strftime('%H:%M:%S'),
-        })
+        return template.render(
+            {
+                "currDate": datetime.now().strftime("%Y-%m-%d"),
+                "currTime": datetime.now().strftime("%H:%M:%S"),
+            }
+        )

@@ -17,19 +17,16 @@ from .startup import startup_tools
 __all__ = [
     # 装饰器和基类
     "tool",
-    "ToolProvider", 
-    
+    "ToolProvider",
     # 管理器
     "get_tool_manager",
     "init_tool_manager",
-    
     # 工具管理
     "init_tools",
     "clear_tools",
     "startup_tools",
-    
     # 实用工具
     "generate_tool_schema",
 ]
 
-__version__ = "1.0.0" 
+__version__ = "1.0.0"

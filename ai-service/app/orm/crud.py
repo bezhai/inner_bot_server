@@ -2,6 +2,7 @@ from .models import FormatedMessage, AIModel, ModelProvider
 from .base import AsyncSessionLocal
 from sqlalchemy.future import select
 
+
 async def create_formated_message(data: dict):
     async with AsyncSessionLocal() as session:
         obj = FormatedMessage(**data)
@@ -12,12 +13,14 @@ async def create_formated_message(data: dict):
             await session.rollback()
             raise e
 
+
 async def get_formated_message_by_message_id(message_id: str):
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(FormatedMessage).where(FormatedMessage.message_id == message_id)
         )
         return result.scalar_one_or_none()
+
 
 async def get_model_and_provider_info(model_id: str):
     async with AsyncSessionLocal() as session:
@@ -35,7 +38,7 @@ async def get_model_and_provider_info(model_id: str):
         if not provider:
             return None
         return {
-            'model_name': model.model_name or model.name,
-            'api_key': provider.api_key,
-            'base_url': provider.base_url
-        } 
+            "model_name": model.model_name or model.name,
+            "api_key": provider.api_key,
+            "base_url": provider.base_url,
+        }

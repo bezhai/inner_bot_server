@@ -1,11 +1,13 @@
 """
 文本提取相关API路由
 """
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from app.utils.split_word import extract_batch, BatchExtractRequest
 
 router = APIRouter()
+
 
 @router.post("/extract_batch")
 async def extract_batch_api(request: BatchExtractRequest):
@@ -20,5 +22,5 @@ async def extract_batch_api(request: BatchExtractRequest):
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": "Internal Server Error", "details": str(e)}
-        ) 
+            content={"error": "Internal Server Error", "details": str(e)},
+        )

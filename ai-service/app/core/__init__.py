@@ -3,8 +3,8 @@
 """
 
 from app.core.event_system import (
-    init_event_system, 
-    get_event_system, 
+    init_event_system,
+    get_event_system,
     register_group,
     unregister_group,
     publish_group_event,
@@ -16,4 +16,4 @@ __all__ = [
     "register_group",
     "unregister_group",
     "publish_group_event",
-] 
+]
