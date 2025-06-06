@@ -1,5 +1,5 @@
 import { StreamAction } from 'types/ai';
-import { ChatRequest, ChatResponse, Step } from 'types/chat';
+import { ChatMessage, ChatRequest, ChatResponse, Step, StoreRobotMessageRequest } from 'types/chat';
 import { SSEClient } from 'utils/sse/client';
 import { ChatStateMachineManager } from './chat-state-machine';
 
@@ -10,13 +10,35 @@ const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_P
  */
 export interface SSEChatOptions {
     req: ChatRequest;
-    onAccept?: () => Promise<void>;
-    onStartReply?: () => Promise<void>;
-    onSend?: (action: StreamAction) => Promise<void>;
-    onSuccess?: (content: string) => Promise<void>;
-    onFailed?: (error: Error) => Promise<void>;
-    onEnd?: () => Promise<void>;
-    onStateChange?: (from: Step | null, to: Step) => void;
+    onAccept?: () => Promise<void>; // 收到消息
+    onStartReply?: () => Promise<void>; // 开始回复消息
+    onSend?: (action: StreamAction) => Promise<void>; // 发送消息
+    onSuccess?: (content: string) => Promise<void>; // 回复成功
+    onFailed?: (error: Error) => Promise<void>; // 回复失败
+    onEnd?: () => Promise<void>; // 结束
+    onClose?: () => Promise<void>; // 关闭, 暂时没用
+    onStateChange?: (from: Step | null, to: Step) => void; // 状态变化
+    onSaveMessage?: (content: string) => Promise<ChatMessage | undefined>; // 保存消息, content 从sseChat中获取, 其他字段从onSaveMessage中获取
+}
+
+/**
+ * 存储机器人发送的消息, 这是因为发消息是main-server负责的, ai-service并不能直接去存储机器人发的消息
+ * @param message 消息
+ * @returns 
+ */
+export async function storeRobotMessage(message: ChatMessage): Promise<void> {
+    const req: StoreRobotMessageRequest = {
+        message,
+    };
+
+    const res = await fetch(`${BASE_URL}/chat/store_message`, {
+        method: 'POST',
+        body: JSON.stringify(req),
+    });
+
+    if (!res.ok) {
+        throw new Error('Failed to store robot message');
+    }
 }
 
 /**
@@ -38,7 +60,15 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
         onAccept: options.onAccept,
         onStartReply: options.onStartReply,
         onSend: options.onSend,
-        onSuccess: options.onSuccess,
+        onSuccess: async (content) => {
+            await options.onSuccess?.(content);
+            if (options.onSaveMessage) {
+                const message = await options.onSaveMessage(content);
+                if (message) {
+                    await storeRobotMessage(message);
+                }
+            } // hook 保存消息
+        },
         onFailed: options.onFailed,
         onEnd: options.onEnd,
     });

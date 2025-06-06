@@ -8,6 +8,7 @@ import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message'
 import {
     ContainKeyword,
     EqualText,
+    NeedNotRobotMention,
     NeedRobotMention,
     OnlyGroup,
     RegexpMatch,
@@ -47,6 +48,16 @@ export async function runRules(message: Message) {
 
 // 定义规则和对应处理逻辑
 const chatRules: RuleConfig[] = [
+    {
+        rules: [
+            NeedNotRobotMention,
+            OnlyGroup,
+            WhiteGroupCheck((chatInfo) => chatInfo.permission_config?.open_repeat_message ?? false),
+        ],
+        handler: repeatMessage,
+        fallthrough: true,
+        comment: '复读功能',
+    },
     {
         rules: [EqualText('帮助'), TextMessageLimit, NeedRobotMention],
         handler: async (message) => {
@@ -113,14 +124,5 @@ const chatRules: RuleConfig[] = [
             }
         },
         comment: '聊天',
-    },
-    {
-        rules: [
-            OnlyGroup,
-            WhiteGroupCheck((chatInfo) => chatInfo.permission_config?.open_repeat_message ?? false),
-        ],
-        handler: repeatMessage,
-        fallthrough: true,
-        comment: '复读功能',
     },
 ];

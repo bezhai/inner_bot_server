@@ -19,6 +19,7 @@ import { AddElementType, LarkCardRetry, LarkCardThumbsDown, LarkCardThumbsUp } f
 import { v4 as uuidv4 } from 'uuid';
 import { CardContextRepository } from 'dal/repositories/repositories';
 import { updateRobotMessageText } from 'services/message-store/basic';
+import dayjs from 'dayjs';
 
 /**
  * CardManager 统一管理飞书卡片的全生命周期
@@ -50,9 +51,15 @@ export class CardManager {
     private sequence: number = 0;
     private hasReasoningElement: boolean = false;
     private hasResponseElement: boolean = false;
+    private createTime: string; // 创建时间, 毫秒时间戳
 
     private constructor() {
         this.card = new LarkCard();
+        this.createTime = dayjs().valueOf().toString();
+    }
+
+    public getCreateTime(): string {
+        return this.createTime;
     }
 
     /**

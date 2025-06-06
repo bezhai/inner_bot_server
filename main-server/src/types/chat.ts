@@ -6,7 +6,7 @@
 /**
  * 聊天消息
  */
-export interface ChatRequest {
+export interface ChatMessage {
     /**
      * 用户id
      */
@@ -61,6 +61,15 @@ export interface ChatRequest {
      * 创建时间
      */
     create_time: string;
+}
+
+/**
+ * 聊天请求
+ */
+export interface ChatRequest {
+    message?: ChatMessage; // 如果是重新发起请求不需要传入
+    message_id: string; // 消息id / Message ID
+    is_replay: boolean; // 是否是重新发起请求
 }
 
 /**
@@ -127,3 +136,12 @@ interface ChatNormalResponse {
 }
 
 export type ChatResponse = ChatProcessResponse | ChatNormalResponse;
+
+export interface StoreRobotMessageRequest {
+    message: ChatMessage;
+}
+
+export interface StoreRobotMessageResponse {
+    code: number;
+    message: string;
+}

@@ -79,6 +79,9 @@ export interface RuleConfig {
 export const NeedRobotMention: Rule = (message) =>
     message.hasMention(getBotUnionId()) || message.isP2P();
 
+export const NeedNotRobotMention: Rule = (message) =>
+    !NeedRobotMention(message);
+
 export const TextMessageLimit: Rule = (message) => message.isTextOnly();
 
 export const ContainKeyword =
