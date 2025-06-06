@@ -70,6 +70,7 @@ class AIChatService:
 
                 # 如果收到finish_reason，说明完成了
                 if chunk.finish_reason:
+                    logger.info(f"chunk.finish_reason: {chunk.finish_reason}")
                     # 如果是content_filter, 需要返回原因
                     if chunk.finish_reason == "content_filter":
                         yield ChatStreamChunk(

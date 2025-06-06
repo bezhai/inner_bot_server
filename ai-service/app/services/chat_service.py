@@ -156,9 +156,11 @@ class ChatService:
             yield ChatNormalResponse(step=Step.START_REPLY)
 
             # 4. 生成并发送回复
+            last_content = ""  # 用于跟踪最后的内容
             async for chunk in ChatService.generate_ai_reply(
                 message, yield_interval=yield_interval
             ):
+                last_content = chunk.content  # 保存最后的内容
                 yield ChatProcessResponse(
                     step=Step.SEND,
                     content=chunk.content,
@@ -169,7 +171,7 @@ class ChatService:
             # 5. 回复成功，返回完整内容
             yield ChatProcessResponse(
                 step=Step.SUCCESS,
-                content=chunk.content,
+                content=last_content,  # 使用保存的最后内容
                 # reason_content=chunk.reason_content,
             )
 
