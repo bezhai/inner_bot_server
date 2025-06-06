@@ -169,16 +169,16 @@ class ChatService:
             # 5. 回复成功，返回完整内容
             yield ChatProcessResponse(
                 step=Step.SUCCESS,
-                content=chunk.content,
+                content=chunk.complete_content,  # 先保留一下肯定会报错的代码调试调试, 后面改成content
                 # reason_content=chunk.reason_content,
             )
-
-            # 6. 流程结束
-            yield ChatNormalResponse(step=Step.END)
 
         except Exception as e:
             logger.error(f"SSE 聊天处理失败: {str(e)}\n{traceback.format_exc()}")
             yield ChatNormalResponse(step=Step.FAILED)
+        finally:
+            # 7. 流程结束
+            yield ChatNormalResponse(step=Step.END)
 
 
 # 创建服务实例
