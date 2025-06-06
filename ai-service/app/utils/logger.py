@@ -4,6 +4,7 @@
 
 import json
 import logging
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict
 from pythonjsonlogger import jsonlogger
 
@@ -34,14 +35,11 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
         elif hasattr(record, "levelname"):
             log_record["level"] = record.levelname.lower()
 
-        # 添加时间戳
-        if "asctime" in log_record:
-            log_record["timestamp"] = log_record.pop("asctime")
-        elif hasattr(record, "created"):
-            import datetime
-
-            dt = datetime.datetime.fromtimestamp(record.created)
-            log_record["timestamp"] = dt.strftime("%Y-%m-%d %H:%M:%S")
+        # 添加ISO8601格式的时间戳（东八区）
+        if hasattr(record, "created"):
+            tz = timezone(timedelta(hours=8))
+            dt = datetime.fromtimestamp(record.created, tz)
+            log_record["timestamp"] = dt.isoformat()
 
         # 添加logger名称
         if "name" not in log_record and hasattr(record, "name"):

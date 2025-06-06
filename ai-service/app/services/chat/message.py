@@ -1,4 +1,3 @@
-import asyncio
 from typing import AsyncGenerator
 from .model import ModelService
 from .prompt import PromptService
@@ -8,14 +7,13 @@ from app.types.chat import ChatStreamChunk
 from app.tools import get_tool_manager
 
 
-class ChatService:
+class AIChatService:
 
     @staticmethod
-    async def generate_ai_reply(
+    async def stream_ai_reply(
         user_input: str,
         model_id: str = "gpt-4o-mini",
         temperature: float = 0.7,
-        yield_interval: float = 0.5,
         enable_tools: bool = False,
         max_tool_iterations: int = 10,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
@@ -26,12 +24,11 @@ class ChatService:
             user_input: 用户输入的文本
             model_id: 模型ID，默认为gpt-4o-mini
             temperature: 温度参数
-            yield_interval: 输出间隔时间，用于控制客户端接收频率
             enable_tools: 是否启用工具调用
             max_tool_iterations: 最大工具调用迭代次数
 
         Yields:
-            str: 累积的文本片段
+            ChatStreamChunk: 流式响应数据块
         """
         # 获取系统提示词
         system_prompt = await PromptService.get_prompt()
@@ -52,13 +49,8 @@ class ChatService:
                 # 工具系统未初始化，禁用工具
                 enable_tools = False
 
-        # 用于累积文本内容
-        reason_accumulated_content = "" # 思维链累积内容
-        accumulated_text = "" # 回复累积内容
-        last_yield_time = asyncio.get_event_loop().time()
-
         try:
-            # 获取流式响应
+            # 获取流式响应并直接传递
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
                 messages=messages,
@@ -66,35 +58,21 @@ class ChatService:
                 tools=tools,
                 max_tool_iterations=max_tool_iterations,
             ):
-                # 提取文本内容
+                # 提取文本内容并直接输出
                 if chunk.delta:
-                    if chunk.delta.content:
-                        accumulated_text += chunk.delta.content
-                    if hasattr(chunk.delta, "reason_content"):
-                        reason_accumulated_content += chunk.delta.reason_content
-
-                    # 检查是否到了输出间隔时间
-                    current_time = asyncio.get_event_loop().time()
-                    if current_time - last_yield_time >= yield_interval:
-                        if accumulated_text.strip() or reason_accumulated_content.strip():  # 只有当有内容时才输出
-                            yield ChatStreamChunk(
-                                content=accumulated_text,
-                                reason_content=reason_accumulated_content,
-                            )
-                            accumulated_text = ""  # 重置累积内容
-                            reason_accumulated_content = ""  # 重置思维链累积内容
-                            last_yield_time = current_time
+                    yield ChatStreamChunk(
+                        content=chunk.delta.content,
+                        # reason_content=chunk.delta.reason_content if hasattr(chunk.delta, "reason_content") else None,
+                    )
 
                 # 如果收到finish_reason，说明完成了
                 if chunk.finish_reason:
+                    # 如果是content_filter, 需要返回原因
+                    if chunk.finish_reason == "content_filter":
+                        yield ChatStreamChunk(
+                            content="赤尾有点不想讨论这个话题呢~",
+                        )
                     break
-
-            # 输出最后剩余的内容
-            if accumulated_text.strip() or reason_accumulated_content.strip():
-                yield ChatStreamChunk(
-                    content=accumulated_text,
-                    reason_content=reason_accumulated_content,
-                )
 
         except Exception as e:
             # 如果出现错误，输出错误信息
