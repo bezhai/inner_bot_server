@@ -1,9 +1,13 @@
 import { Context, Next } from 'koa';
-import { trace } from 'utils/trace';
+import { asyncLocalStorage } from 'utils/trace';
+import { v4 as uuidv4 } from 'uuid';
 
 export const traceMiddleware = async (ctx: Context, next: Next) => {
-    const traceId = ctx.request.headers['x-trace-id'] as string;
-    trace.init(traceId);
-    ctx.set('X-Trace-Id', trace.get()!);
-    await next();
+    const traceId = (ctx.request.headers['x-trace-id'] as string) || uuidv4();
+
+    // 在AsyncLocalStorage上下文中执行整个后续的中间件链
+    await asyncLocalStorage.run({ traceId }, async () => {
+        ctx.set('X-Trace-Id', traceId);
+        await next();
+    });
 };
