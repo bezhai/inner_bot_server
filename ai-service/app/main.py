@@ -5,11 +5,7 @@ from app.core.events import init_events
 from app.services.qdrant import init_qdrant_collections
 from app.tools.startup import startup_tools
 from app.utils.middlewares import TraceIdMiddleware
-from app.utils.logger import setup_logging
 import logging
-
-# 设置日志配置
-setup_logging()
 
 logger = logging.getLogger(__name__)
 
