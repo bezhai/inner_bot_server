@@ -7,6 +7,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Any, Dict
 from pythonjsonlogger import jsonlogger
+from app.utils.middlewares import get_trace_id
 
 
 class CustomJSONFormatter(jsonlogger.JsonFormatter):
@@ -48,3 +49,8 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
         # 确保message字段存在
         if "message" not in log_record and hasattr(record, "message"):
             log_record["message"] = record.message
+
+        # 添加traceId字段
+        trace_id = get_trace_id()
+        if trace_id:
+            log_record["traceId"] = trace_id

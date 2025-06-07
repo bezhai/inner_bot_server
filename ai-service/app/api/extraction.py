@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
-from app.utils.split_word import extract_batch, BatchExtractRequest
+from app.utils import extract_batch, BatchExtractRequest
 
 router = APIRouter()
 
