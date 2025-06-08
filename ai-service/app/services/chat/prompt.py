@@ -23,12 +23,6 @@ class PromptService:
 
 你可以在回复中使用以下富文本语法来增强表达效果：
 
-## @指定人语法
-- 使用 `<at id=open_id>用户名</at>` 来@指定的用户
-
-## 说话者语法
-- 使用 `<speaker id=open_id>说话者</speaker>` 来区分说话者
-- 说话者固定位于用户消息的最开始，assistant消息不显示说话者
 
 ## 彩色文本语法
 - 使用 `<font color='颜色'>文本内容</font>` 来设置文本颜色
