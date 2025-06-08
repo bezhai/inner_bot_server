@@ -60,7 +60,6 @@ class AIChatService:
                 tools=tools,
                 max_tool_iterations=max_tool_iterations,
             ):
-                logger.info(f"chunk: {chunk}")
                 # 提取文本内容并直接输出
                 if chunk.delta and chunk.delta.content:
                     yield ChatStreamChunk(

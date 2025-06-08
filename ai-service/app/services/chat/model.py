@@ -179,6 +179,7 @@ class ModelService:
 
                     # 检查是否完成
                     if choice.finish_reason:
+                        yield choice  # 需要输出终止信号给上层判断
                         break
 
             # 如果没有工具调用，直接结束
