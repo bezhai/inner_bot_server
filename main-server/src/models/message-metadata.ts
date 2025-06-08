@@ -6,6 +6,7 @@ export interface MessageMetadata {
     messageId: string;
     chatId: string;
     sender: string;
+    senderOpenId?: string;
     senderName?: string | undefined;
     parentMessageId?: string;
     chatType: string;

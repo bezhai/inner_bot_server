@@ -13,6 +13,11 @@ export interface ChatMessage {
     user_id: string;
 
     /**
+     * 用户open_id, 仅当用户为真人时存在
+     */
+    user_open_id?: string;
+
+    /**
      * 用户名
      */
     user_name: string;

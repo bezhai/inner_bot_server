@@ -34,9 +34,8 @@ export function createChatStateMachine(
         // 正常流程
         { from: Step.ACCEPT, to: Step.ACCEPT }, // 初始化
         { from: Step.ACCEPT, to: Step.START_REPLY },
-        { from: Step.START_REPLY, to: Step.SEND },
-        { from: Step.SEND, to: Step.SEND }, // SEND 可以多次
-        { from: Step.SEND, to: Step.SUCCESS },
+        { from: [Step.START_REPLY, Step.SEND], to: Step.SEND },
+        { from: [Step.START_REPLY, Step.SEND], to: Step.SUCCESS },
         { from: Step.SUCCESS, to: Step.END },
 
         // 错误处理：任何状态都可以转到 FAILED

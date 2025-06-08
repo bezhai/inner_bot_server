@@ -41,6 +41,7 @@ export class MessageBuilder {
             messageId: event.message.message_id,
             chatId: event.message.chat_id,
             sender: event.sender.sender_id?.union_id ?? 'unknown_sender',
+            senderOpenId: event.sender.sender_id?.open_id,
             parentMessageId: event.message.parent_id,
             chatType: event.message.chat_type,
             rootId: event.message.root_id || event.message.message_id,

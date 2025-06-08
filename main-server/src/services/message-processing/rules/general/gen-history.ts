@@ -1,6 +1,5 @@
 import dayjs from 'dayjs';
 import _ from 'lodash';
-import { In } from 'typeorm';
 import {
     BarChartSpec,
     CardHeader,
@@ -13,7 +12,6 @@ import {
     TableComponent,
     WordCloudChartSpec,
 } from 'feishu-card';
-import { LarkUserOpenIdRepository } from 'dal/repositories/repositories';
 import { Message } from 'models/message';
 import { buildWeeklyWordCloud } from 'utils/text/jieba';
 import { replyCard, searchGroupMessage } from '@lark-basic/message';
@@ -352,18 +350,3 @@ function messageByPersonCount(messages: Message[]) {
     return messageByPersonMap;
 }
 
-async function openIdToName(openIds: string[]): Promise<Record<string, string>> {
-    const users = await LarkUserOpenIdRepository.find({
-        where: {
-            openId: In(openIds),
-        },
-    });
-
-    return users.reduce(
-        (acc, user) => {
-            acc[user.openId] = user.name;
-            return acc;
-        },
-        {} as Record<string, string>,
-    );
-}

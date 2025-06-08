@@ -25,9 +25,9 @@ export class Message {
         const metadata = MessageBuilder.buildMetadataFromInfo(message);
         const content = MessageBuilder.buildContentFromInfo(message);
 
-        const mentionMap =
-            content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
-        content.mentionMap = mentionMap;
+        // const mentionMap =
+        //     content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
+        // content.mentionMap = mentionMap;
 
         return new Message(metadata, content);
     }
@@ -61,6 +61,10 @@ export class Message {
 
     get sender(): string {
         return this.metadata.sender;
+    }
+
+    get senderOpenId(): string | undefined {
+        return this.metadata.senderOpenId;
     }
 
     get senderName(): string | undefined {
@@ -110,10 +114,6 @@ export class Message {
 
     withMentionText(): string {
         return MessageContentUtils.withMentionText(this.content);
-    }
-
-    withMentionNameText(): string {
-        return MessageContentUtils.withMentionNameText(this.content);
     }
 
     imageKeys(): string[] {

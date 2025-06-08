@@ -15,6 +15,7 @@ export async function makeCardReply(message: Message): Promise<void> {
 
     const chatMessage = {
         user_id: message.sender,
+        user_open_id: message.senderOpenId,
         user_name: message.senderInfo?.name ?? '',
         content: message.toMarkdown(),
         is_mention_bot: true, // 这里暂时用true，后续需要根据消息内容判断

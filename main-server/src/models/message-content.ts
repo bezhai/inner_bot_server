@@ -14,7 +14,13 @@ export interface ContentItem {
 export interface MessageContent {
     items: ContentItem[];
     mentions: string[];
-    mentionMap?: Record<string, string>;
+    mentionMap?: Record<
+        string,
+        {
+            name: string;
+            openId: string;
+        }
+    >;
 }
 
 export class MessageContentUtils {
@@ -34,8 +40,8 @@ export class MessageContentUtils {
             .join('');
 
         content.mentions.forEach((mention, index) => {
-            const name = content.mentionMap?.[mention];
-            markdown = markdown.replace(`@_user_${index + 1}`, !!name ? `@${name}` : '');
+            const mentionInfo = content.mentionMap?.[mention]!;
+            markdown = markdown.replace(`@_user_${index + 1}`, `@${mentionInfo.name}`);
         });
 
         return markdown;
@@ -74,15 +80,6 @@ export class MessageContentUtils {
         let text = this.fullText(content);
         content.mentions.forEach((mention, index) => {
             text = text.replace(`@_user_${index + 1}`, `<at user_id="${mention}"></at>`);
-        });
-        return text;
-    }
-
-    static withMentionNameText(content: MessageContent): string {
-        let text = this.fullText(content);
-        content.mentions.forEach((mention, index) => {
-            const name = content.mentionMap?.[mention];
-            text = text.replace(`@_user_${index + 1}`, !!name ? `@${name}` : '');
         });
         return text;
     }
