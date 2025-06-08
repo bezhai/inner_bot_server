@@ -17,6 +17,7 @@ class FormatedMessage(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(String, nullable=False)
+    user_open_id = Column(String, nullable=True)
     user_name = Column(String, nullable=False)
     content = Column(Text, nullable=False)
     is_mention_bot = Column(Boolean, nullable=False)

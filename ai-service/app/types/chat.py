@@ -24,6 +24,7 @@ class ChatMessage(BaseModel):
     """
 
     user_id: str  # 用户id / User ID
+    user_open_id: Optional[str] = None  # 用户open_id, 仅当用户为真人时存在 / User open ID, only exists when user is real person
     user_name: str  # 用户名 / User name
     content: str  # 转义成markdown的消息内容，包括图片等 / Markdown content (may include images)
     is_mention_bot: bool  # 是否@机器人 / Mention bot
