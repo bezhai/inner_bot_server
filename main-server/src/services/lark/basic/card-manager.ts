@@ -95,7 +95,9 @@ export class CardManager {
     private async addInitialElements(): Promise<void> {
         const elements = [
             new HrComponent().setElementId(CardManager.ELEMENT_IDS.HR),
-            new MarkdownComponent('赤尾思考中...').setElementId(CardManager.ELEMENT_IDS.THINKING_PLACEHOLDER),
+            new MarkdownComponent('赤尾思考中...').setElementId(
+                CardManager.ELEMENT_IDS.THINKING_PLACEHOLDER,
+            ),
         ];
 
         if (this.cardId) {
@@ -293,7 +295,9 @@ export class CardManager {
             )
                 .setElementId(CardManager.ELEMENT_IDS.COLLAPSE)
                 .setBorder('grey-100')
-                .pushElement(new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.REASONING));
+                .pushElement(
+                    new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.REASONING),
+                );
             await this.addElements('insert_before', [collapseElement], CardManager.ELEMENT_IDS.HR);
             this.hasReasoningElement = true;
         }
@@ -304,7 +308,9 @@ export class CardManager {
      */
     private async createResponseElement(): Promise<void> {
         if (!this.hasResponseElement) {
-            const mdElement = new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.RESPONSE);
+            const mdElement = new MarkdownComponent('').setElementId(
+                CardManager.ELEMENT_IDS.RESPONSE,
+            );
             await this.addElements('insert_before', [mdElement], CardManager.ELEMENT_IDS.HR);
             this.hasResponseElement = true;
         }
@@ -388,7 +394,9 @@ export class CardManager {
      */
     public async deleteElement(elementId: string): Promise<void> {
         const body = this.card.getBody();
-        const index = body.getAllElements().findIndex((e: CardElement) => e.getElementId() === elementId);
+        const index = body
+            .getAllElements()
+            .findIndex((e: CardElement) => e.getElementId() === elementId);
         if (index === -1) {
             return;
         }
@@ -425,10 +433,9 @@ export class CardManager {
                 new InteractiveContainerComponent()
                     .setElementId(CardManager.ELEMENT_IDS.UP_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.THUMBS_UP_TEXT)
-                            .setIcon(
-                            new StandardIcon('thumbsup_outlined', 'grey'),
-                        ),
+                        new MarkdownComponent('')
+                            .setElementId(CardManager.ELEMENT_IDS.THUMBS_UP_TEXT)
+                            .setIcon(new StandardIcon('thumbsup_outlined', 'grey')),
                     )
                     .addCallbackBehavior({
                         type: LarkCardThumbsUp,
@@ -445,9 +452,9 @@ export class CardManager {
                 new InteractiveContainerComponent()
                     .setElementId(CardManager.ELEMENT_IDS.DOWN_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.THUMBS_DOWN_TEXT).setIcon(
-                            new StandardIcon('thumbdown_outlined', 'grey'),
-                        ),
+                        new MarkdownComponent('')
+                            .setElementId(CardManager.ELEMENT_IDS.THUMBS_DOWN_TEXT)
+                            .setIcon(new StandardIcon('thumbdown_outlined', 'grey')),
                     )
                     .addCallbackBehavior({
                         type: LarkCardThumbsDown,
@@ -464,9 +471,9 @@ export class CardManager {
                 new InteractiveContainerComponent()
                     .setElementId(CardManager.ELEMENT_IDS.RETRY_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.RETRY_TEXT).setIcon(
-                            new StandardIcon('refresh_outlined', 'grey'),
-                        ),
+                        new MarkdownComponent('')
+                            .setElementId(CardManager.ELEMENT_IDS.RETRY_TEXT)
+                            .setIcon(new StandardIcon('refresh_outlined', 'grey')),
                     )
                     .addCallbackBehavior({
                         type: LarkCardRetry,

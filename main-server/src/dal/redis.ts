@@ -138,13 +138,13 @@ export async function psubscribe(
 ): Promise<void> {
     // 先取消现有的pmessage监听器，避免重复监听
     redisSub.removeAllListeners('pmessage');
-    
+
     // 订阅模式
     await redisSub.psubscribe(pattern);
-    
+
     // 注册新的处理函数
     redisSub.on('pmessage', handler);
-    
+
     console.log(`Redis: 已订阅模式 ${pattern}`);
 }
 
@@ -182,9 +182,11 @@ export async function xadd(key: string, id: string, ...fieldValues: string[]): P
  * @param args 命令参数，如 ['BLOCK', 5000, 'STREAMS', 'mystream', '0']
  * @returns 返回读取的消息数组，格式为 [[streamName, [[messageId, [field1, value1, ...]], ...]]]
  */
-export async function xread(...args: (string | number)[]): Promise<Array<[string, Array<[string, string[]]>]> | null> {
+export async function xread(
+    ...args: (string | number)[]
+): Promise<Array<[string, Array<[string, string[]]>]> | null> {
     // @ts-ignore
-    return await redis.xread(...args) as Array<[string, Array<[string, string[]]>]> | null;
+    return (await redis.xread(...args)) as Array<[string, Array<[string, string[]]>]> | null;
 }
 
 /**
@@ -205,7 +207,13 @@ export async function xdel(key: string, id: string): Promise<number> {
  * @param mkstream 如果为true且stream不存在，则创建stream
  * @returns 操作成功返回'OK'
  */
-export async function xgroup(operation: string, key: string, groupName: string, id: string, mkstream = false): Promise<string> {
+export async function xgroup(
+    operation: string,
+    key: string,
+    groupName: string,
+    id: string,
+    mkstream = false,
+): Promise<string> {
     const args: string[] = [operation, key, groupName, id];
     if (mkstream) {
         args.push('MKSTREAM');
@@ -222,14 +230,20 @@ export async function xgroup(operation: string, key: string, groupName: string, 
  * @param args 命令参数
  * @returns 返回读取的消息数组
  */
-export async function xreadgroup(groupName: string, consumerName: string, ...args: (string | number)[]): Promise<Array<[string, Array<[string, string[]]>]> | null> {
+export async function xreadgroup(
+    groupName: string,
+    consumerName: string,
+    ...args: (string | number)[]
+): Promise<Array<[string, Array<[string, string[]]>]> | null> {
     // @ts-ignore
-    return await redis.xreadgroup('GROUP', groupName, consumerName, ...args) as Array<[string, Array<[string, string[]]>]> | null;
+    return (await redis.xreadgroup('GROUP', groupName, consumerName, ...args)) as Array<
+        [string, Array<[string, string[]]>]
+    > | null;
 }
 
 /**
  * 确认消息已经处理
- * @param key Stream的键名 
+ * @param key Stream的键名
  * @param groupName 消费者组名称
  * @param id 消息ID
  * @returns 返回确认的消息数量
@@ -237,5 +251,3 @@ export async function xreadgroup(groupName: string, consumerName: string, ...arg
 export async function xack(key: string, groupName: string, id: string): Promise<number> {
     return redis.xack(key, groupName, id) as Promise<number>;
 }
-
-

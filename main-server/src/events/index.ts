@@ -69,8 +69,4 @@ export const publishEventAndWait = async (eventType: string, data: any, options 
 };
 
 // 从subscription导出订阅相关函数
-export { 
-    subscribeEvent, 
-    unsubscribeEvent 
-} from './subscription';
-
+export { subscribeEvent, unsubscribeEvent } from './subscription';
