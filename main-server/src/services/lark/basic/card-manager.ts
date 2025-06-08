@@ -94,8 +94,8 @@ export class CardManager {
      */
     private async addInitialElements(): Promise<void> {
         const elements = [
-            new HrComponent(CardManager.ELEMENT_IDS.HR),
-            new MarkdownComponent(CardManager.ELEMENT_IDS.THINKING_PLACEHOLDER, '赤尾思考中...'),
+            new HrComponent().setElementId(CardManager.ELEMENT_IDS.HR),
+            new MarkdownComponent('赤尾思考中...').setElementId(CardManager.ELEMENT_IDS.THINKING_PLACEHOLDER),
         ];
 
         if (this.cardId) {
@@ -289,11 +289,11 @@ export class CardManager {
     private async createReasoningElement(): Promise<void> {
         if (!this.hasReasoningElement) {
             const collapseElement = new CollapsiblePanelComponent(
-                CardManager.ELEMENT_IDS.COLLAPSE,
                 new CollapsiblePanelHeader('赤尾的内心思考').setBackgroundColor('grey-100'),
             )
+                .setElementId(CardManager.ELEMENT_IDS.COLLAPSE)
                 .setBorder('grey-100')
-                .pushElement(new MarkdownComponent(CardManager.ELEMENT_IDS.REASONING, ''));
+                .pushElement(new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.REASONING));
             await this.addElements('insert_before', [collapseElement], CardManager.ELEMENT_IDS.HR);
             this.hasReasoningElement = true;
         }
@@ -304,7 +304,7 @@ export class CardManager {
      */
     private async createResponseElement(): Promise<void> {
         if (!this.hasResponseElement) {
-            const mdElement = new MarkdownComponent(CardManager.ELEMENT_IDS.RESPONSE, '');
+            const mdElement = new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.RESPONSE);
             await this.addElements('insert_before', [mdElement], CardManager.ELEMENT_IDS.HR);
             this.hasResponseElement = true;
         }
@@ -356,14 +356,14 @@ export class CardManager {
 
             const index = this.card
                 .getBody()
-                .getAll()
-                .findIndex((e: CardElement) => e.element_id === targetElementId);
+                .getAllElements()
+                .findIndex((e: CardElement) => e.getElementId() === targetElementId);
             if (index === -1) {
                 throw new Error(`Target element with id ${targetElementId} not found`);
             }
 
             const insertIndex = type === 'insert_after' ? index + 1 : index;
-            this.card.getBody().insert(insertIndex, ...elements);
+            this.card.getBody().insertElement(insertIndex, ...elements);
         } else {
             this.card.addElement(...elements);
         }
@@ -388,11 +388,11 @@ export class CardManager {
      */
     public async deleteElement(elementId: string): Promise<void> {
         const body = this.card.getBody();
-        const index = body.getAll().findIndex((e: CardElement) => e.element_id === elementId);
+        const index = body.getAllElements().findIndex((e: CardElement) => e.getElementId() === elementId);
         if (index === -1) {
             return;
         }
-        body.remove(index);
+        body.removeElement(index);
         await sendReq(
             `/open-apis/cardkit/v1/cards/${this.cardId}/elements/${elementId}`,
             {
@@ -415,15 +415,18 @@ export class CardManager {
      * 添加交互组件
      */
     private async addInteractionElements(): Promise<void> {
-        const columnSet = new ColumnSet(
-            CardManager.ELEMENT_IDS.INTERACTION_BUTTONS,
-        ).setHorizontalSpacing('small');
+        const columnSet = new ColumnSet()
+            .setHorizontalSpacing('small')
+            .setElementId(CardManager.ELEMENT_IDS.INTERACTION_BUTTONS);
 
-        const thumbsUpColumn = new Column(CardManager.ELEMENT_IDS.THUMBS_UP_COLUMN)
+        const thumbsUpColumn = new Column()
+            .setElementId(CardManager.ELEMENT_IDS.THUMBS_UP_COLUMN)
             .addElements(
-                new InteractiveContainerComponent(CardManager.ELEMENT_IDS.UP_INTERACTIVE)
+                new InteractiveContainerComponent()
+                    .setElementId(CardManager.ELEMENT_IDS.UP_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent(CardManager.ELEMENT_IDS.THUMBS_UP_TEXT, '').setIcon(
+                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.THUMBS_UP_TEXT)
+                            .setIcon(
                             new StandardIcon('thumbsup_outlined', 'grey'),
                         ),
                     )
@@ -436,11 +439,13 @@ export class CardManager {
             )
             .setWidth('30px');
 
-        const thumbsDownColumn = new Column(CardManager.ELEMENT_IDS.THUMBS_DOWN_COLUMN)
+        const thumbsDownColumn = new Column()
+            .setElementId(CardManager.ELEMENT_IDS.THUMBS_DOWN_COLUMN)
             .addElements(
-                new InteractiveContainerComponent(CardManager.ELEMENT_IDS.DOWN_INTERACTIVE)
+                new InteractiveContainerComponent()
+                    .setElementId(CardManager.ELEMENT_IDS.DOWN_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent(CardManager.ELEMENT_IDS.THUMBS_DOWN_TEXT, '').setIcon(
+                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.THUMBS_DOWN_TEXT).setIcon(
                             new StandardIcon('thumbdown_outlined', 'grey'),
                         ),
                     )
@@ -453,11 +458,13 @@ export class CardManager {
             )
             .setWidth('30px');
 
-        const retryColumn = new Column(CardManager.ELEMENT_IDS.RETRY_COLUMN)
+        const retryColumn = new Column()
+            .setElementId(CardManager.ELEMENT_IDS.RETRY_COLUMN)
             .addElements(
-                new InteractiveContainerComponent(CardManager.ELEMENT_IDS.RETRY_INTERACTIVE)
+                new InteractiveContainerComponent()
+                    .setElementId(CardManager.ELEMENT_IDS.RETRY_INTERACTIVE)
                     .pushElement(
-                        new MarkdownComponent(CardManager.ELEMENT_IDS.RETRY_TEXT, '').setIcon(
+                        new MarkdownComponent('').setElementId(CardManager.ELEMENT_IDS.RETRY_TEXT).setIcon(
                             new StandardIcon('refresh_outlined', 'grey'),
                         ),
                     )
@@ -482,9 +489,8 @@ export class CardManager {
      */
     private async handleError(): Promise<void> {
         const errorElement = new MarkdownComponent(
-            CardManager.ELEMENT_IDS.ERROR_MESSAGE,
             `**<font color='red-500'>赤尾似乎遇到了一些问题，可以重试一下看看！</font>**`,
-        );
+        ).setElementId(CardManager.ELEMENT_IDS.ERROR_MESSAGE);
         await this.addElements('append', [errorElement]);
     }
 

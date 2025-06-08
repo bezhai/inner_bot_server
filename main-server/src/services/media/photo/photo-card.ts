@@ -42,37 +42,33 @@ export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_p
     const { chunks, weights } = calcBestChunks(images);
 
     const card = new LarkCard().addElement(
-        new ColumnSet('photo_card')
+        new ColumnSet()
             .setHorizontalSpacing('small')
             .addColumns(
-                new Column('photo_column_1')
+                new Column()
                     .setWidth('weighted', weights[0])
                     .addElements(
                         ...chunks[0].map((image, index) =>
-                            new ImgComponent(`img_1_${index}`, image.image_key!).setAlt(
-                                image.pixiv_addr,
-                            ),
+                            new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
-                new Column('photo_column_2')
+                new Column()
                     .setWidth('weighted', weights[1])
                     .addElements(
                         ...chunks[1].map((image, index) =>
-                            new ImgComponent(`img_2_${index}`, image.image_key!).setAlt(
-                                image.pixiv_addr,
-                            ),
+                            new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
             ),
-        new ColumnSet('actions').addColumns(
-            new Column('actions_column_1').addElements(
-                new ButtonComponent('actions_button_1').setText('换一批').addValue({
+        new ColumnSet().addColumns(
+            new Column().addElements(
+                new ButtonComponent().setText('换一批').addValue({
                     type: UpdatePhotoCard,
                     tags,
                 }),
             ),
-            new Column('actions_column_2').addElements(
-                new ButtonComponent('actions_button_2').setText('查看详情').addValue({
+            new Column().addElements(
+                new ButtonComponent().setText('查看详情').addValue({
                     type: FetchPhotoDetails,
                     images: images.map((image) => image.pixiv_addr),
                 }),
@@ -98,25 +94,24 @@ export async function getPhotoDetailCard(pixivAddrs: string[]) {
     }
 
     const card = new LarkCard().addElement(
-        ...images.map((image, index) => {
+        ...images.map((image) => {
             const tags = image.multi_tags
                 ?.filter((tag) => !!tag.translation && tag.visible)
                 .map((tag) => tag.translation)
                 .join('、');
 
-            return new ColumnSet(`photo_detail_card_${index}`).addColumns(
-                new Column(`column_info_${index}`)
+            return new ColumnSet().addColumns(
+                new Column()
                     .addElements(
                         new MarkdownComponent(
-                            `markdown_${index}`,
                             `**图片标签**：${tags}
 **作者**：${image.author}
 **PixivId**：${image.pixiv_addr}`,
                         ),
                     )
                     .setWidth('weighted', 1),
-                new Column(`column_img_${index}`).addElements(
-                    new ImgComponent(`img_${index}`, image.image_key!)
+                new Column().addElements(
+                    new ImgComponent(image.image_key!)
                         .setAlt(image.pixiv_addr)
                         .setSize('medium')
                         .setScaleType('crop_center'),
@@ -161,33 +156,33 @@ export async function searchAndBuildDailyPhotoCard(
     const { chunks, weights } = calcBestChunks(images);
 
     const card = new LarkCard().withHeader(new CardHeader('今日新图').color('green')).addElement(
-        new ColumnSet('daily_photo_card')
+        new ColumnSet()
             .setHorizontalSpacing('small')
             .addColumns(
-                new Column('card_column_1')
+                new Column()
                     .setWidth('weighted', weights[0])
                     .addElements(
-                        ...chunks[0].map(
-                            (image) => new ImgComponent(image.image_key!, image.pixiv_addr),
+                        ...chunks[0].map((image) =>
+                            new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
-                new Column('card_column_2')
+                new Column()
                     .setWidth('weighted', weights[1])
                     .addElements(
-                        ...chunks[1].map(
-                            (image) => new ImgComponent(image.image_key!, image.pixiv_addr),
+                        ...chunks[1].map((image) =>
+                            new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
             ),
-        new ColumnSet('actions').addColumns(
-            new Column('actions_column_1').addElements(
-                new ButtonComponent('actions_button_1').setText('换一批').addValue({
+        new ColumnSet().addColumns(
+            new Column().addElements(
+                new ButtonComponent().setText('换一批').addValue({
                     type: UpdateDailyPhotoCard,
                     start_time,
                 }),
             ),
-            new Column('actions_column_2').addElements(
-                new ButtonComponent('actions_button_2').setText('查看详情').addValue({
+            new Column().addElements(
+                new ButtonComponent().setText('查看详情').addValue({
                     type: FetchPhotoDetails,
                     images: images.map((image) => image.pixiv_addr),
                 }),

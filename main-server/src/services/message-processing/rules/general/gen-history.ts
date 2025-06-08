@@ -41,24 +41,22 @@ function splitTime(start: number, end: number, splitSize: number): number[][] {
 export async function genHistoryCard(message: Message) {
     const allMessages = humanMessageFilter(await getHistoryMessage(message.chatId, 13, 0));
 
-    const activeChart = new ChartElement(
-        'active_chart',
-        new LineChartSpec(
-            { text: '活跃大盘' },
-            'x',
-            'y',
-            'series',
-            {
-                visible: true,
-            },
-            {
-                visible: true,
-                orient: 'bottom',
-                position: 'middle',
-            },
-            'monotone',
-        ),
+    const activeChartSpec = new LineChartSpec(
+        { text: '活跃大盘' },
+        'x',
+        'y',
+        'series',
+        {
+            visible: true,
+        },
+        {
+            visible: true,
+            orient: 'bottom',
+            position: 'middle',
+        },
+        'monotone',
     );
+    const activeChart = new ChartElement(activeChartSpec);
 
     // 这里取T-6到T-0的消息
     const messagesGroupByDate = messageGroupByDate(messageTimeFilter(allMessages, 6, 0));
@@ -76,17 +74,17 @@ export async function genHistoryCard(message: Message) {
     // 如果某天没有消息,messagesGroupByDate中就不会有这一天的key,但我们的dateKeys中会包含这一天
     dateKeys.forEach((date) => {
         const printDate = dayjs(date).format('MM-DD');
-        const { messagePersonCount, messageCount } = messageStatistic(messagesGroupByDate[date] || []);
-        activeChart.chart_spec.addLineData(printDate, messagePersonCount, '活跃人数');
-        activeChart.chart_spec.addLineData(printDate, messageCount, '消息数');
+        const { messagePersonCount, messageCount } = messageStatistic(
+            messagesGroupByDate[date] || [],
+        );
+        activeChartSpec.addLineData(printDate, messagePersonCount, '活跃人数');
+        activeChartSpec.addLineData(printDate, messageCount, '消息数');
     });
 
-    const hourActiveChart = new ChartElement(
-        'hour_active_chart',
-        new BarChartSpec({ text: '分时段活跃情况' }, 'x', 'y', 'series', {
-            visible: true,
-        }),
-    );
+    const hourActiveChartSpec = new BarChartSpec({ text: '分时段活跃情况' }, 'x', 'y', 'series', {
+        visible: true,
+    });
+    const hourActiveChart = new ChartElement(hourActiveChartSpec);
 
     // 这里取T-7到T-1的消息
     const messagesGroupByHour = messageGroupByHour(messageTimeFilter(allMessages, 7, 1));
@@ -99,7 +97,7 @@ export async function genHistoryCard(message: Message) {
             messagesGroupByHour[hour] || [],
         );
         // hourActiveChart.chart_spec.addLineData(hour, messagePersonCount, '活跃人数');
-        hourActiveChart.chart_spec.addLineData(hour, messageCount, '消息数');
+        hourActiveChartSpec.addLineData(hour, messageCount, '消息数');
     });
 
     // 需要对T-13到T-7的发言和T-6到T-0的发言人数进行聚合, 进行排序, 得到排名map
@@ -143,8 +141,8 @@ export async function genHistoryCard(message: Message) {
         .sort((a, b) => a.thisWeekRank - b.thisWeekRank)
         .slice(0, 10);
 
-    const personTableTitle = new InteractiveContainerComponent('person_container')
-        .pushElement(new MarkdownComponent('person_title', '龙王榜🐲').setTextAlign('center'))
+    const personTableTitle = new InteractiveContainerComponent()
+        .pushElement(new MarkdownComponent('龙王榜🐲').setTextAlign('center'))
         .setMargin('0 2px')
         .setPadding('4px 8px 4px 8px')
         .setBackgroundStyle('green-100')
@@ -158,7 +156,7 @@ export async function genHistoryCard(message: Message) {
         score: string;
         rankChange: string;
     };
-    const personTable = new TableComponent<PersonTableData>('person_table').setPageSize(10);
+    const personTable = new TableComponent<PersonTableData>().setPageSize(10);
     personTable.addColumn(TableColumn.markdown('orderText').setDisplayName('名次'));
     personTable.addColumn(TableColumn.markdown('atUser').setDisplayName('龙王').setWidth('35%'));
     personTable.addColumn(TableColumn.markdown('score').setDisplayName('活跃分'));
@@ -203,14 +201,17 @@ export async function genHistoryCard(message: Message) {
         .slice(0, 100);
 
     // 构建词云的图表
-    const wordCloudChart = new ChartElement(
-        'word_cloud_chart',
-        new WordCloudChartSpec({ text: '本群词云' }, 'name', 'value', 'name'),
+    const wordCloudChartSpec = new WordCloudChartSpec(
+        { text: '本群词云' },
+        'name',
+        'value',
+        'name',
     );
+    const wordCloudChart = new ChartElement(wordCloudChartSpec);
 
     // 添加数据到词云
     sortedWordCloudMap.forEach(([name, value]) => {
-        wordCloudChart.chart_spec.addWordCloudData(name, value);
+        wordCloudChartSpec.addWordCloudData(name, value);
     });
 
     const card = new LarkCard().withHeader(new CardHeader('七天水群报告').color('green'));
