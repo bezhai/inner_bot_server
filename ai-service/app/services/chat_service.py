@@ -79,7 +79,7 @@ class ChatService:
         try:
             # 调用底层AI服务
             async for chunk in AIChatService.stream_ai_reply(
-                user_input=f"<speaker id={request.user_open_id}>{request.user_name}</speaker> {request.content}", # 这里临时插入说话者, 后续要有统一地方处理
+                user_input=f"[{request.user_name}]: {request.content}",  # 使用更自然的说话者格式
                 model_id="gpt-4o",
                 enable_tools=True,
             ):
