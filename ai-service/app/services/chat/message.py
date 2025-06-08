@@ -61,7 +61,7 @@ class AIChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 提取文本内容并直接输出
-                if chunk.delta:
+                if chunk.delta and chunk.delta.content:
                     yield ChatStreamChunk(
                         content=chunk.delta.content,
                         # reason_content=chunk.delta.reason_content if hasattr(chunk.delta, "reason_content") else None,
