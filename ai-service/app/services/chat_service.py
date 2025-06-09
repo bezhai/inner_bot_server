@@ -100,7 +100,10 @@ class ChatService:
                 # 检查是否到了输出间隔时间
                 current_time = asyncio.get_event_loop().time()
                 if current_time - last_yield_time >= yield_interval:
-                    if complete_content.content.strip() or complete_content.reason_content.strip():
+                    if (
+                        complete_content.content.strip()
+                        or complete_content.reason_content.strip()
+                    ):
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
                             content=complete_content.content,
@@ -113,7 +116,10 @@ class ChatService:
                         last_yield_time = current_time
 
             # 输出最后剩余的内容
-            if complete_content.content.strip() or complete_content.reason_content.strip():
+            if (
+                complete_content.content.strip()
+                or complete_content.reason_content.strip()
+            ):
                 final_chunk = ChatStreamChunk(
                     content=complete_content.content,
                     reason_content=complete_content.reason_content,
@@ -158,12 +164,12 @@ class ChatService:
             else:
                 await ChatService.save_message_to_db(message)
 
-            # 3. 开始生成回复
-            yield ChatNormalResponse(step=Step.START_REPLY)
-
             # 如果消息不是@机器人，则直接返回
             if not request.message.is_mention_bot:
                 return
+
+            # 3. 开始生成回复
+            yield ChatNormalResponse(step=Step.START_REPLY)
 
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容
