@@ -15,7 +15,7 @@ class PromptGeneratorParam(TypedDict):
 class PromptService:
 
     @staticmethod
-    async def get_prompt(param: PromptGeneratorParam) -> str:
+    def get_prompt(param: PromptGeneratorParam) -> str:
         template = Template(original_prompt)
         return template.render(
             {
