@@ -113,8 +113,8 @@ const chatRules: RuleConfig[] = [
     {
         rules: [NeedRobotMention],
         handler: async (message) => {
-            // 暂时只开放给管理员使用
-            if (message.senderInfo?.is_admin) {
+            // 暂时只开放给管理员和灰度群使用
+            if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message) {
                 makeCardReply(message);
             } else {
                 replyMessage(
