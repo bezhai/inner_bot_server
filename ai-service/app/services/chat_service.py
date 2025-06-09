@@ -161,6 +161,10 @@ class ChatService:
             # 3. 开始生成回复
             yield ChatNormalResponse(step=Step.START_REPLY)
 
+            # 如果消息不是@机器人，则直接返回
+            if not request.message.is_mention_bot:
+                return
+
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容
             async for chunk in ChatService.generate_ai_reply(
