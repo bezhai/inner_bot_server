@@ -1,4 +1,5 @@
 import logging
+import traceback
 from typing import AsyncGenerator
 from .model import ModelService
 from .prompt import PromptService
@@ -81,6 +82,7 @@ class AIChatService:
 
         except Exception as e:
             # 如果出现错误，输出错误信息
+            logger.error(f"生成回复时出现错误: {str(e)}\n{traceback.format_exc()}")
             yield ChatStreamChunk(
                 content=f"生成回复时出现错误: {str(e)}"
             )
