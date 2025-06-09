@@ -1,8 +1,8 @@
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Dict
 from .model import ModelService
 from .prompt import PromptService
-from app.types.chat import ChatStreamChunk, ToolCallFeedbackResponse
+from app.types.chat import ChatStreamChunk
 
 # 使用新的工具系统
 from app.tools import get_tool_manager
@@ -13,17 +13,17 @@ class AIChatService:
 
     @staticmethod
     async def stream_ai_reply(
-        user_input: str,
+        messages: List[Dict[str, str]],
         model_id: str = "gpt-4o-mini",
         temperature: float = 0.7,
         enable_tools: bool = False,
         max_tool_iterations: int = 10,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
         """
-        生成AI回复的流式响应，支持工具调用
+        生成AI回复的流式响应，支持工具调用和多轮对话
 
         Args:
-            user_input: 用户输入的文本
+            messages: 对话消息列表，包含用户输入和上下文
             model_id: 模型ID，默认为gpt-4o-mini
             temperature: 温度参数
             enable_tools: 是否启用工具调用
@@ -35,11 +35,11 @@ class AIChatService:
         # 获取系统提示词
         system_prompt = await PromptService.get_prompt()
 
-        # 构建消息
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input},
-        ]
+        # 构建消息列表
+        full_messages = [{"role": "system", "content": system_prompt}]
+
+        # 添加传入的消息列表
+        full_messages.extend(messages)
 
         # 准备工具调用参数
         tools = None
@@ -55,7 +55,7 @@ class AIChatService:
             # 获取流式响应并直接传递
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
-                messages=messages,
+                messages=full_messages,
                 temperature=temperature,
                 tools=tools,
                 max_tool_iterations=max_tool_iterations,

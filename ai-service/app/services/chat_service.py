@@ -7,7 +7,7 @@ import logging
 import traceback
 import asyncio
 from datetime import datetime
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Dict
 
 from app.types.chat import (
     ChatMessage,
@@ -17,8 +17,14 @@ from app.types.chat import (
     ChatProcessResponse,
     ChatNormalResponse,
 )
-from app.orm.crud import create_formated_message, get_formated_message_by_message_id
+from app.orm.crud import (
+    create_formated_message,
+    get_formated_message_by_message_id,
+    get_messages_by_root_id,
+    get_recent_messages_in_chat,
+)
 from app.utils.decorators import auto_json_serialize
+from app.services.chat.context import ContextService
 from app.services.chat.message import AIChatService
 
 logger = logging.getLogger(__name__)
@@ -52,10 +58,11 @@ class ChatService:
 
     @staticmethod
     async def get_message_by_id(message_id: str) -> ChatMessage:
-        """
-        根据消息id获取消息
-        """
-        return await get_formated_message_by_message_id(message_id)
+        """根据消息ID获取消息"""
+        message = await get_formated_message_by_message_id(message_id)
+        if not message:
+            raise ValueError(f"Message with ID {message_id} not found")
+        return message
 
     @staticmethod
     async def generate_ai_reply(
@@ -63,7 +70,7 @@ class ChatService:
         yield_interval: float = 0.5,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
         """
-        生成 AI 回复内容
+        生成 AI 回复内容（支持多轮对话）
 
         Args:
             request: 聊天请求对象
@@ -77,9 +84,16 @@ class ChatService:
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
-            # 调用底层AI服务
+            # 构建对话上下文
+            context_messages = await ContextService.build_conversation_context(request)
+
+            # 添加当前用户消息
+            current_user_message = f"[{request.user_name}]: {request.content}"
+            context_messages.append({"role": "user", "content": current_user_message})
+
+            # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
-                user_input=f"[{request.user_name}]: {request.content}",  # 使用更自然的说话者格式
+                messages=context_messages,
                 model_id="gpt-4o",
                 enable_tools=True,
             ):
