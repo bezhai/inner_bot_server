@@ -165,7 +165,8 @@ class ChatService:
                 await ChatService.save_message_to_db(message)
 
             # 如果消息不是@机器人，则直接返回
-            if not request.message.is_mention_bot:
+            # 如果是重新发起请求，则不检查是否@机器人
+            if not request.is_replay and not request.message.is_mention_bot:
                 return
 
             # 3. 开始生成回复
