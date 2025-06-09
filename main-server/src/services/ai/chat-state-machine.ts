@@ -36,11 +36,12 @@ export function createChatStateMachine(
         { from: Step.ACCEPT, to: Step.START_REPLY },
         { from: [Step.START_REPLY, Step.SEND], to: Step.SEND },
         { from: [Step.START_REPLY, Step.SEND], to: Step.SUCCESS },
-        { from: Step.SUCCESS, to: Step.END },
 
         // 错误处理：任何状态都可以转到 FAILED
         { from: [Step.ACCEPT, Step.START_REPLY, Step.SEND], to: Step.FAILED },
-        { from: Step.FAILED, to: Step.END },
+
+        // 结束
+        { from: [Step.ACCEPT, Step.SUCCESS, Step.FAILED], to: Step.END },
     ];
 
     const stateMachine = new StateMachine<Step, ChatStateData>({

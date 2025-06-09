@@ -18,7 +18,7 @@ export async function makeCardReply(message: Message): Promise<void> {
         user_open_id: message.senderOpenId,
         user_name: message.senderInfo?.name ?? '',
         content: message.toMarkdown(),
-        is_mention_bot: true, // 这里暂时用true，后续需要根据消息内容判断
+        is_mention_bot: message.hasMention(getBotUnionId()) || message.isP2P(),
         role: 'user',
         message_id: message.messageId,
         chat_id: message.chatId,
