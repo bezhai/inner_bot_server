@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Union
+from typing import Any, Optional, Union
 from pydantic import BaseModel
 
 
@@ -35,6 +35,16 @@ class ChatMessage(BaseModel):
     chat_id: str  # 聊天id / Chat ID
     chat_type: str  # 聊天类型: 'p2p' | 'group' / Chat type
     create_time: str  # 创建时间 / Creation time
+    
+
+class ChatSimpleMessage(BaseModel):
+    """
+    聊天简单消息
+    Chat simple message
+    """
+    user_name: str  # 用户名 / User name
+    content: str  # 转义成markdown的消息内容，包括图片等 / Markdown content (may include images)
+    role: str  # 角色: 'user' | 'assistant' | 'system' / Role
 
 
 class ChatRequest(BaseModel):

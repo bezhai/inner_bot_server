@@ -7,7 +7,7 @@ import logging
 import traceback
 import asyncio
 from datetime import datetime
-from typing import AsyncGenerator, List, Dict
+from typing import AsyncGenerator
 
 from app.types.chat import (
     ChatMessage,
@@ -20,8 +20,6 @@ from app.types.chat import (
 from app.orm.crud import (
     create_formated_message,
     get_formated_message_by_message_id,
-    get_messages_by_root_id,
-    get_recent_messages_in_chat,
 )
 from app.utils.decorators import auto_json_serialize
 from app.services.chat.context import ContextService
@@ -84,16 +82,10 @@ class ChatService:
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
-            # 构建对话上下文
-            context_messages = await ContextService.build_conversation_context(request)
-
-            # 添加当前用户消息
-            current_user_message = f"[{request.user_name}]: {request.content}"
-            context_messages.append({"role": "user", "content": current_user_message})
 
             # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
-                messages=context_messages,
+                message=request,
                 model_id="gpt-4o",
                 enable_tools=True,
             ):

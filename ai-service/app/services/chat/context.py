@@ -1,8 +1,9 @@
 import logging
 import traceback
 from datetime import datetime, timedelta
-from typing import List, Dict
-from app.types.chat import ChatMessage
+from typing import Any, Callable, List, Dict
+from app.types.chat import ChatMessage, ChatSimpleMessage
+from app.services.chat.prompt import PromptGeneratorParam
 from app.orm.crud import get_messages_by_root_id, get_recent_messages_in_chat
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ class ContextService:
     @staticmethod
     async def build_conversation_context(
         current_message: ChatMessage, max_context: int = 10
-    ) -> List[Dict[str, str]]:
+    ) -> List[ChatSimpleMessage]:
         """
         构建对话上下文，优先回复线程，补充最近消息
 
@@ -71,14 +72,11 @@ class ContextService:
             # 4. 转换为 OpenAI 格式
             openai_messages = []
             for msg in sorted_messages:
-                role = "assistant" if msg.role == "assistant" else "user"
-                content = (
-                    f"[{msg.user_name}]: {msg.content}"
-                    if role == "user"
-                    else msg.content
+                openai_messages.append(
+                    ChatSimpleMessage(
+                        user_name=msg.user_name, role=msg.role, content=msg.content
+                    )
                 )
-
-                openai_messages.append({"role": role, "content": content})
 
             logger.info(
                 f"构建上下文完成: 总消息数={len(openai_messages)}, 时间窗口: {time_window_start} - {current_time}"
@@ -88,3 +86,50 @@ class ContextService:
         except Exception as e:
             logger.error(f"构建对话上下文失败: {str(e)}\n{traceback.format_exc()}")
             return []
+
+
+class MessageContext:
+    def __init__(
+        self,
+        message: ChatMessage,
+        system_prompt_generator: Callable[[PromptGeneratorParam], str],
+    ):
+        self.message = message
+        self.context_messages: List[ChatSimpleMessage] = []
+        self.temp_messages: List[Any] = []
+        self.system_prompt_generator = system_prompt_generator
+
+    async def init_context_messages(self):
+        self.context_messages = await ContextService.build_conversation_context(
+            self.message
+        )
+        self.context_messages.append(
+            ChatSimpleMessage(
+                user_name=self.message.user_name,
+                role=self.message.role,
+                content=self.message.content,
+            )
+        )
+
+    def append_message(self, message: Any):
+        self.temp_messages.append(message)
+
+    def build(self, param: PromptGeneratorParam) -> List[Dict[str, Any]]:
+        system_prompt = self.system_prompt_generator(param)
+        return [
+            {"role": "system", "content": system_prompt},
+            *list(
+                map(
+                    lambda x: {
+                        "role": x.role,
+                        "content": (
+                            f"[{x.user_name}]: {x.content}"
+                            if x.role == "user"
+                            else x.content
+                        ),
+                    },
+                    self.context_messages,
+                )
+            ),
+            *self.temp_messages,
+        ]
