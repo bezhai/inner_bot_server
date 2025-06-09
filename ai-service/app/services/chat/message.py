@@ -2,7 +2,7 @@ import logging
 from typing import AsyncGenerator
 from .model import ModelService
 from .prompt import PromptService
-from app.types.chat import ChatStreamChunk
+from app.types.chat import ChatStreamChunk, ToolCallFeedbackResponse
 
 # 使用新的工具系统
 from app.tools import get_tool_manager
@@ -67,15 +67,22 @@ class AIChatService:
                         # reason_content=chunk.delta.reason_content if hasattr(chunk.delta, "reason_content") else None,
                     )
 
-                # 如果收到finish_reason，说明完成了
+                # finish_reason包含四种结果, 除tool_calls外, 其他结果都表示完成
                 if chunk.finish_reason:
                     logger.info(f"chunk.finish_reason: {chunk.finish_reason}")
-                    # 如果是content_filter, 需要返回原因
+                    # 如果是content_filter, 需要返回原因, 截断需要告知用户, tool_calls因为finish_reason不包含function name, 所以不处理
                     if chunk.finish_reason == "content_filter":
                         yield ChatStreamChunk(
                             content="赤尾有点不想讨论这个话题呢~",
                         )
-                    break
+                    elif chunk.finish_reason == "length":
+                        yield ChatStreamChunk(
+                            content="(后续内容被截断)",
+                        )
+
+                    # 除tool_calls外, 其他都需要中止
+                    if chunk.finish_reason != "tool_calls":
+                        break
 
         except Exception as e:
             # 如果出现错误，输出错误信息
