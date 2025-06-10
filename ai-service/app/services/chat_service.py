@@ -24,6 +24,9 @@ from app.orm.crud import (
 from app.utils.decorators import auto_json_serialize
 from app.services.chat.context import ContextService
 from app.services.chat.message import AIChatService
+from app.utils.text_processor import (
+    StreamingRefProcessor,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +84,10 @@ class ChatService:
         complete_content = ChatStreamChunk(content="", reason_content="")
         last_yield_time = asyncio.get_event_loop().time()
 
+        # 创建流式文本处理器
+        content_processor = StreamingRefProcessor()
+        reason_processor = StreamingRefProcessor()
+
         try:
 
             # 调用底层AI服务，传入完整的对话历史
@@ -104,10 +111,18 @@ class ChatService:
                         complete_content.content.strip()
                         or complete_content.reason_content.strip()
                     ):
+                        # 使用流式文本处理器进行转换
+                        converted_content = content_processor.process_chunk(
+                            chunk.content if chunk.content else ""
+                        )
+                        converted_reason_content = reason_processor.process_chunk(
+                            chunk.reason_content if chunk.reason_content else ""
+                        )
+
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
-                            content=complete_content.content,
-                            reason_content=complete_content.reason_content,
+                            content=converted_content,
+                            reason_content=converted_reason_content,
                             tool_call_feedback=complete_content.tool_call_feedback,
                         )
                         logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")
@@ -115,14 +130,18 @@ class ChatService:
 
                         last_yield_time = current_time
 
-            # 输出最后剩余的内容
+            # 输出最后剩余的内容，并进行链接转换
             if (
                 complete_content.content.strip()
                 or complete_content.reason_content.strip()
             ):
+                # 获取最终转换结果
+                converted_content = content_processor.get_final_result()
+                converted_reason_content = reason_processor.get_final_result()
+
                 final_chunk = ChatStreamChunk(
-                    content=complete_content.content,
-                    reason_content=complete_content.reason_content,
+                    content=converted_content,
+                    reason_content=converted_reason_content,
                     tool_call_feedback=complete_content.tool_call_feedback,
                 )
                 yield final_chunk
@@ -177,7 +196,7 @@ class ChatService:
             async for chunk in ChatService.generate_ai_reply(
                 message, yield_interval=yield_interval
             ):
-                last_content = chunk.content  # 保存最后的内容
+                last_content = chunk.content  # 保存最后的内容（已经转换过）
                 yield ChatProcessResponse(
                     step=Step.SEND,
                     content=chunk.content,
@@ -188,7 +207,7 @@ class ChatService:
             # 5. 回复成功，返回完整内容
             yield ChatProcessResponse(
                 step=Step.SUCCESS,
-                content=last_content,  # 使用保存的最后内容
+                content=last_content,  # 使用保存的最后内容（已经转换过）
                 # reason_content=chunk.reason_content,
             )
 
