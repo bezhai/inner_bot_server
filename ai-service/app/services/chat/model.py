@@ -139,7 +139,7 @@ class ModelService:
         # 复制消息列表以避免修改原始数据
         iteration_count = 0
 
-        prompt_param = PromptGeneratorParam(after_web_search=False)
+        prompt_param = PromptGeneratorParam()
 
         while iteration_count < max_tool_iterations:
             # 构建请求参数
@@ -204,10 +204,6 @@ class ModelService:
             # 执行工具调用
             for tool_call in tool_calls:
                 function_name = tool_call["function"]["name"]
-
-                # 这里是临时hardcode，后续需要优化
-                if function_name == "search_web":
-                    prompt_param["after_web_search"] = True
 
                 try:
                     # 解析工具参数

@@ -9,8 +9,7 @@ original_prompt = prompt_path.read_text(encoding="utf-8")
 
 
 class PromptGeneratorParam(TypedDict):
-    after_web_search: bool
-
+    pass
 
 class PromptService:
 
