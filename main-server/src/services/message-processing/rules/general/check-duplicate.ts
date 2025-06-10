@@ -10,6 +10,8 @@ interface FindSimilarMessageResponse {
 }
 
 export async function checkDuplicate(message: Message) {
+    replyMessage(message.messageId, '查重功能已下线', true);
+
     if (!message.parentMessageId) {
         replyMessage(
             message.messageId,

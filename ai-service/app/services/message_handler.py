@@ -1,22 +1,20 @@
 import logging
-from typing import Dict, Any, Tuple
-from app.core.event_decorator import subscribe, EventSubscriber
+from typing import Dict, Any
 from app.core.clients.openai import openai_client
 from app.services.qdrant import qdrant_service
 import uuid
 from datetime import datetime
-from qdrant_client.http.models import Filter, FieldCondition, Range, MatchValue
+from qdrant_client.http.models import Filter, FieldCondition, MatchValue
 
 logger = logging.getLogger(__name__)
 
 
-class MessageHandler(EventSubscriber):
+class MessageHandler:
     """消息处理服务"""
 
     def __init__(self):
         super().__init__()  # 必须调用父类初始化，触发事件注册
 
-    @subscribe("message.receive")
     async def handle_message_receive(self, data: Dict[str, Any]) -> None:
         """处理消息接收事件"""
         try:
@@ -58,7 +56,6 @@ class MessageHandler(EventSubscriber):
         except Exception as e:
             logger.error(f"处理消息接收事件失败: {str(e)}")
 
-    @subscribe("find.similar.message")
     async def find_similar_message(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """查找相似消息
 
