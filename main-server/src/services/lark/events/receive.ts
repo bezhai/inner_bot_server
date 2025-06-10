@@ -17,15 +17,6 @@ export async function handleMessageReceive(params: LarkReceiveMessage) {
             })(),
         ]);
 
-        // 发送消息事件
-        if (message.clearText().length > 0) {
-            publishEvent('message.receive', {
-                messageId: message.messageId,
-                chatId: message.chatId,
-                message_context: message.clearText(),
-            });
-        }
-
         await runRules(message);
     } catch (error) {
         console.error(
