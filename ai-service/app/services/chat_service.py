@@ -22,11 +22,7 @@ from app.orm.crud import (
     get_formated_message_by_message_id,
 )
 from app.utils.decorators import auto_json_serialize
-from app.services.chat.context import ContextService
 from app.services.chat.message import AIChatService
-from app.utils.text_processor import (
-    StreamingRefProcessor,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -84,10 +80,6 @@ class ChatService:
         complete_content = ChatStreamChunk(content="", reason_content="")
         last_yield_time = asyncio.get_event_loop().time()
 
-        # 创建流式文本处理器
-        content_processor = StreamingRefProcessor()
-        reason_processor = StreamingRefProcessor()
-
         try:
 
             # 调用底层AI服务，传入完整的对话历史
@@ -111,18 +103,12 @@ class ChatService:
                         complete_content.content.strip()
                         or complete_content.reason_content.strip()
                     ):
-                        # 使用流式文本处理器进行转换
-                        converted_content = content_processor.process_chunk(
-                            chunk.content if chunk.content else ""
-                        )
-                        converted_reason_content = reason_processor.process_chunk(
-                            chunk.reason_content if chunk.reason_content else ""
-                        )
+
 
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
-                            content=converted_content,
-                            reason_content=converted_reason_content,
+                            content=chunk.content,
+                            reason_content=chunk.reason_content,
                             tool_call_feedback=complete_content.tool_call_feedback,
                         )
                         logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")
@@ -135,13 +121,10 @@ class ChatService:
                 complete_content.content.strip()
                 or complete_content.reason_content.strip()
             ):
-                # 获取最终转换结果
-                converted_content = content_processor.get_final_result()
-                converted_reason_content = reason_processor.get_final_result()
 
                 final_chunk = ChatStreamChunk(
-                    content=converted_content,
-                    reason_content=converted_reason_content,
+                    content=complete_content.content,
+                    reason_content=complete_content.reason_content,
                     tool_call_feedback=complete_content.tool_call_feedback,
                 )
                 yield final_chunk
