@@ -31,7 +31,7 @@ export async function sendPhoto(message: Message) {
         const allowSendPhoto =
             message.basicChatInfo?.chat_mode === 'p2p' ||
             (groupInfo && groupInfo.user_count <= 20) ||
-            message.basicChatInfo?.permission_config?.allow_send_message;
+            message.basicChatInfo?.permission_config?.allow_send_pixiv_image;
 
         if (!allowSendPhoto) {
             throw new Error(
