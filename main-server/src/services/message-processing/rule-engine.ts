@@ -115,8 +115,7 @@ const chatRules: RuleConfig[] = [
         rules: [],
         handler: async (message) => {
             // 暂时只开放给管理员、灰度群和私聊使用
-            // if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message || message.isP2P()) {
-            if (message.senderInfo?.is_admin) {
+            if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message || message.isP2P()) {
                 makeCardReply(message);
             } else if (message.hasMention(getBotUnionId())) {
                 replyMessage(
