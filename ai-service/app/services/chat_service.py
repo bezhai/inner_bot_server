@@ -107,8 +107,8 @@ class ChatService:
 
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
-                            content=chunk.content,
-                            reason_content=chunk.reason_content,
+                            content=complete_content.content,
+                            reason_content=complete_content.reason_content,
                             tool_call_feedback=complete_content.tool_call_feedback,
                         )
                         logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")

@@ -22,6 +22,43 @@ import { updateRobotMessageText } from 'services/message-store/basic';
 import dayjs from 'dayjs';
 
 /**
+ * Action内容适配器
+ * 负责将action中的链接引用转换为number_tag格式
+ */
+export class ActionContentAdapter {
+    private refLinkMap = new Map<string, number>();
+    private refCounter = 1;
+    private readonly refRegex = /\(ref:(https?:\/\/[^\)]+)\)/g;
+
+    /**
+     * 转换内容中的链接引用
+     */
+    private transformContent(content: string): string {
+        return content.replace(this.refRegex, (match, url) => {
+            if (!this.refLinkMap.has(url)) {
+                this.refLinkMap.set(url, this.refCounter++);
+            }
+            const number = this.refLinkMap.get(url)!;
+            return `<number_tag background_color='grey-50' font_color='grey-600' url='${url}'>${number}</number_tag>`;
+        });
+    }
+
+    /**
+     * 包装原始的action处理器，添加内容转换功能
+     */
+    public wrapActionHandler(originalHandler: (action: StreamAction) => Promise<void>) {
+        return async (action: StreamAction) => {
+            const transformedAction = {
+                ...action,
+                content: this.transformContent(action.content)
+            };
+            return originalHandler(transformedAction);
+        };
+    }
+
+}
+
+/**
  * CardManager 统一管理飞书卡片的全生命周期
  * 包括创建、更新、删除等所有操作
  */
@@ -53,10 +90,12 @@ export class CardManager {
     private hasResponseElement: boolean = false;
     private createTime: string; // 创建时间, 毫秒时间戳
     private cardContext: Record<string, any> = {}; // 额外数据, 会写到回调里
+    private actionContentAdapter: ActionContentAdapter;
 
     private constructor() {
         this.card = new LarkCard();
         this.createTime = dayjs().valueOf().toString();
+        this.actionContentAdapter = new ActionContentAdapter();
     }
 
     public getCreateTime(): string {
@@ -537,7 +576,8 @@ export class CardManager {
      * 创建动作处理器
      */
     public createActionHandler(): (action: StreamAction) => Promise<void> {
-        return async (action) => {
+        // 使用适配器包装原始处理逻辑
+        const originalHandler = async (action: StreamAction) => {
             try {
                 // ChatStateMachineManager 已经保证了 onStartReply 完成后才会调用这里
                 // 不再需要 isReady 检查
@@ -557,6 +597,9 @@ export class CardManager {
                 console.error('处理action时出错:', error);
             }
         };
+
+        // 返回被适配器包装后的处理器
+        return this.actionContentAdapter.wrapActionHandler(originalHandler);
     }
 
     private truncate(str: string, max: number): string {

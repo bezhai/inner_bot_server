@@ -114,10 +114,10 @@ const chatRules: RuleConfig[] = [
     {
         rules: [],
         handler: async (message) => {
-            // 暂时只开放给管理员和灰度群使用
-            if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message) {
+            // 暂时只开放给管理员、灰度群和私聊使用
+            if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message || message.isP2P()) {
                 makeCardReply(message);
-            } else if (message.hasMention(getBotUnionId()) || message.isP2P()) {
+            } else if (message.hasMention(getBotUnionId())) {
                 replyMessage(
                     message.messageId,
                     '呜呜，这个聊天功能正在维护中呢，还不能陪你聊天了……不过我会很快回来陪你的！请再等我一下下，好吗？(｡•́︿•̀｡)',
