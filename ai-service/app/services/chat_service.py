@@ -85,7 +85,7 @@ class ChatService:
             # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
                 message=request,
-                model_id="gpt-4o",
+                model_id="gpt-4.1",
                 enable_tools=True,
             ):
                 # 累积内容
