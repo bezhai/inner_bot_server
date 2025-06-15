@@ -6,8 +6,7 @@ import {
     LarkCardRetry,
 } from 'types/lark';
 import { fetchAndSendPhotoDetail } from '@callback/fetch-photo-detail';
-import { handleUpdateDailyPhotoCard } from '@callback/update-daily-photo';
-import { handleUpdatePhotoCard } from '@callback/update-photo';
+import { handleUpdatePhotoCard, handleUpdateDailyPhotoCard } from '@callback/update-card';
 import { handleRetryCard } from '@callback/retry-card';
 
 export async function handleCardAction(data: LarkCallbackInfo) {
