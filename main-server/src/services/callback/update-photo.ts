@@ -28,6 +28,9 @@ export async function handleUpdatePhotoCard(data: LarkCallbackInfo, tags: string
             'POST',
         );
     } catch (e) {
-        console.error(e);
+        console.error('update photo card error:', {
+            message: e instanceof Error ? e.message : 'Unknown error',
+            stack: e instanceof Error ? e.stack : undefined,
+        });
     }
 }
