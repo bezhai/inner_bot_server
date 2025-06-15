@@ -91,6 +91,8 @@ async def test_integration():
             create_time=str(int(asyncio.get_event_loop().time() * 1000)),
             user_name="测试用户",
             role="user",
+            is_mention_bot=False,
+            chat_type="group",
         )
 
         # 测试MessageContext

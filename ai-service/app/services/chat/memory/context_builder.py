@@ -10,7 +10,6 @@ from typing import List, Dict, Optional, Tuple
 
 from app.types.chat import ChatMessage, ChatSimpleMessage
 from app.types.memory import MessageFeatures, RelevanceScore
-from app.services.chat.context import ContextService
 from app.services.chat.memory.message_analyzer import MessageAnalyzer
 from app.services.chat.memory.relevance_scorer import RelevanceScorer
 from app.services.chat.memory.data_collector import DataCollector
@@ -23,14 +22,13 @@ from app.orm.crud import (
 logger = logging.getLogger(__name__)
 
 
-class EnhancedContextService(ContextService):
+class EnhancedContextService:
     """
     增强的上下文服务
-    继承现有的ContextService，添加智能记忆管理功能
+    基于智能记忆管理的独立上下文构建服务
     """
 
     def __init__(self):
-        super().__init__()
         self.analyzer = MessageAnalyzer()
         self.scorer = RelevanceScorer()
         self.data_collector = DataCollector()
@@ -274,14 +272,25 @@ class EnhancedContextService(ContextService):
         try:
             logger.info("使用传统上下文构建方法")
 
-            # 调用父类的方法
-            traditional_context = await super().build_conversation_context(
-                current_message, max_context
+            # 简单的时间序上下文构建
+            current_time = datetime.fromtimestamp(
+                int(current_message.create_time) / 1000
+            )
+            time_window_start = current_time - timedelta(hours=24)
+
+            recent_messages = await get_recent_messages_in_chat(
+                chat_id=current_message.chat_id,
+                before_time=current_time,
+                after_time=time_window_start,
+                limit=max_context,
+                exclude_current=current_message.message_id,
             )
 
-            # 需要转换回ChatMessage格式
-            # 这里可能需要根据实际的数据结构进行调整
-            return traditional_context
+            # 按时间排序
+            recent_messages.sort(key=lambda x: int(x.create_time))
+
+            logger.info(f"传统上下文构建完成: {len(recent_messages)} 条消息")
+            return recent_messages
 
         except Exception as e:
             logger.error(f"传统上下文构建也失败: {str(e)}")
