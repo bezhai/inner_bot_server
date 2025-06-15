@@ -33,6 +33,9 @@ export async function fetchAndSendPhotoDetail(data: LarkCallbackInfo, pixivAddrs
             );
         }
     } catch (e) {
-        console.error(e);
+        console.error('fetch photo detail error:', {
+            message: e instanceof Error ? e.message : 'Unknown error',
+            stack: e instanceof Error ? e.stack : undefined,
+        });
     }
 }

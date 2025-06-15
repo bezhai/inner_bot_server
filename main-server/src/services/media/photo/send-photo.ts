@@ -50,7 +50,10 @@ export async function sendPhoto(message: Message) {
             e instanceof Error
                 ? e.message
                 : '呜呜...好像遇到奇怪的小问题了呢 (´;ω;｀) 要不稍后再试试？';
-        console.error(e);
         replyMessage(message.messageId, errorMessage, true);
+        console.error('send photo error:', {
+            message: e instanceof Error ? e.message : 'Unknown error',
+            stack: e instanceof Error ? e.stack : undefined,
+        });
     }
 }

@@ -39,7 +39,10 @@ export async function runRules(message: Message) {
             try {
                 await handler(message);
             } catch (e) {
-                console.error(e);
+                console.error('rule engine error:', {
+                    message: e instanceof Error ? e.message : 'Unknown error',
+                    stack: e instanceof Error ? e.stack : undefined,
+                });
             }
 
             if (!fallthrough) break;

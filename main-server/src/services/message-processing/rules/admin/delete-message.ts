@@ -29,7 +29,10 @@ export async function deleteBotMessage(message: Message) {
         await deleteMessage(message.parentMessageId);
     } catch (e) {
         const errorMessage = e instanceof Error ? e.message : '未知错误';
-        console.error(e);
         replyMessage(message.messageId, `撤回失败: ${errorMessage}`, true);
+        console.error('delete bot message error:', {
+            message: e instanceof Error ? e.message : 'Unknown error',
+            stack: e instanceof Error ? e.stack : undefined,
+        });
     }
 }
