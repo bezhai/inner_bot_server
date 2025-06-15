@@ -104,7 +104,6 @@ class ChatService:
                         or complete_content.reason_content.strip()
                     ):
 
-
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
                             content=complete_content.content,

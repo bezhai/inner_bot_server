@@ -112,7 +112,7 @@ const chatRules: RuleConfig[] = [
         comment: 'Meme',
     },
     {
-        rules: [],
+        rules: [TextMessageLimit], // 暂时只支持文本消息
         handler: async (message) => {
             // 暂时只开放给管理员、灰度群和私聊使用
             if (message.senderInfo?.is_admin || message.basicChatInfo?.permission_config?.allow_send_message || message.isP2P()) {
