@@ -48,14 +48,14 @@ export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_p
                 new Column()
                     .setWidth('weighted', weights[0])
                     .addElements(
-                        ...chunks[0].map((image, index) =>
+                        ...chunks[0].map((image) =>
                             new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
                 new Column()
                     .setWidth('weighted', weights[1])
                     .addElements(
-                        ...chunks[1].map((image, index) =>
+                        ...chunks[1].map((image) =>
                             new ImgComponent(image.image_key!).setAlt(image.pixiv_addr),
                         ),
                     ),
