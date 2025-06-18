@@ -66,6 +66,10 @@ class RelevanceScorer:
                 + keyword_overlap_score * self.weights["keyword_overlap"]
             )
 
+            logger.info(
+                f"相关性评分: {candidate_message.message_id} -> {total_score:.3f}, 权重: {self.weights}"
+            )
+
             # 确保分数在0-1范围内
             total_score = max(0.0, min(1.0, total_score))
 
