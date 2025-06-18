@@ -67,7 +67,7 @@ class RelevanceScorer:
             )
 
             logger.info(
-                f"相关性评分: {candidate_message.message_id} -> {total_score:.3f}, 权重: {self.weights}"
+                f"相关性评分: {candidate_message.message_id} -> {total_score:.3f}, reply_chain_score: {reply_chain_score:.3f}, user_continuity_score: {user_continuity_score:.3f}, time_decay_score: {time_decay_score:.3f}, mention_relation_score: {mention_relation_score:.3f}, keyword_overlap_score: {keyword_overlap_score:.3f}"
             )
 
             # 确保分数在0-1范围内
