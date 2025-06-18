@@ -153,6 +153,8 @@ class EnhancedContextService:
         # 5. 过滤低分消息
         filtered_messages = self.scorer.filter_by_threshold(scored_messages)
 
+        logger.info(f"过滤前: {len(scored_messages)} 条, 过滤后: {len(filtered_messages)} 条")
+
         # 6. 选择最优上下文
         selected_messages = self._select_optimal_context(filtered_messages, max_context)
 
