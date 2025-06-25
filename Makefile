@@ -87,3 +87,51 @@ health-check-setup:
 # 设置所有监控任务（自动部署和健康检查）
 monitoring-setup: auto-deploy-setup health-check-setup
 	@echo "所有监控任务已设置完成"
+
+# === 多机器部署相关命令 ===
+
+# 机器B - 启动记忆服务
+memory-start:
+	docker compose -f docker-compose.memory.yml up -d --build
+
+# 机器B - 启动记忆服务（开发模式）
+memory-start-dev:
+	docker compose -f docker-compose.memory.yml up --build
+
+# 机器B - 停止记忆服务
+memory-down:
+	docker compose -f docker-compose.memory.yml down
+
+# 机器B - 重启记忆服务
+memory-restart:
+	docker compose -f docker-compose.memory.yml restart memory-service
+
+# 机器B - 查看记忆服务日志
+memory-logs:
+	docker compose -f docker-compose.memory.yml logs -f memory-service
+
+# 机器B - 更新记忆服务
+memory-deploy:
+	git pull
+	docker compose -f docker-compose.memory.yml build
+	# 先更新基础设施服务
+	docker compose -f docker-compose.memory.yml up -d --no-deps redis-memory postgres-memory qdrant
+	sleep 10
+	# 更新记忆服务
+	docker compose -f docker-compose.memory.yml up -d --no-deps memory-service memory-dashboard
+
+# 机器B - 健康检查
+memory-health:
+	@echo "检查记忆服务健康状态..."
+	@curl -f http://localhost:8080/health || echo "记忆服务不健康"
+	@curl -f http://localhost:6333/health || echo "Qdrant不健康"
+	@redis-cli -p 6380 -a $${REDIS_PASSWORD} ping || echo "Redis不健康"
+
+# 机器B - 备份数据
+memory-backup:
+	@echo "开始备份记忆服务数据..."
+	@mkdir -p ./backups
+	docker compose -f docker-compose.memory.yml exec postgres-memory pg_dump -U $${POSTGRES_USER} $${POSTGRES_DB}_memory > ./backups/memory_backup_$$(date +%Y%m%d_%H%M%S).sql
+	docker compose -f docker-compose.memory.yml exec qdrant tar -czf /tmp/qdrant_backup.tar.gz /qdrant/storage
+	docker compose -f docker-compose.memory.yml cp qdrant:/tmp/qdrant_backup.tar.gz ./backups/qdrant_backup_$$(date +%Y%m%d_%H%M%S).tar.gz
+	@echo "备份完成，文件保存在 ./backups/ 目录"
