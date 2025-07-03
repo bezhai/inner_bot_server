@@ -74,6 +74,9 @@ services:
   meme:
     image: chiwiio/meme-generator:main
     restart: always
+    environment:
+      - BAIDU_TRANS_APPID=${BAIDU_TRANS_APPID}
+      - BAIDU_TRANS_APIKEY=${BAIDU_TRANS_APIKEY}
     ports:
       - "2233:2233"
 
