@@ -22,7 +22,7 @@ async def lifespan(app: FastAPI):
     await startup_tools()
 
     # 初始化QDrant集合
-    await init_qdrant_collections()
+    # await init_qdrant_collections()
 
     yield
 
