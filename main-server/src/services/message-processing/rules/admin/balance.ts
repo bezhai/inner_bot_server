@@ -14,9 +14,7 @@ export async function sendBalance(message: Message) {
         const balanceCard = new LarkCard()
             .withHeader(new CardHeader('302AI使用情况').color('orange'))
             .addElement(
-                new MarkdownComponent(`
-        **当前余额：** ${balance.data.balance}
-    `),
+                new MarkdownComponent(`**当前余额：** ${balance.data.balance}`),
                 new TableComponent()
                     .addColumn(new TableColumn('api_name').setDisplayName('API名称'))
                     .addColumn(new TableColumn('limit_daily_cost').setDisplayName('每日上限'))
@@ -24,7 +22,7 @@ export async function sendBalance(message: Message) {
                     .addColumn(new TableColumn('limit_cost').setDisplayName('消耗总上限'))
                     .addColumn(new TableColumn('current_cost').setDisplayName('当前总消耗'))
                     .appendRows(
-                        aiKeyInfo.map((item) => ({
+                        ...aiKeyInfo.map((item) => ({
                             api_name: item.api_name,
                             limit_daily_cost: costFormat(item.limit_daily_cost),
                             current_date_cost: costFormat(item.current_date_cost),
@@ -32,7 +30,9 @@ export async function sendBalance(message: Message) {
                             current_cost: costFormat(item.current_cost),
                         })),
                     ),
-        );
+            );
+
+        console.log('card json:', JSON.stringify(balanceCard));
 
         await replyCard(message.messageId, balanceCard);
     } catch (error) {
