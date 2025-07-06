@@ -14,13 +14,13 @@
         "emitDecoratorMetadata": true,
         "baseUrl": "src",
         "paths": {
-            "@/*": ["./*"],
             "@entities": ["dal/entities"],
             "@events": ["./events"],
             "@lark-client": ["services/integrations/lark-client"],
             "@lark-basic/*": ["services/lark/basic/*"],
             "@callback/*": ["services/callback/*"],
-            "@media/*": ["services/media/*"]
+            "@media/*": ["services/media/*"],
+            "@types/*": ["types/*"]
         }
     },
     "include": ["src/**/*.ts"],

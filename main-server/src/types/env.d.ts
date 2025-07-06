@@ -32,5 +32,8 @@ declare namespace NodeJS {
         LOG_LEVEL: string; // info, warn, error, debug
         LOG_DIR: string; // /var/log/main-server
         SYNCHRONIZE_DB: string; // true or false
+        MEMORY_SERVICE_HOST: string;
+        MEMORY_SERVICE_PORT: string;
+        AI_PROVIDER_ADMIN_KEY: string;
     }
 }

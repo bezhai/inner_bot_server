@@ -15,11 +15,13 @@ import {
     RuleConfig,
     TextMessageLimit,
     WhiteGroupCheck,
+    IsAdmin,
 } from './rules/rule';
 import { sendPhoto } from 'services/media/photo/send-photo';
 import { checkDuplicate } from './rules/general/check-duplicate';
 import { makeCardReply } from 'services/ai/reply';
-import { getBotUnionId } from '@/utils/bot/bot-var';
+import { getBotUnionId } from 'utils/bot/bot-var';
+import { sendBalance } from './rules/admin/balance';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {
@@ -61,6 +63,11 @@ const chatRules: RuleConfig[] = [
         handler: repeatMessage,
         fallthrough: true,
         comment: '复读功能',
+    },
+    {
+        rules: [EqualText('余额'), TextMessageLimit, NeedRobotMention, IsAdmin],
+        handler: sendBalance,
+        comment: '发送余额信息',
     },
     {
         rules: [EqualText('帮助'), TextMessageLimit, NeedRobotMention],

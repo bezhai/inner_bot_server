@@ -1,7 +1,7 @@
 import { Message } from 'models/message';
 import { sseChat } from './chat';
 import { CardManager } from '@lark-basic/card-manager';
-import { getBotUnionId } from '@/utils/bot/bot-var';
+import { getBotUnionId } from 'utils/bot/bot-var';
 
 export async function makeCardReply(message: Message): Promise<void> {
     const cardManager = CardManager.init();

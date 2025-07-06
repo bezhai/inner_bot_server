@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.api.router import api_router
 from app.core.events import init_events
-from app.services.qdrant import init_qdrant_collections
 from app.tools.startup import startup_tools
 from app.utils.middlewares import TraceIdMiddleware
 import logging
