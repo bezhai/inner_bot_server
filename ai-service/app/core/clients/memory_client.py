@@ -19,8 +19,6 @@ class MemoryClient:
 
     async def quick_search(
         self,
-        chat_id: str,
-        user_id: str,
         context_message_id: str,
         query: Optional[str] = None,
         max_results: int = 20
@@ -29,8 +27,6 @@ class MemoryClient:
         快速检索记忆内容
 
         Args:
-            chat_id: 聊天ID
-            user_id: 用户ID
             context_message_id: 上下文消息ID
             query: 查询内容（可选）
             max_results: 最大结果数
@@ -40,8 +36,6 @@ class MemoryClient:
         """
         try:
             request_data = {
-                "chat_id": chat_id,
-                "user_id": user_id,
                 "context_message_id": context_message_id,
                 "max_results": max_results
             }
@@ -70,37 +64,6 @@ class MemoryClient:
         except Exception as e:
             logger.error(f"Memory服务调用失败: {str(e)}")
             return []
-
-    async def get_message_by_id(
-        self,
-        chat_id: str,
-        user_id: str,
-        message_id: str
-    ) -> Optional[Dict[str, Any]]:
-        """
-        根据消息ID获取单条消息
-
-        Args:
-            chat_id: 聊天ID
-            user_id: 用户ID
-            message_id: 消息ID
-
-        Returns:
-            Optional[Dict]: 消息内容，如果找不到则返回None
-        """
-        results = await self.quick_search(
-            chat_id=chat_id,
-            user_id=user_id,
-            context_message_id=message_id,
-            max_results=1
-        )
-        
-        # 查找指定message_id的消息
-        for result in results:
-            if result.get("message_id") == message_id:
-                return result
-        
-        return None
 
 
 # 全局单例

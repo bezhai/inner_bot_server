@@ -3,6 +3,7 @@ from typing import Any, Callable, List, Dict
 from app.types.chat import ChatMessage, ChatSimpleMessage
 from app.services.chat.prompt import PromptGeneratorParam
 from app.core.clients.memory_client import memory_client
+from app.services.meta_info import AsyncRedisClient
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,6 @@ class MessageContext:
         system_prompt_generator: Callable[[PromptGeneratorParam], str],
     ):
         self.message_id = message_id
-        self.message: ChatMessage = None  # 从Memory服务获取
         self.context_messages: List[ChatSimpleMessage] = []
         self.temp_messages: List[Any] = []
         self.system_prompt_generator = system_prompt_generator
@@ -27,69 +27,45 @@ class MessageContext:
         try:
             logger.info(f"使用Memory服务构建上下文: message_id={self.message_id}")
 
-            # 由于只有message_id，我们需要先从Memory服务获取消息信息
-            # 但是我们没有chat_id和user_id，所以需要修改策略
-            # 暂时使用一个简化的方法，直接使用message_id作为context_message_id
+            # 获取Redis实例用于检查锁状态
+            redis = AsyncRedisClient.get_instance()
 
             # 调用Memory服务的quick_search接口
-            # 这里需要想办法获取chat_id和user_id，或者修改Memory服务支持只用message_id查询
             results = await memory_client.quick_search(
-                chat_id="",  # 空值，让Memory服务处理
-                user_id="",  # 空值，让Memory服务处理
                 context_message_id=self.message_id,
                 max_results=20,
             )
 
             # 将Memory返回的结果转换为ChatSimpleMessage
             self.context_messages = []
-            current_message_found = False
 
             for result in results:
+                result_message_id = result.get("message_id")
+
                 # 检查是否是当前消息
-                if result.get("message_id") == self.message_id:
-                    current_message_found = True
-                    # 保存当前消息信息
-                    self.message = ChatMessage(
-                        user_id=result.get("user_id", ""),
-                        user_name=result.get("user_name", "未知用户"),
-                        content=result.get("content", ""),
-                        is_mention_bot=True,
-                        role="user",
-                        message_id=self.message_id,
-                        chat_id=result.get("chat_id", ""),
-                        chat_type="group",
-                        create_time=result.get("create_time", ""),
-                    )
+                if result_message_id != self.message_id:
+                    # 检查其他消息是否被锁定，如果被锁定则跳过
+                    try:
+                        lock_key = f"msg_lock:{result_message_id}"
+                        is_locked = await redis.exists(lock_key)
+                        if is_locked:
+                            logger.info(f"跳过被锁定的消息: {result_message_id}")
+                            continue
+                    except Exception as e:
+                        logger.warning(
+                            f"检查消息锁状态失败: {result_message_id}, 错误: {str(e)}"
+                        )
+                        continue
 
                 # 转换为ChatSimpleMessage格式
                 simple_message = ChatSimpleMessage(
                     user_name=result.get("user_name", "未知用户"),
-                    role="user",  # Memory服务暂时不返回role，默认为user
+                    role=result.get("role", "user"),
                     content=result.get("content", ""),
                 )
                 self.context_messages.append(simple_message)
 
-            # 如果Memory结果中不包含当前消息，需要创建一个默认的
-            if not current_message_found:
-                self.message = ChatMessage(
-                    user_id="unknown",
-                    user_name="未知用户",
-                    content="",
-                    is_mention_bot=True,
-                    role="user",
-                    message_id=self.message_id,
-                    chat_id="unknown",
-                    chat_type="group",
-                    create_time="",
-                )
-
-                current_simple_message = ChatSimpleMessage(
-                    user_name="未知用户",
-                    role="user",
-                    content="",
-                )
-                self.context_messages.append(current_simple_message)
-
+            
             logger.info(
                 f"Memory上下文构建完成，包含 {len(self.context_messages)} 条消息"
             )
@@ -97,17 +73,6 @@ class MessageContext:
         except Exception as e:
             logger.error(f"Memory上下文构建失败: {str(e)}")
             # 降级策略：创建一个默认消息
-            self.message = ChatMessage(
-                user_id="unknown",
-                user_name="未知用户",
-                content="",
-                is_mention_bot=True,
-                role="user",
-                message_id=self.message_id,
-                chat_id="unknown",
-                chat_type="group",
-                create_time="",
-            )
 
             self.context_messages = [
                 ChatSimpleMessage(

@@ -5,6 +5,7 @@ from .model import ModelService
 from .prompt import PromptService
 from app.types.chat import ChatMessage, ChatStreamChunk
 from app.services.chat.context import MessageContext
+from app.services.meta_info import AsyncRedisClient
 
 # 使用新的工具系统
 from app.tools import get_tool_manager
@@ -34,20 +35,31 @@ class AIChatService:
         Yields:
             ChatStreamChunk: 流式响应数据块
         """
-        message_context = MessageContext(message_id, PromptService.get_prompt)
-        await message_context.init_context_messages()
-
-        # 准备工具调用参数
-        tools = None
-        if enable_tools:
-            try:
-                tool_manager = get_tool_manager()
-                tools = tool_manager.get_tools_schema()
-            except RuntimeError:
-                # 工具系统未初始化，禁用工具
-                enable_tools = False
+        # 获取Redis实例并加锁
+        redis = AsyncRedisClient.get_instance()
+        lock_key = f"msg_lock:{message_id}"
 
         try:
+            # 加锁，过期时间60秒
+            await redis.set(lock_key, "1", nx=True, ex=60)
+            logger.info(f"消息锁定成功: {message_id}")
+        except Exception as e:
+            logger.warning(f"消息加锁失败: {message_id}, 错误: {str(e)}")
+
+        try:
+            message_context = MessageContext(message_id, PromptService.get_prompt)
+            await message_context.init_context_messages()
+
+            # 准备工具调用参数
+            tools = None
+            if enable_tools:
+                try:
+                    tool_manager = get_tool_manager()
+                    tools = tool_manager.get_tools_schema()
+                except RuntimeError:
+                    # 工具系统未初始化，禁用工具
+                    enable_tools = False
+
             # 获取流式响应并直接传递
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
@@ -86,3 +98,10 @@ class AIChatService:
             yield ChatStreamChunk(
                 content=f"生成回复时出现错误: {str(e)}"
             )
+        finally:
+            # 解锁
+            try:
+                await redis.delete(lock_key)
+                logger.info(f"消息解锁成功: {message_id}")
+            except Exception as e:
+                logger.warning(f"消息解锁失败: {message_id}, 错误: {str(e)}")
