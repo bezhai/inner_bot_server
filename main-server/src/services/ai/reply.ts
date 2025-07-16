@@ -2,6 +2,7 @@ import { Message } from 'models/message';
 import { sseChat } from './chat';
 import { CardManager } from '@lark-basic/card-manager';
 import { getBotUnionId } from 'utils/bot/bot-var';
+import dayjs from 'dayjs';
 
 export async function makeCardReply(message: Message): Promise<void> {
     const cardManager = CardManager.init();
@@ -26,7 +27,7 @@ export async function makeCardReply(message: Message): Promise<void> {
             message_id: cardManager.getMessageId()!,
             chat_id: message.chatId,
             chat_type: message.isP2P() ? 'p2p' : 'group',
-            create_time: cardManager.getCreateTime(),
+            create_time: dayjs(cardManager.getCreateTime()).toISOString(),
             root_message_id: message.rootId,
             reply_message_id: message.messageId, // 机器人回复消息就是用户消息的id
         } as const;
@@ -74,7 +75,7 @@ export async function reCreateCard(
             message_id: cardManager.getMessageId()!,
             chat_id: chatId,
             chat_type: isP2P ? 'p2p' : 'group',
-            create_time: cardManager.getCreateTime(),
+            create_time: dayjs(cardManager.getCreateTime()).toISOString(),
             root_message_id: rootId,
             reply_message_id: parentMessageId, // 机器人回复消息就是用户消息的id
         } as const;

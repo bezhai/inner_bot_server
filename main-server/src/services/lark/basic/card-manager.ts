@@ -88,17 +88,17 @@ export class CardManager {
     private sequence: number = 0;
     private hasReasoningElement: boolean = false;
     private hasResponseElement: boolean = false;
-    private createTime: string; // 创建时间, 毫秒时间戳
+    private createTime: number; // 创建时间, 毫秒时间戳
     private cardContext: Record<string, any> = {}; // 额外数据, 会写到回调里
     private actionContentAdapter: ActionContentAdapter;
 
     private constructor() {
         this.card = new LarkCard();
-        this.createTime = dayjs().valueOf().toString();
+        this.createTime = dayjs().valueOf();
         this.actionContentAdapter = new ActionContentAdapter();
     }
 
-    public getCreateTime(): string {
+    public getCreateTime(): number {
         return this.createTime;
     }
 
