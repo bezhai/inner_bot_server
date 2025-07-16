@@ -35,12 +35,3 @@ async def chat_sse(request: ChatRequest):
         chat_service.process_chat_sse(request), media_type="text/event-stream"
     )
 
-
-@router.post("/chat/store_message")
-@handle_errors()
-async def store_message(request: StoreRobotMessageRequest) -> StoreRobotMessageResponse:
-    """
-    存储机器人消息
-    """
-    await chat_service.save_message_to_db(request.message)
-    return StoreRobotMessageResponse(code=0, message="success")

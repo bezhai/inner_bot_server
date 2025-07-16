@@ -17,10 +17,7 @@ from app.types.chat import (
     ChatProcessResponse,
     ChatNormalResponse,
 )
-from app.orm.crud import (
-    create_formated_message,
-    get_formated_message_by_message_id,
-)
+from app.core.clients.memory_client import memory_client
 from app.utils.decorators import auto_json_serialize
 from app.services.chat.message import AIChatService
 
@@ -31,39 +28,52 @@ class ChatService:
     """聊天服务类"""
 
     @staticmethod
-    async def save_message_to_db(message: ChatMessage) -> None:
+    async def get_message_by_id(
+        message_id: str, chat_id: str, user_id: str
+    ) -> ChatMessage:
         """
-        将聊天消息保存到数据库
+        根据消息ID从Memory服务获取消息
 
         Args:
-            request: 聊天请求对象
+            message_id: 消息ID
+            chat_id: 聊天ID
+            user_id: 用户ID
 
-        Raises:
-            Exception: 数据库写入失败时抛出异常
+        Returns:
+            ChatMessage: 消息对象
         """
         try:
-            data = message.model_dump()
-            # 将毫秒时间戳转换为datetime对象
-            data["create_time"] = datetime.fromtimestamp(
-                int(data["create_time"]) / 1000
+            result = await memory_client.get_message_by_id(
+                chat_id=chat_id, user_id=user_id, message_id=message_id
             )
-            await create_formated_message(data)
-            logger.info(f"消息已保存到数据库: message_id={message.message_id}")
+
+            if not result:
+                raise ValueError(
+                    f"Message with ID {message_id} not found in Memory service"
+                )
+
+            # 将Memory返回的结果转换为ChatMessage
+            return ChatMessage(
+                user_id=user_id,
+                user_name=result.get("user_name", "未知用户"),
+                content=result.get("content", ""),
+                is_mention_bot=True,  # 重放时默认为True
+                role="user",  # Memory服务暂时不返回role
+                message_id=message_id,
+                chat_id=chat_id,
+                chat_type="group",  # 默认值
+                create_time=result.get(
+                    "create_time", str(int(datetime.now().timestamp() * 1000))
+                ),
+            )
+
         except Exception as e:
-            logger.error(f"写入数据库失败: {str(e)}\n{traceback.format_exc()}")
+            logger.error(f"从Memory服务获取消息失败: {str(e)}")
             raise
 
     @staticmethod
-    async def get_message_by_id(message_id: str) -> ChatMessage:
-        """根据消息ID获取消息"""
-        message = await get_formated_message_by_message_id(message_id)
-        if not message:
-            raise ValueError(f"Message with ID {message_id} not found")
-        return message
-
-    @staticmethod
     async def generate_ai_reply(
-        request: ChatMessage,
+        message_id: str,
         yield_interval: float = 0.5,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
         """
@@ -84,7 +94,7 @@ class ChatService:
 
             # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
-                message=request,
+                message_id=message_id,
                 model_id="gpt-4.1",
                 enable_tools=True,
             ):
@@ -155,28 +165,13 @@ class ChatService:
             # 1. 接收消息确认
             yield ChatNormalResponse(step=Step.ACCEPT)
 
-            message = request.message
-
-            if not request.is_replay and not message:
-                raise ValueError("message is required")
-
-            if request.is_replay:
-                message = await ChatService.get_message_by_id(request.message_id)
-            else:
-                await ChatService.save_message_to_db(message)
-
-            # 如果消息不是@机器人，则直接返回
-            # 如果是重新发起请求，则不检查是否@机器人
-            if not request.is_replay and not request.message.is_mention_bot:
-                return
-
             # 3. 开始生成回复
             yield ChatNormalResponse(step=Step.START_REPLY)
 
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容
             async for chunk in ChatService.generate_ai_reply(
-                message, yield_interval=yield_interval
+                request.message_id, yield_interval=yield_interval
             ):
                 last_content = chunk.content  # 保存最后的内容（已经转换过）
                 yield ChatProcessResponse(

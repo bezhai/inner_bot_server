@@ -72,9 +72,7 @@ export interface ChatMessage {
  * 聊天请求
  */
 export interface ChatRequest {
-    message?: ChatMessage; // 如果是重新发起请求不需要传入
     message_id: string; // 消息id / Message ID
-    is_replay: boolean; // 是否是重新发起请求
 }
 
 /**

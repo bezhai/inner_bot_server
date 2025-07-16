@@ -35,7 +35,7 @@ class ChatMessage(BaseModel):
     chat_id: str  # 聊天id / Chat ID
     chat_type: str  # 聊天类型: 'p2p' | 'group' / Chat type
     create_time: str  # 创建时间 / Creation time
-    
+
 
 class ChatSimpleMessage(BaseModel):
     """
@@ -53,9 +53,7 @@ class ChatRequest(BaseModel):
     Chat request
     """
 
-    message: Optional[ChatMessage] = None  # 如果是重新发起请求不需要传入
     message_id: str  # 消息id / Message ID
-    is_replay: bool = False  # 是否是重新发起请求
 
 
 class ToolCallFeedbackResponse(BaseModel):

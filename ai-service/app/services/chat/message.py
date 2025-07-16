@@ -15,7 +15,7 @@ class AIChatService:
 
     @staticmethod
     async def stream_ai_reply(
-        message: ChatMessage,
+        message_id: str,
         model_id: str = "gpt-4o-mini",
         temperature: float = 0.7,
         enable_tools: bool = False,
@@ -34,7 +34,7 @@ class AIChatService:
         Yields:
             ChatStreamChunk: 流式响应数据块
         """
-        message_context = MessageContext(message, PromptService.get_prompt)
+        message_context = MessageContext(message_id, PromptService.get_prompt)
         await message_context.init_context_messages()
 
         # 准备工具调用参数

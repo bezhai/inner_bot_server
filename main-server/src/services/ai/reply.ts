@@ -13,21 +13,6 @@ export async function makeCardReply(message: Message): Promise<void> {
         is_p2p: message.isP2P(),
     });
 
-    const chatMessage = {
-        user_id: message.sender,
-        user_open_id: message.senderOpenId,
-        user_name: message.senderInfo?.name ?? '',
-        content: message.toMarkdown(),
-        is_mention_bot: message.hasMention(getBotUnionId()) || message.isP2P(),
-        role: 'user',
-        message_id: message.messageId,
-        chat_id: message.chatId,
-        chat_type: message.isP2P() ? 'p2p' : 'group',
-        create_time: message.createTime ?? '',
-        root_message_id: message.rootId,
-        reply_message_id: message.parentMessageId,
-    } as const;
-
     const onSaveMessage = async (content: string) => {
         if (!cardManager.getMessageId()) {
             return undefined;
@@ -49,9 +34,7 @@ export async function makeCardReply(message: Message): Promise<void> {
 
     await sseChat({
         req: {
-            message: chatMessage,
             message_id: message.messageId,
-            is_replay: false,
         },
         ...cardManager.createAdvancedCallbacks(message.messageId),
         onSaveMessage,
@@ -100,7 +83,6 @@ export async function reCreateCard(
     await sseChat({
         req: {
             message_id: parentMessageId,
-            is_replay: true,
         },
         ...cardManager.createAdvancedCallbacks(parentMessageId),
         onStartReply: async () => {}, // 重试不需要重新创建卡片
