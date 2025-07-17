@@ -172,13 +172,13 @@ class ChatService:
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容
 
-            # generate_ai_reply = ChatService.generate_ai_reply
-            # if not request.is_canary:
-            #     generate_ai_reply = (
-            #         LangGraphChatServiceWrapper.generate_ai_reply
-            #     )
+            generate_ai_reply = ChatService.generate_ai_reply
+            if request.is_canary:
+                generate_ai_reply = (
+                    LangGraphChatServiceWrapper.generate_ai_reply
+                )
 
-            async for chunk in ChatService.generate_ai_reply(
+            async for chunk in generate_ai_reply(
                 request.message_id, yield_interval=yield_interval
             ):
                 last_content = chunk.content  # 保存最后的内容（已经转换过）
