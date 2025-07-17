@@ -1,0 +1,43 @@
+[project]
+name = "ai-service"
+version = "0.1.0"
+description = "AI Service API"
+requires-python = ">=3.10"
+dependencies = [
+    "aioredis>=2.0.1",
+    "asyncpg>=0.30.0",
+    "black>=25.1.0",
+    "fastapi>=0.116.1",
+    "isort>=6.0.1",
+    "jieba>=0.42.1",
+    "jinja2>=3.1.6",
+    "markupsafe>=3.0.2",
+    "mypy-extensions>=1.1.0",
+    "numpy>=2.2.6",
+    "ollama>=0.5.1",
+    "openai>=1.97.0",
+    "packaging>=25.0",
+    "pathspec>=0.12.1",
+    "platformdirs>=4.3.8",
+    "pydantic-settings>=2.10.1",
+    "python-json-logger>=3.3.0",
+    "qdrant-client>=1.14.3",
+    "redis>=6.2.0",
+    "requests>=2.32.4",
+    "setuptools>=80.9.0",
+    "sqlalchemy>=2.0.41",
+    "sse-starlette>=2.4.1",
+    "starlette>=0.47.1",
+    "tenacity>=9.1.2",
+    "uvicorn>=0.35.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+dev-dependencies = []

@@ -1,32 +1,32 @@
-# Stage 1: 构建依赖并安装
-FROM library/python:3.10-slim AS builder
+FROM python:3.10-slim
+
+RUN groupadd -r appuser && useradd -r -g appuser -m appuser
+
 
 WORKDIR /app
 
-COPY requirements.txt /app/requirements.txt
+RUN pip install uv -i https://mirrors.aliyun.com/pypi/simple/
 
-RUN pip install --no-cache-dir -r /app/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
+# 复制项目配置文件
+COPY pyproject.toml uv.lock ./
 
+# 配置uv使用阿里云镜像源并同步依赖
+RUN uv sync --index-url https://mirrors.aliyun.com/pypi/simple/
+
+# 复制应用代码
 COPY ./app /app/app
-
-# Stage 2: 创建生产镜像
-FROM library/python:3.10-slim
 
 # 设置时区为东八区
 ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ENV PYTHONPATH=/app
+ENV UV_CACHE_DIR=/tmp/uv-cache
 
-WORKDIR /app
+RUN mkdir -p /logs/ai-service && chown -R appuser:appuser /logs
 
-COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+RUN chown -R appuser:appuser /app
 
-COPY --from=builder /app /app
-
-# 创建日志目录
-RUN mkdir -p /var/log/ai-service && \
-    chmod 777 /var/log/ai-service
+USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config", "app/config/logging_config.json"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config", "app/config/logging_config.json"]
