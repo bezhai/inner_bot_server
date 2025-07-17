@@ -52,8 +52,8 @@ class ChatRequest(BaseModel):
     聊天请求
     Chat request
     """
-
     message_id: str  # 消息id / Message ID
+    is_canary: Optional[bool] = False  # 是否开启灰度
 
 
 class ToolCallFeedbackResponse(BaseModel):
