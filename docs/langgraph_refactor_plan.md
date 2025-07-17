@@ -28,23 +28,115 @@
 3. **提示词管理** - 使用 LangChain PromptTemplate 替代现有 Jinja2 实现
 4. **外部记忆集成** - 保持与 Memory 服务的集成
 
-## 2. 技术架构设计
+## 2. 架构设计
 
-### 2.1 依赖库选择
-```python
-# 新增依赖
-langgraph>=0.0.40
-langchain>=0.1.0
-langchain-openai>=0.1.0
-langchain-core>=0.1.0
+### 2.1 架构对比
 
-# 现有依赖保留
-openai>=1.0.0
-pydantic>=2.0.0
-asyncio
+#### 当前架构流程：
+```
+用户请求 → 消息接收 → 上下文构建 → AI生成 → 工具调用 → 流式返回
 ```
 
-### 2.2 目录结构设计
+#### 重构后架构流程：
+```
+用户请求 → 图工作流启动 → 多节点并行处理 → 状态管理 → 结果输出
+```
+
+### 2.2 LangGraph 工作流设计
+
+#### 工作流图结构：
+```
+开始
+  ↓
+初始化节点 ─────────────────────────────┐
+  ↓                                      │
+提示词生成节点                           │
+  ↓                                      │
+模型调用节点                             │
+  ↓                                      │
+决策节点 ─→ 工具调用节点 ─→ 判断节点 ─────┘
+  ↓                           ↓
+输出处理节点                继续调用
+  ↓
+清理节点
+  ↓
+结束
+```
+
+#### 节点功能说明：
+
+**1. 初始化节点 (Initialize Node)**
+- 功能：设置Redis锁、初始化消息上下文、准备提示词参数
+- 输入：message_id、模型配置
+- 输出：初始化完成的状态对象
+
+**2. 提示词生成节点 (Prompt Generation Node)**
+- 功能：动态生成系统提示词，注入时间、上下文等参数
+- 输入：状态对象（包含提示词参数）
+- 输出：完整的生成提示词
+
+**3. 模型调用节点 (Model Call Node)**
+- 功能：调用OpenAI API，处理流式响应，检测工具调用
+- 输入：提示词、消息历史、工具配置
+- 输出：模型响应、工具调用信息
+
+**4. 工具执行节点 (Tool Execution Node)**
+- 功能：执行工具调用，处理工具结果，更新上下文
+- 输入：工具调用列表
+- 输出：工具执行结果
+
+**5. 输出处理节点 (Output Processing Node)**
+- 功能：处理特殊finish_reason，格式化输出
+- 输入：累积的响应内容
+- 输出：格式化的输出
+
+**6. 清理节点 (Cleanup Node)**
+- 功能：释放Redis锁，清理资源
+- 输入：状态对象
+- 输出：清理完成标志
+
+### 2.3 状态管理设计
+
+#### 状态对象结构：
+```
+GraphState {
+    // 基础信息
+    message_id: 字符串
+    context: 消息上下文对象
+    
+    // 模型配置
+    model_config: {
+        model_id: 字符串
+        temperature: 浮点数
+        enable_tools: 布尔值
+    }
+    
+    // 提示词相关
+    prompt_params: 键值对映射
+    generated_prompt: 字符串
+    
+    // 流式输出控制
+    streaming_config: {
+        yield_interval: 浮点数
+        buffer_size: 整数
+    }
+    
+    // 输出状态
+    accumulated_content: 字符串
+    current_chunks: 响应块列表
+    
+    // 工具调用
+    pending_tool_calls: 待处理工具调用列表
+    tool_results: 工具执行结果列表
+    
+    // 错误处理
+    error_message: 字符串（可选）
+    finish_reason: 字符串（可选）
+}
+```
+
+### 2.4 目录结构设计
+
 ```
 app/services/chat/
 ├── __init__.py
@@ -67,500 +159,181 @@ app/services/chat/
     └── prompt.py
 ```
 
-### 2.3 核心状态设计
-```python
-from typing import Dict, List, Any, Optional
-from typing_extensions import TypedDict
-from app.services.chat.context import MessageContext
-from app.types.chat import ChatStreamChunk
-
-class ChatGraphState(TypedDict):
-    """LangGraph 聊天状态"""
-    
-    # 基础信息
-    message_id: str
-    context: MessageContext
-    
-    # 模型配置
-    model_config: Dict[str, Any]  # {model_id, temperature, etc.}
-    
-    # 工作流参数
-    workflow_params: Dict[str, Any]  # 未来扩展用
-    
-    # 提示词参数
-    prompt_params: Dict[str, Any]
-    generated_prompt: str
-    
-    # 流式输出控制
-    streaming_config: Dict[str, Any]  # {yield_interval, buffer_size}
-    
-    # 输出状态
-    accumulated_content: str
-    accumulated_reason: str
-    current_chunks: List[ChatStreamChunk]
-    last_yield_time: float
-    
-    # 工具调用
-    pending_tool_calls: List[Dict[str, Any]]
-    tool_results: List[Dict[str, Any]]
-    
-    # 错误处理
-    error_message: Optional[str]
-    finish_reason: Optional[str]
-```
-
 ## 3. 详细实施方案
 
-### 3.1 阶段一：核心架构搭建（预计 3-4 天）
+### 3.1 阶段一：核心架构搭建（3-4天）
 
-#### 3.1.1 状态定义 (`app/services/chat/langgraph/state.py`)
+#### 3.1.1 状态管理模块设计
 
-```python
-from typing import Dict, List, Any, Optional
-from typing_extensions import TypedDict
-from app.services.chat.context import MessageContext
-from app.types.chat import ChatStreamChunk
-
-class ChatGraphState(TypedDict):
-    # [状态定义如上所示]
-    pass
-
-# 状态操作辅助函数
-def init_state(message_id: str, model_config: Dict[str, Any]) -> ChatGraphState:
-    """初始化图状态"""
-    return ChatGraphState(
-        message_id=message_id,
-        context=None,
-        model_config=model_config,
-        workflow_params={},
-        prompt_params={},
-        generated_prompt="",
-        streaming_config={"yield_interval": 0.5, "buffer_size": 1024},
-        accumulated_content="",
-        accumulated_reason="",
-        current_chunks=[],
-        last_yield_time=0.0,
-        pending_tool_calls=[],
-        tool_results=[],
-        error_message=None,
-        finish_reason=None
-    )
+**状态初始化流程：**
+```
+函数 init_state(message_id, model_config):
+    创建 GraphState 对象
+    设置 message_id = message_id
+    设置 model_config = model_config
+    初始化 prompt_params = {}
+    设置 streaming_config = {yield_interval: 0.5}
+    初始化 accumulated_content = ""
+    初始化 current_chunks = []
+    设置 pending_tool_calls = []
+    设置 tool_results = []
+    返回 GraphState 对象
 ```
 
-#### 3.1.2 节点实现 (`app/services/chat/langgraph/nodes.py`)
+**状态更新机制：**
+- 每个节点接收状态对象，处理后返回更新的状态
+- 状态在节点间传递，保持数据一致性
+- 支持状态回滚和错误恢复
 
-```python
-import asyncio
-import logging
-from datetime import datetime
-from typing import Dict, Any, AsyncGenerator
+#### 3.1.2 图节点设计与实现
 
-from langchain.prompts import PromptTemplate
-from app.services.chat.context import MessageContext
-from app.services.chat.langgraph.state import ChatGraphState
-from app.services.chat.langgraph.models import LangGraphModelService
-from app.services.meta_info import AsyncRedisClient
-from app.types.chat import ChatStreamChunk
-
-logger = logging.getLogger(__name__)
-
-async def initialize_node(state: ChatGraphState) -> ChatGraphState:
-    """初始化节点：加载上下文和设置基础参数"""
+**初始化节点逻辑：**
+```
+异步函数 initialize_node(state):
+    // 1. 获取Redis锁
+    redis_client = 获取Redis客户端()
+    lock_key = "msg_lock:" + state.message_id
+    尝试:
+        设置Redis锁(lock_key, 过期时间=60秒)
+        记录日志("消息锁定成功")
+    异常处理:
+        记录警告("消息加锁失败")
     
-    # 加锁机制
-    redis = AsyncRedisClient.get_instance()
-    lock_key = f"msg_lock:{state['message_id']}"
+    // 2. 初始化消息上下文
+    context = 创建MessageContext(state.message_id)
+    等待 context.init_context_messages()
     
-    try:
-        await redis.set(lock_key, "1", nx=True, ex=60)
-        logger.info(f"消息锁定成功: {state['message_id']}")
-    except Exception as e:
-        logger.warning(f"消息加锁失败: {state['message_id']}, 错误: {str(e)}")
-    
-    # 初始化消息上下文
-    from app.services.chat.prompts.templates import get_prompt_template
-    
-    prompt_template = get_prompt_template()
-    context = MessageContext(state["message_id"], prompt_template.format)
-    await context.init_context_messages()
-    
-    # 设置动态提示词参数
-    prompt_params = {
-        "current_time": datetime.now().strftime("%H:%M:%S"),
-        "current_date": datetime.now().strftime("%Y-%m-%d"),
-        **state.get("prompt_params", {})
+    // 3. 设置提示词参数
+    current_time = 获取当前时间()
+    current_date = 获取当前日期()
+    state.prompt_params = {
+        "current_time": current_time,
+        "current_date": current_date,
+        ...其他参数
     }
     
-    return {
-        **state,
-        "context": context,
-        "prompt_params": prompt_params,
-        "last_yield_time": asyncio.get_event_loop().time()
-    }
+    // 4. 更新状态
+    state.context = context
+    state.last_yield_time = 获取当前时间戳()
+    
+    返回 state
+```
 
-async def prompt_generation_node(state: ChatGraphState) -> ChatGraphState:
-    """提示词生成节点"""
+**提示词生成节点逻辑：**
+```
+异步函数 prompt_generation_node(state):
+    // 1. 获取提示词模板
+    template = 获取系统提示词模板()
     
-    from app.services.chat.prompts.templates import get_system_prompt_template
+    // 2. 动态参数注入
+    生成的提示词 = template.format(state.prompt_params)
     
-    template = get_system_prompt_template()
-    generated_prompt = template.format(**state["prompt_params"])
+    // 3. 更新状态
+    state.generated_prompt = 生成的提示词
     
-    return {
-        **state,
-        "generated_prompt": generated_prompt
-    }
+    返回 state
+```
 
-async def model_call_node(state: ChatGraphState) -> ChatGraphState:
-    """模型调用节点"""
+**模型调用节点逻辑：**
+```
+异步函数 model_call_node(state):
+    // 1. 准备模型服务
+    model_service = 创建LangGraphModelService()
     
-    model_service = LangGraphModelService()
+    // 2. 构建消息列表
+    messages = state.context.build_with_prompt(state.generated_prompt)
     
-    # 构建消息
-    messages = state["context"].build_with_prompt(state["generated_prompt"])
+    // 3. 准备工具配置
+    tools = null
+    如果 state.model_config.enable_tools:
+        tools = 获取工具管理器().get_tools_schema()
     
-    # 准备工具
-    tools = None
-    if state["model_config"].get("enable_tools", False):
-        from app.tools import get_tool_manager
-        try:
-            tool_manager = get_tool_manager()
-            tools = tool_manager.get_tools_schema()
-        except RuntimeError:
-            logger.warning("工具系统未初始化")
-    
-    # 调用模型
-    response_state = await model_service.stream_chat_completion(
-        state=state,
-        messages=messages,
-        tools=tools
+    // 4. 调用模型
+    response_state = 等待 model_service.stream_chat_completion(
+        state, messages, tools
     )
     
-    return response_state
+    返回 response_state
+```
 
-async def tool_execution_node(state: ChatGraphState) -> ChatGraphState:
-    """工具执行节点"""
+**工具执行节点逻辑：**
+```
+异步函数 tool_execution_node(state):
+    // 1. 检查是否有待处理工具调用
+    如果 state.pending_tool_calls 为空:
+        返回 state
     
-    if not state["pending_tool_calls"]:
-        return state
-    
-    from app.tools import get_tool_manager
-    tool_manager = get_tool_manager()
-    
+    // 2. 获取工具管理器
+    tool_manager = 获取工具管理器()
     tool_results = []
     
-    for tool_call in state["pending_tool_calls"]:
-        try:
-            result = await tool_manager.execute_tool(
-                tool_call["function"]["name"],
-                tool_call["function"]["arguments"]
+    // 3. 遍历执行工具调用
+    对于每个 tool_call 在 state.pending_tool_calls:
+        尝试:
+            result = 等待 tool_manager.execute_tool(
+                tool_call.function.name,
+                tool_call.function.arguments
             )
-            
-            tool_results.append({
-                "tool_call_id": tool_call["id"],
-                "role": "tool",
-                "name": tool_call["function"]["name"],
-                "content": str(result)
-            })
-            
-        except Exception as e:
-            logger.error(f"工具执行错误: {e}")
-            tool_results.append({
-                "tool_call_id": tool_call["id"],
-                "role": "tool", 
-                "name": tool_call["function"]["name"],
-                "content": f"Error: {str(e)}"
-            })
+            添加成功结果到 tool_results
+        异常处理:
+            记录错误日志
+            添加错误结果到 tool_results
     
-    # 将工具结果添加到上下文
-    for result in tool_results:
-        state["context"].append_message(result)
+    // 4. 更新上下文和状态
+    对于每个 result 在 tool_results:
+        state.context.append_message(result)
     
-    return {
-        **state,
-        "tool_results": tool_results,
-        "pending_tool_calls": []
-    }
-
-async def output_processing_node(state: ChatGraphState) -> ChatGraphState:
-    """输出处理节点：处理特殊 finish_reason 和缓存逻辑"""
+    state.tool_results = tool_results
+    state.pending_tool_calls = []
     
-    # 处理特殊 finish_reason
-    if state["finish_reason"] == "content_filter":
-        special_chunk = ChatStreamChunk(content="赤尾有点不想讨论这个话题呢~")
-        state["current_chunks"].append(special_chunk)
-        state["accumulated_content"] += special_chunk.content
-        
-    elif state["finish_reason"] == "length":
-        special_chunk = ChatStreamChunk(content="(后续内容被截断)")
-        state["current_chunks"].append(special_chunk)
-        state["accumulated_content"] += special_chunk.content
-    
-    return state
-
-async def cleanup_node(state: ChatGraphState) -> ChatGraphState:
-    """清理节点：释放资源"""
-    
-    # 解锁
-    redis = AsyncRedisClient.get_instance()
-    lock_key = f"msg_lock:{state['message_id']}"
-    
-    try:
-        await redis.delete(lock_key)
-        logger.info(f"消息解锁成功: {state['message_id']}")
-    except Exception as e:
-        logger.warning(f"消息解锁失败: {state['message_id']}, 错误: {str(e)}")
-    
-    return state
+    返回 state
 ```
 
-#### 3.1.3 流式输出处理 (`app/services/chat/langgraph/streaming.py`)
-
-```python
-import asyncio
-import logging
-from typing import AsyncGenerator
-
-from app.services.chat.langgraph.state import ChatGraphState
-from app.types.chat import ChatStreamChunk
-
-logger = logging.getLogger(__name__)
-
-class StreamingManager:
-    """流式输出管理器"""
+**输出处理节点逻辑：**
+```
+异步函数 output_processing_node(state):
+    // 1. 处理特殊finish_reason
+    如果 state.finish_reason == "content_filter":
+        special_chunk = 创建ChatStreamChunk("赤尾有点不想讨论这个话题呢~")
+        state.current_chunks.append(special_chunk)
+        state.accumulated_content += special_chunk.content
     
-    def __init__(self, yield_interval: float = 0.5):
-        self.yield_interval = yield_interval
-        self.last_yield_time = 0.0
-        self.accumulated_content = ""
-        self.accumulated_reason = ""
-        
-    async def should_yield(self) -> bool:
-        """检查是否应该输出"""
-        current_time = asyncio.get_event_loop().time()
-        return current_time - self.last_yield_time >= self.yield_interval
+    否则如果 state.finish_reason == "length":
+        special_chunk = 创建ChatStreamChunk("(后续内容被截断)")
+        state.current_chunks.append(special_chunk)
+        state.accumulated_content += special_chunk.content
     
-    async def yield_chunk(self, chunk: ChatStreamChunk) -> ChatStreamChunk:
-        """输出数据块"""
-        self.accumulated_content += chunk.content or ""
-        self.accumulated_reason += chunk.reason_content or ""
-        
-        # 创建累积的chunk
-        accumulated_chunk = ChatStreamChunk(
-            content=self.accumulated_content,
-            reason_content=self.accumulated_reason,
-            tool_call_feedback=chunk.tool_call_feedback
-        )
-        
-        self.last_yield_time = asyncio.get_event_loop().time()
-        return accumulated_chunk
+    // 2. 其他输出处理逻辑
+    // ...
     
-    async def process_streaming_response(
-        self, 
-        state: ChatGraphState, 
-        chunk_generator: AsyncGenerator[ChatStreamChunk, None]
-    ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """处理流式响应"""
-        
-        async for chunk in chunk_generator:
-            # 累积内容
-            self.accumulated_content += chunk.content or ""
-            self.accumulated_reason += chunk.reason_content or ""
-            
-            # 检查是否应该输出
-            if await self.should_yield():
-                accumulated_chunk = await self.yield_chunk(chunk)
-                yield accumulated_chunk
-        
-        # 输出最终内容
-        if self.accumulated_content or self.accumulated_reason:
-            final_chunk = ChatStreamChunk(
-                content=self.accumulated_content,
-                reason_content=self.accumulated_reason,
-                tool_call_feedback=chunk.tool_call_feedback if 'chunk' in locals() else None
-            )
-            yield final_chunk
+    返回 state
 ```
 
-#### 3.1.4 模型服务适配 (`app/services/chat/langgraph/models.py`)
-
-```python
-import logging
-from typing import Dict, List, Any, Optional, AsyncGenerator
-from openai import AsyncOpenAI
-from app.services.chat.langgraph.state import ChatGraphState
-from app.services.chat.langgraph.streaming import StreamingManager
-from app.orm.crud import get_model_and_provider_info
-from app.types.chat import ChatStreamChunk
-
-logger = logging.getLogger(__name__)
-
-class LangGraphModelService:
-    """LangGraph 模型服务"""
+**清理节点逻辑：**
+```
+异步函数 cleanup_node(state):
+    // 1. 释放Redis锁
+    redis_client = 获取Redis客户端()
+    lock_key = "msg_lock:" + state.message_id
     
-    def __init__(self):
-        self.streaming_manager = StreamingManager()
-        self._client_cache: Dict[str, AsyncOpenAI] = {}
+    尝试:
+        redis_client.delete(lock_key)
+        记录日志("消息解锁成功")
+    异常处理:
+        记录警告("消息解锁失败")
     
-    async def get_openai_client(self, model_id: str) -> AsyncOpenAI:
-        """获取OpenAI客户端（复用现有逻辑）"""
-        if model_id in self._client_cache:
-            return self._client_cache[model_id]
-        
-        model_info = await get_model_and_provider_info(model_id)
-        if model_info is None:
-            raise Exception(f"Model {model_id} not found")
-        
-        client = AsyncOpenAI(
-            api_key=model_info["api_key"],
-            base_url=model_info["base_url"]
-        )
-        
-        self._client_cache[model_id] = client
-        return client
-    
-    async def stream_chat_completion(
-        self,
-        state: ChatGraphState,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None
-    ) -> ChatGraphState:
-        """流式聊天完成"""
-        
-        model_config = state["model_config"]
-        client = await self.get_openai_client(model_config["model_id"])
-        
-        # 获取模型信息
-        model_info = await get_model_and_provider_info(model_config["model_id"])
-        model_name = model_info["model_name"]
-        
-        # 构建请求参数
-        request_params = {
-            "model": model_name,
-            "messages": messages,
-            "temperature": model_config.get("temperature", 0.7),
-            "stream": True,
-        }
-        
-        if tools:
-            request_params["tools"] = tools
-            request_params["tool_choice"] = "auto"
-        
-        # 发送请求
-        stream = await client.chat.completions.create(**request_params)
-        
-        # 处理流式响应
-        accumulated_content = ""
-        tool_call_chunks = []
-        has_tool_calls = False
-        
-        async for chunk in stream:
-            if chunk.choices:
-                choice = chunk.choices[0]
-                delta = choice.delta
-                
-                # 处理内容
-                if delta and delta.content:
-                    content_chunk = delta.content
-                    accumulated_content += content_chunk
-                    
-                    # 创建流式chunk
-                    stream_chunk = ChatStreamChunk(content=content_chunk)
-                    state["current_chunks"].append(stream_chunk)
-                
-                # 处理工具调用
-                if delta and delta.tool_calls:
-                    has_tool_calls = True
-                    tool_call_chunks.extend(delta.tool_calls)
-                
-                # 检查完成状态
-                if choice.finish_reason:
-                    state["finish_reason"] = choice.finish_reason
-                    break
-        
-        # 更新状态
-        state["accumulated_content"] += accumulated_content
-        
-        # 处理工具调用
-        if has_tool_calls:
-            tool_calls = self._assemble_tool_calls(tool_call_chunks)
-            state["pending_tool_calls"] = tool_calls
-            
-            # 添加助手消息到上下文
-            assistant_message = {
-                "role": "assistant",
-                "content": accumulated_content if accumulated_content else None,
-                "tool_calls": tool_calls
-            }
-            state["context"].append_message(assistant_message)
-        
-        return state
-    
-    def _assemble_tool_calls(self, tool_call_chunks: List[Any]) -> List[Dict[str, Any]]:
-        """组装工具调用（复用现有逻辑）"""
-        from collections import defaultdict
-        
-        tool_calls_dict = defaultdict(
-            lambda: {
-                "id": "",
-                "type": "function", 
-                "function": {"name": "", "arguments": ""}
-            }
-        )
-        
-        for chunk in tool_call_chunks:
-            index = chunk.index
-            tc = tool_calls_dict[index]
-            
-            if chunk.id:
-                tc["id"] += chunk.id
-            if chunk.function.name:
-                tc["function"]["name"] += chunk.function.name
-            if chunk.function.arguments:
-                tc["function"]["arguments"] += chunk.function.arguments
-        
-        return list(tool_calls_dict.values())
+    返回 state
 ```
 
-#### 3.1.5 主图定义 (`app/services/chat/langgraph/graph.py`)
+#### 3.1.3 图构建与条件控制
 
-```python
-import logging
-from typing import Dict, Any, Literal
-from langgraph.graph import StateGraph, END
-from langgraph.graph.graph import CompiledGraph
-
-from app.services.chat.langgraph.state import ChatGraphState, init_state
-from app.services.chat.langgraph.nodes import (
-    initialize_node,
-    prompt_generation_node, 
-    model_call_node,
-    tool_execution_node,
-    output_processing_node,
-    cleanup_node
-)
-
-logger = logging.getLogger(__name__)
-
-def should_continue_with_tools(state: ChatGraphState) -> Literal["tool_execution", "output_processing"]:
-    """判断是否需要执行工具"""
-    if state["pending_tool_calls"] and state["finish_reason"] == "tool_calls":
-        return "tool_execution"
-    return "output_processing"
-
-def should_continue_after_tools(state: ChatGraphState) -> Literal["model_call", "output_processing"]:
-    """工具执行后是否继续调用模型"""
-    if state["tool_results"]:
-        return "model_call"
-    return "output_processing"
-
-def create_chat_graph() -> CompiledGraph:
-    """创建聊天处理图"""
+**图构建逻辑：**
+```
+函数 create_chat_graph():
+    // 1. 创建状态图
+    graph = 创建StateGraph(ChatGraphState)
     
-    # 创建状态图
-    graph = StateGraph(ChatGraphState)
-    
-    # 添加节点
+    // 2. 添加节点
     graph.add_node("initialize", initialize_node)
     graph.add_node("prompt_generation", prompt_generation_node)
     graph.add_node("model_call", model_call_node)
@@ -568,14 +341,14 @@ def create_chat_graph() -> CompiledGraph:
     graph.add_node("output_processing", output_processing_node)
     graph.add_node("cleanup", cleanup_node)
     
-    # 设置入口
+    // 3. 设置入口点
     graph.set_entry_point("initialize")
     
-    # 添加边
+    // 4. 添加边
     graph.add_edge("initialize", "prompt_generation")
     graph.add_edge("prompt_generation", "model_call")
     
-    # 条件边：模型调用后判断是否需要工具
+    // 5. 添加条件边
     graph.add_conditional_edges(
         "model_call",
         should_continue_with_tools,
@@ -585,9 +358,8 @@ def create_chat_graph() -> CompiledGraph:
         }
     )
     
-    # 条件边：工具执行后判断是否继续
     graph.add_conditional_edges(
-        "tool_execution", 
+        "tool_execution",
         should_continue_after_tools,
         {
             "model_call": "model_call",
@@ -598,956 +370,1222 @@ def create_chat_graph() -> CompiledGraph:
     graph.add_edge("output_processing", "cleanup")
     graph.add_edge("cleanup", END)
     
-    return graph.compile()
-
-# 全局图实例
-_chat_graph: CompiledGraph = None
-
-def get_chat_graph() -> CompiledGraph:
-    """获取聊天处理图实例"""
-    global _chat_graph
-    if _chat_graph is None:
-        _chat_graph = create_chat_graph()
-    return _chat_graph
+    返回 graph.compile()
 ```
 
-### 3.2 阶段二：提示词模板重构（预计 1-2 天）
+**条件判断逻辑：**
+```
+函数 should_continue_with_tools(state):
+    如果 state.pending_tool_calls 不为空 且 state.finish_reason == "tool_calls":
+        返回 "tool_execution"
+    返回 "output_processing"
 
-#### 3.2.1 提示词模板 (`app/services/chat/prompts/templates.py`)
+函数 should_continue_after_tools(state):
+    如果 state.tool_results 不为空:
+        返回 "model_call"
+    返回 "output_processing"
+```
 
-```python
-from pathlib import Path
-from langchain.prompts import PromptTemplate
-from langchain.prompts.chat import ChatPromptTemplate, SystemMessagePromptTemplate
+#### 3.1.4 流式输出处理设计
 
-# 提示词文件路径
-PROMPT_DIR = Path(__file__).parent
-SYSTEM_PROMPT_FILE = PROMPT_DIR / "system_prompt.md"
-
-def get_system_prompt_template() -> PromptTemplate:
-    """获取系统提示词模板"""
+**流式输出管理器：**
+```
+类 StreamingManager:
+    属性:
+        yield_interval: 浮点数 = 0.5
+        last_yield_time: 浮点数 = 0.0
+        accumulated_content: 字符串 = ""
+        accumulated_reason: 字符串 = ""
     
-    if not SYSTEM_PROMPT_FILE.exists():
-        # 降级到默认提示词
-        default_template = """你是一个AI助手，当前时间是 {current_time}，当前日期是 {current_date}。
-请根据以下对话历史回答用户问题。"""
+    方法 should_yield():
+        current_time = 获取当前时间()
+        返回 (current_time - self.last_yield_time) >= self.yield_interval
+    
+    方法 yield_chunk(chunk):
+        self.accumulated_content += chunk.content
+        self.accumulated_reason += chunk.reason_content
         
-        return PromptTemplate(
-            template=default_template,
-            input_variables=["current_time", "current_date"]
+        accumulated_chunk = 创建ChatStreamChunk(
+            content=self.accumulated_content,
+            reason_content=self.accumulated_reason,
+            tool_call_feedback=chunk.tool_call_feedback
         )
-    
-    # 读取提示词文件
-    prompt_content = SYSTEM_PROMPT_FILE.read_text(encoding="utf-8")
-    
-    # 创建模板
-    return PromptTemplate.from_template(prompt_content)
-
-def get_chat_prompt_template() -> ChatPromptTemplate:
-    """获取聊天提示词模板"""
-    
-    system_template = get_system_prompt_template()
-    
-    return ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate(prompt=system_template)
-    ])
-
-def get_prompt_template():
-    """获取提示词模板（兼容现有接口）"""
-    return get_system_prompt_template()
+        
+        self.last_yield_time = 获取当前时间()
+        返回 accumulated_chunk
 ```
 
-#### 3.2.2 迁移现有提示词 (`app/services/chat/prompts/system_prompt.md`)
-
-```markdown
-# 将现有的 app/services/chat/prompt.md 内容迁移到这里
-# 并适配 LangChain 的模板语法
-
-你是一个AI助手，当前时间是 {current_time}，当前日期是 {current_date}。
-
-# 在这里添加现有的提示词内容...
+**流式处理流程：**
+```
+异步函数 process_streaming_response(state, chunk_generator):
+    对于每个 chunk 在 chunk_generator:
+        // 1. 累积内容
+        accumulated_content += chunk.content
+        accumulated_reason += chunk.reason_content
+        
+        // 2. 检查是否应该输出
+        如果 should_yield():
+            accumulated_chunk = yield_chunk(chunk)
+            输出 accumulated_chunk
+    
+    // 3. 输出最终内容
+    如果 accumulated_content 或 accumulated_reason 不为空:
+        final_chunk = 创建最终ChatStreamChunk
+        输出 final_chunk
 ```
 
-### 3.3 阶段三：服务层重构（预计 2-3 天）
+### 3.2 阶段二：提示词模板重构（1-2天）
 
-#### 3.3.1 重构聊天服务 (`app/services/chat_service.py`)
+#### 3.2.1 提示词模板系统设计
 
-```python
-"""
-重构后的聊天服务层
-使用 LangGraph 处理 LLM 工作流
-"""
+**模板结构设计：**
+```
+提示词模板系统
+├── 系统提示词模板 (system_prompt.md)
+├── 用户提示词模板 (user_prompt_template)
+├── 工具调用提示词模板 (tool_call_template)
+└── 动态参数配置 (dynamic_params)
+```
 
-import logging
-import traceback
-import asyncio
-from datetime import datetime
-from typing import AsyncGenerator
+**模板加载逻辑：**
+```
+函数 get_system_prompt_template():
+    // 1. 检查模板文件是否存在
+    如果 system_prompt.md 文件存在:
+        content = 读取文件内容("system_prompt.md")
+        返回 PromptTemplate.from_template(content)
+    
+    // 2. 使用默认模板
+    否则:
+        default_template = "你是一个AI助手，当前时间是 {current_time}..."
+        返回 PromptTemplate(template=default_template)
+```
 
-from app.types.chat import (
-    ChatMessage,
-    ChatRequest,
-    ChatStreamChunk,
-    Step,
-    ChatProcessResponse,
-    ChatNormalResponse,
-)
-from app.core.clients.memory_client import memory_client
-from app.utils.decorators import auto_json_serialize
-from app.services.chat.langgraph.graph import get_chat_graph
-from app.services.chat.langgraph.state import init_state
-from app.services.chat.langgraph.streaming import StreamingManager
+**动态参数注入机制：**
+```
+函数 inject_dynamic_params(template, params):
+    // 1. 基础参数注入
+    基础参数 = {
+        "current_time": 获取当前时间(),
+        "current_date": 获取当前日期(),
+        "user_context": 获取用户上下文(),
+    }
+    
+    // 2. 合并自定义参数
+    最终参数 = 合并(基础参数, params)
+    
+    // 3. 生成最终提示词
+    返回 template.format(最终参数)
+```
 
-logger = logging.getLogger(__name__)
+#### 3.2.2 提示词迁移方案
 
-class ChatService:
-    """重构后的聊天服务类"""
+**迁移步骤：**
+```
+步骤1: 分析现有提示词
+    - 解析现有 prompt.md 文件
+    - 识别 Jinja2 模板语法
+    - 提取动态参数列表
 
-    def __init__(self):
-        self.graph = get_chat_graph()
-        self.streaming_manager = StreamingManager()
+步骤2: 转换模板语法
+    - 将 {{ variable }} 转换为 {variable}
+    - 更新条件语句语法
+    - 适配 LangChain 模板格式
 
-    @staticmethod
-    async def get_message_by_id(
-        message_id: str, chat_id: str, user_id: str
-    ) -> ChatMessage:
-        """
-        根据消息ID从Memory服务获取消息
-        （保持现有实现不变）
-        """
-        # 保持现有实现
-        pass
+步骤3: 验证模板功能
+    - 测试参数注入
+    - 验证输出格式
+    - 确保语义一致性
+```
 
-    async def generate_ai_reply(
-        self,
-        message_id: str,
-        model_config: dict = None,
-        yield_interval: float = 0.5,
-    ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """
-        使用 LangGraph 生成 AI 回复内容
+**迁移脚本设计：**
+```
+函数 migrate_prompt_templates():
+    // 1. 读取原始模板
+    原始内容 = 读取文件("app/services/chat/prompt.md")
+    
+    // 2. 转换语法
+    转换后内容 = 原始内容.replace("{{", "{").replace("}}", "}")
+    
+    // 3. 创建新目录和文件
+    创建目录("app/services/chat/prompts")
+    写入文件("app/services/chat/prompts/system_prompt.md", 转换后内容)
+    
+    // 4. 验证迁移结果
+    验证模板格式()
+    
+    记录日志("提示词迁移完成")
+```
 
-        Args:
-            message_id: 消息ID
-            model_config: 模型配置
-            yield_interval: 输出间隔时间
+### 3.3 阶段三：服务层重构（2-3天）
 
-        Yields:
-            ChatStreamChunk: AI 生成的回复内容片段
-        """
-        
-        # 默认模型配置
-        if model_config is None:
-            model_config = {
-                "model_id": "gpt-4.1",
-                "temperature": 0.7,
-                "enable_tools": True,
-                "max_tool_iterations": 10
-            }
-        
-        # 初始化状态
+#### 3.3.1 ChatService 重构设计
+
+**服务层架构：**
+```
+ChatService
+├── 图工作流管理 (graph_workflow)
+├── 流式输出处理 (streaming_handler)
+├── 错误处理机制 (error_handler)
+└── 兼容性保证 (compatibility_layer)
+```
+
+**主要方法重构：**
+```
+类 ChatService:
+    属性:
+        graph: 编译后的图对象
+        streaming_manager: 流式管理器
+    
+    方法 generate_ai_reply(message_id, model_config, yield_interval):
+        // 1. 初始化状态
         initial_state = init_state(message_id, model_config)
-        initial_state["streaming_config"]["yield_interval"] = yield_interval
         
-        try:
-            # 执行图工作流
-            final_state = await self.graph.ainvoke(initial_state)
+        // 2. 执行图工作流
+        尝试:
+            final_state = 等待 self.graph.ainvoke(initial_state)
             
-            # 处理流式输出
-            async for chunk in self._process_graph_output(final_state):
-                yield chunk
-                
-        except Exception as e:
-            logger.error(f"LangGraph 执行失败: {str(e)}\n{traceback.format_exc()}")
-            yield ChatStreamChunk(
-                content=f"生成回复时出现错误: {str(e)}"
-            )
-
-    async def _process_graph_output(
-        self, 
-        state: dict
-    ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """处理图输出为流式响应"""
+            // 3. 处理流式输出
+            异步生成器 处理图输出(final_state)
         
-        # 从状态中获取累积的chunks
-        chunks = state.get("current_chunks", [])
-        yield_interval = state.get("streaming_config", {}).get("yield_interval", 0.5)
-        
-        accumulated_content = ""
-        accumulated_reason = ""
-        last_yield_time = asyncio.get_event_loop().time()
-        
-        for chunk in chunks:
-            # 累积内容
-            if chunk.content:
-                accumulated_content += chunk.content
-            if chunk.reason_content:
-                accumulated_reason += chunk.reason_content
-            
-            # 检查输出间隔
-            current_time = asyncio.get_event_loop().time()
-            if current_time - last_yield_time >= yield_interval:
-                yield_chunk = ChatStreamChunk(
-                    content=accumulated_content,
-                    reason_content=accumulated_reason,
-                    tool_call_feedback=chunk.tool_call_feedback
-                )
-                yield yield_chunk
-                last_yield_time = current_time
-        
-        # 输出最终内容
-        if accumulated_content or accumulated_reason:
-            final_chunk = ChatStreamChunk(
-                content=accumulated_content,
-                reason_content=accumulated_reason,
-                tool_call_feedback=chunks[-1].tool_call_feedback if chunks else None
-            )
-            yield final_chunk
-
-    @auto_json_serialize
-    async def process_chat_sse(
-        self,
-        request: ChatRequest,
-        yield_interval: float = 0.5,
-    ) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse, None]:
-        """
-        处理 SSE 聊天流程
-        （保持接口兼容性）
-        """
-        try:
-            # 1. 接收消息确认
-            yield ChatNormalResponse(step=Step.ACCEPT)
-
-            # 2. 开始生成回复
-            yield ChatNormalResponse(step=Step.START_REPLY)
-
-            # 3. 生成并发送回复
-            last_content = ""
-            async for chunk in self.generate_ai_reply(
-                request.message_id, yield_interval=yield_interval
-            ):
-                last_content = chunk.content
-                yield ChatProcessResponse(
-                    step=Step.SEND,
-                    content=chunk.content,
-                    tool_call_feedback=chunk.tool_call_feedback,
-                )
-
-            # 4. 回复成功
-            yield ChatProcessResponse(
-                step=Step.SUCCESS,
-                content=last_content,
-            )
-
-        except Exception as e:
-            logger.error(f"SSE 聊天处理失败: {str(e)}\n{traceback.format_exc()}")
-            yield ChatNormalResponse(step=Step.FAILED)
-        finally:
-            # 5. 流程结束
-            yield ChatNormalResponse(step=Step.END)
-
-
-# 创建服务实例
-chat_service = ChatService()
+        异常处理:
+            记录错误日志
+            生成错误响应
 ```
 
-#### 3.3.2 上下文管理器适配 (`app/services/chat/context.py`)
+**流式输出处理：**
+```
+异步函数 process_graph_output(state):
+    // 1. 获取累积chunks
+    chunks = state.current_chunks
+    yield_interval = state.streaming_config.yield_interval
+    
+    // 2. 处理时间间隔控制
+    accumulated_content = ""
+    last_yield_time = 获取当前时间()
+    
+    // 3. 遍历chunks并按间隔输出
+    对于每个 chunk 在 chunks:
+        accumulated_content += chunk.content
+        
+        当前时间 = 获取当前时间()
+        如果 (当前时间 - last_yield_time) >= yield_interval:
+            输出 ChatStreamChunk(content=accumulated_content)
+            last_yield_time = 当前时间
+    
+    // 4. 输出最终内容
+    如果 accumulated_content 不为空:
+        输出 最终ChatStreamChunk(content=accumulated_content)
+```
 
-```python
-# 为 MessageContext 添加支持 LangGraph 的方法
+#### 3.3.2 接口兼容性保证
 
-def build_with_prompt(self, system_prompt: str) -> List[Dict[str, Any]]:
-    """构建带系统提示词的消息列表"""
-    return [
-        {"role": "system", "content": system_prompt},
-        *list(
-            map(
-                lambda x: {
-                    "role": x.role,
-                    "content": (
-                        f"[{x.user_name}]: {x.content}"
-                        if x.role == "user"
-                        else x.content
-                    ),
-                },
-                self.context_messages,
+**SSE接口适配：**
+```
+异步函数 process_chat_sse(request, yield_interval):
+    尝试:
+        // 1. 接收消息确认
+        输出 ChatNormalResponse(step="ACCEPT")
+        
+        // 2. 开始生成回复
+        输出 ChatNormalResponse(step="START_REPLY")
+        
+        // 3. 生成并发送回复
+        last_content = ""
+        异步迭代 generate_ai_reply(request.message_id, yield_interval):
+            last_content = chunk.content
+            输出 ChatProcessResponse(
+                step="SEND",
+                content=chunk.content,
+                tool_call_feedback=chunk.tool_call_feedback
             )
-        ),
-        *self.temp_messages,
-    ]
+        
+        // 4. 回复成功
+        输出 ChatProcessResponse(step="SUCCESS", content=last_content)
+    
+    异常处理:
+        记录错误日志
+        输出 ChatNormalResponse(step="FAILED")
+    
+    最终:
+        输出 ChatNormalResponse(step="END")
 ```
 
-### 3.4 阶段四：集成测试和验证（预计 2-3 天）
-
-#### 3.4.1 单元测试 (`tests/test_langgraph_chat.py`)
-
-```python
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
-
-from app.services.chat.langgraph.state import ChatGraphState, init_state
-from app.services.chat.langgraph.nodes import (
-    initialize_node,
-    prompt_generation_node,
-    model_call_node,
-    tool_execution_node,
-)
-from app.services.chat.langgraph.graph import get_chat_graph
-from app.services.chat_service import ChatService
-from app.types.chat import ChatRequest, ChatStreamChunk
-
-class TestLangGraphChat:
-    """LangGraph 聊天功能测试"""
-
-    @pytest.fixture
-    def mock_message_context(self):
-        """模拟消息上下文"""
-        context = MagicMock()
-        context.init_context_messages = AsyncMock()
-        context.build_with_prompt = MagicMock(return_value=[
-            {"role": "system", "content": "你是AI助手"},
-            {"role": "user", "content": "你好"}
-        ])
-        return context
-
-    @pytest.fixture
-    def sample_state(self):
-        """示例状态"""
-        return init_state("test_message_id", {
-            "model_id": "gpt-4.1",
-            "temperature": 0.7,
-            "enable_tools": True
-        })
-
-    @pytest.mark.asyncio
-    async def test_initialize_node(self, sample_state, mock_message_context):
-        """测试初始化节点"""
-        with patch('app.services.chat.langgraph.nodes.MessageContext', return_value=mock_message_context):
-            with patch('app.services.meta_info.AsyncRedisClient.get_instance') as mock_redis:
-                mock_redis.return_value.set = AsyncMock()
-                
-                result = await initialize_node(sample_state)
-                
-                assert result["context"] == mock_message_context
-                assert "current_time" in result["prompt_params"]
-                assert "current_date" in result["prompt_params"]
-
-    @pytest.mark.asyncio
-    async def test_prompt_generation_node(self, sample_state):
-        """测试提示词生成节点"""
-        sample_state["prompt_params"] = {
-            "current_time": "12:00:00",
-            "current_date": "2024-01-01"
-        }
-        
-        with patch('app.services.chat.prompts.templates.get_system_prompt_template') as mock_template:
-            mock_template.return_value.format.return_value = "Generated prompt"
-            
-            result = await prompt_generation_node(sample_state)
-            
-            assert result["generated_prompt"] == "Generated prompt"
-
-    @pytest.mark.asyncio
-    async def test_model_call_node(self, sample_state, mock_message_context):
-        """测试模型调用节点"""
-        sample_state["context"] = mock_message_context
-        sample_state["generated_prompt"] = "Test prompt"
-        
-        with patch('app.services.chat.langgraph.nodes.LangGraphModelService') as mock_service:
-            mock_service.return_value.stream_chat_completion = AsyncMock(
-                return_value=sample_state
-            )
-            
-            result = await model_call_node(sample_state)
-            
-            assert result == sample_state
-
-    @pytest.mark.asyncio
-    async def test_tool_execution_node(self, sample_state):
-        """测试工具执行节点"""
-        sample_state["pending_tool_calls"] = [
-            {
-                "id": "test_id",
-                "function": {"name": "calculate", "arguments": '{"expression": "1+1"}'}
-            }
-        ]
-        
-        with patch('app.tools.get_tool_manager') as mock_manager:
-            mock_manager.return_value.execute_tool = AsyncMock(return_value="2")
-            
-            result = await tool_execution_node(sample_state)
-            
-            assert len(result["tool_results"]) == 1
-            assert result["tool_results"][0]["content"] == "2"
-            assert result["pending_tool_calls"] == []
-
-    @pytest.mark.asyncio
-    async def test_chat_service_generate_ai_reply(self):
-        """测试聊天服务生成回复"""
-        service = ChatService()
-        
-        with patch.object(service.graph, 'ainvoke') as mock_invoke:
-            mock_invoke.return_value = {
-                "current_chunks": [
-                    ChatStreamChunk(content="Hello"),
-                    ChatStreamChunk(content=" world")
-                ],
-                "streaming_config": {"yield_interval": 0.5}
-            }
-            
-            chunks = []
-            async for chunk in service.generate_ai_reply("test_message_id"):
-                chunks.append(chunk)
-            
-            assert len(chunks) > 0
-            assert chunks[-1].content == "Hello world"
-
-    @pytest.mark.asyncio
-    async def test_chat_service_process_chat_sse(self):
-        """测试SSE聊天流程"""
-        service = ChatService()
-        request = ChatRequest(message_id="test_message_id")
-        
-        with patch.object(service, 'generate_ai_reply') as mock_generate:
-            mock_generate.return_value = AsyncMock()
-            mock_generate.return_value.__aiter__.return_value = [
-                ChatStreamChunk(content="Test response")
-            ]
-            
-            responses = []
-            async for response in service.process_chat_sse(request):
-                responses.append(response)
-            
-            # 验证响应流程
-            assert len(responses) >= 4  # ACCEPT, START_REPLY, SEND, SUCCESS, END
-            assert responses[0].step == "ACCEPT"
-            assert responses[-1].step == "END"
+**特殊处理逻辑保持：**
+```
+函数 handle_special_finish_reason(finish_reason):
+    如果 finish_reason == "content_filter":
+        返回 "赤尾有点不想讨论这个话题呢~"
+    
+    否则如果 finish_reason == "length":
+        返回 "(后续内容被截断)"
+    
+    返回 null
 ```
 
-#### 3.4.2 集成测试 (`tests/test_langgraph_integration.py`)
+### 3.4 阶段四：测试验证（2-3天）
 
-```python
-import pytest
-import asyncio
-from unittest.mock import AsyncMock, patch
+#### 3.4.1 测试策略设计
 
-from app.services.chat_service import ChatService
-from app.types.chat import ChatRequest, Step
+**测试金字塔结构：**
+```
+端到端测试 (E2E)
+    ├── 完整聊天流程测试
+    ├── 工具调用流程测试
+    └── 错误场景测试
 
-class TestLangGraphIntegration:
-    """LangGraph 集成测试"""
+集成测试 (Integration)
+    ├── 图工作流测试
+    ├── 节点间交互测试
+    └── 外部依赖集成测试
 
-    @pytest.mark.asyncio
-    async def test_full_chat_flow(self):
-        """测试完整的聊天流程"""
-        service = ChatService()
-        request = ChatRequest(message_id="integration_test_message")
-        
-        # Mock 各个依赖
-        with patch('app.core.clients.memory_client.memory_client.quick_search') as mock_search:
-            mock_search.return_value = [
-                {"message_id": "prev_msg", "role": "user", "content": "Previous message"}
-            ]
-            
-            with patch('app.orm.crud.get_model_and_provider_info') as mock_model_info:
-                mock_model_info.return_value = {
-                    "model_name": "gpt-4",
-                    "api_key": "test_key",
-                    "base_url": "https://api.openai.com/v1"
-                }
-                
-                with patch('openai.AsyncOpenAI') as mock_openai:
-                    # Mock OpenAI 流式响应
-                    mock_stream = AsyncMock()
-                    mock_stream.__aiter__.return_value = [
-                        create_mock_chunk("Hello"),
-                        create_mock_chunk(" world", finish_reason="stop")
-                    ]
-                    
-                    mock_openai.return_value.chat.completions.create.return_value = mock_stream
-                    
-                    # 执行测试
-                    responses = []
-                    async for response in service.process_chat_sse(request):
-                        responses.append(response)
-                    
-                    # 验证结果
-                    assert len(responses) >= 4
-                    assert responses[0].step == Step.ACCEPT
-                    assert responses[-1].step == Step.END
-                    
-                    # 验证内容响应
-                    content_responses = [r for r in responses if r.step == Step.SEND]
-                    assert len(content_responses) > 0
-                    assert "Hello world" in content_responses[-1].content
-
-    @pytest.mark.asyncio
-    async def test_tool_calling_flow(self):
-        """测试工具调用流程"""
-        service = ChatService()
-        request = ChatRequest(message_id="tool_test_message")
-        
-        # Mock 工具管理器
-        with patch('app.tools.get_tool_manager') as mock_tool_manager:
-            mock_tool_manager.return_value.get_tools_schema.return_value = [
-                {"type": "function", "function": {"name": "calculate"}}
-            ]
-            mock_tool_manager.return_value.execute_tool.return_value = "42"
-            
-            # Mock 其他依赖
-            with self._mock_dependencies():
-                with patch('openai.AsyncOpenAI') as mock_openai:
-                    # Mock 工具调用响应
-                    mock_stream = AsyncMock()
-                    mock_stream.__aiter__.return_value = [
-                        create_mock_tool_call_chunk(),
-                        create_mock_chunk("The answer is 42", finish_reason="stop")
-                    ]
-                    
-                    mock_openai.return_value.chat.completions.create.return_value = mock_stream
-                    
-                    # 执行测试
-                    responses = []
-                    async for response in service.process_chat_sse(request):
-                        responses.append(response)
-                    
-                    # 验证工具调用
-                    mock_tool_manager.return_value.execute_tool.assert_called_once()
-                    
-                    # 验证最终响应
-                    content_responses = [r for r in responses if r.step == Step.SEND]
-                    assert "42" in content_responses[-1].content
-
-    def _mock_dependencies(self):
-        """Mock 通用依赖"""
-        return patch.multiple(
-            'app.core.clients.memory_client.memory_client',
-            quick_search=AsyncMock(return_value=[]),
-        ), patch(
-            'app.orm.crud.get_model_and_provider_info',
-            return_value={
-                "model_name": "gpt-4",
-                "api_key": "test_key", 
-                "base_url": "https://api.openai.com/v1"
-            }
-        )
-
-def create_mock_chunk(content: str, finish_reason: str = None):
-    """创建mock的OpenAI chunk"""
-    chunk = MagicMock()
-    chunk.choices = [MagicMock()]
-    chunk.choices[0].delta.content = content
-    chunk.choices[0].finish_reason = finish_reason
-    return chunk
-
-def create_mock_tool_call_chunk():
-    """创建mock的工具调用chunk"""
-    chunk = MagicMock()
-    chunk.choices = [MagicMock()]
-    chunk.choices[0].delta.tool_calls = [MagicMock()]
-    chunk.choices[0].delta.tool_calls[0].function.name = "calculate"
-    chunk.choices[0].delta.tool_calls[0].function.arguments = '{"expression": "40+2"}'
-    chunk.choices[0].finish_reason = "tool_calls"
-    return chunk
+单元测试 (Unit)
+    ├── 节点功能测试
+    ├── 状态管理测试
+    └── 工具函数测试
 ```
 
-#### 3.4.3 性能测试 (`tests/test_langgraph_performance.py`)
+**测试用例设计：**
+```
+测试用例1: 基础聊天流程
+    输入: 普通用户消息
+    预期: 正常AI回复
+    验证点: 响应格式、内容完整性
 
-```python
-import pytest
-import asyncio
-import time
-from unittest.mock import AsyncMock, patch
+测试用例2: 工具调用流程
+    输入: 需要工具调用的消息
+    预期: 工具调用成功，返回结果
+    验证点: 工具调用参数、结果格式
 
-from app.services.chat_service import ChatService
-from app.types.chat import ChatRequest
+测试用例3: 特殊finish_reason处理
+    输入: 触发content_filter的消息
+    预期: 特殊回复内容
+    验证点: 特殊消息格式
 
-class TestLangGraphPerformance:
-    """LangGraph 性能测试"""
+测试用例4: 流式输出测试
+    输入: 长消息生成
+    预期: 按时间间隔输出
+    验证点: 时间间隔、累积内容
 
-    @pytest.mark.asyncio
-    async def test_response_time(self):
-        """测试响应时间"""
-        service = ChatService()
-        request = ChatRequest(message_id="perf_test_message")
-        
-        with self._mock_fast_dependencies():
-            start_time = time.time()
-            
-            responses = []
-            async for response in service.process_chat_sse(request):
-                responses.append(response)
-            
-            end_time = time.time()
-            response_time = end_time - start_time
-            
-            # 验证响应时间在合理范围内 (< 5秒)
-            assert response_time < 5.0, f"Response time too slow: {response_time}s"
-            
-            # 验证响应完整性
-            assert len(responses) >= 4
+测试用例5: 错误处理测试
+    输入: 各种错误场景
+    预期: 优雅降级
+    验证点: 错误消息、系统稳定性
+```
 
-    @pytest.mark.asyncio
-    async def test_concurrent_requests(self):
-        """测试并发请求处理"""
-        service = ChatService()
-        
-        # 创建多个并发请求
-        requests = [
-            ChatRequest(message_id=f"concurrent_test_{i}")
-            for i in range(5)
-        ]
-        
-        with self._mock_fast_dependencies():
-            start_time = time.time()
-            
-            # 并发执行
-            tasks = [
-                self._process_single_request(service, req)
-                for req in requests
-            ]
-            
-            results = await asyncio.gather(*tasks)
-            
-            end_time = time.time()
-            total_time = end_time - start_time
-            
-            # 验证并发处理效率
-            assert total_time < 10.0, f"Concurrent processing too slow: {total_time}s"
-            
-            # 验证所有请求都成功处理
-            assert len(results) == 5
-            for result in results:
-                assert len(result) >= 4
+#### 3.4.2 性能测试设计
 
-    async def _process_single_request(self, service: ChatService, request: ChatRequest):
-        """处理单个请求"""
-        responses = []
-        async for response in service.process_chat_sse(request):
-            responses.append(response)
-        return responses
+**性能测试指标：**
+```
+响应时间指标:
+    - P50响应时间 < 2秒
+    - P95响应时间 < 5秒
+    - P99响应时间 < 10秒
 
-    def _mock_fast_dependencies(self):
-        """Mock 快速响应的依赖"""
-        return patch.multiple(
-            'app.core.clients.memory_client.memory_client',
-            quick_search=AsyncMock(return_value=[]),
-        ), patch(
-            'app.orm.crud.get_model_and_provider_info',
-            return_value={
-                "model_name": "gpt-4",
-                "api_key": "test_key",
-                "base_url": "https://api.openai.com/v1"
-            }
-        ), patch(
-            'openai.AsyncOpenAI'
-        ) as mock_openai:
-            mock_stream = AsyncMock()
-            mock_stream.__aiter__.return_value = [
-                create_mock_chunk("Fast response", finish_reason="stop")
-            ]
-            mock_openai.return_value.chat.completions.create.return_value = mock_stream
+并发处理能力:
+    - 支持100并发请求
+    - 无内存泄漏
+    - 资源使用稳定
+
+系统资源使用:
+    - CPU使用率 < 70%
+    - 内存使用率 < 80%
+    - 网络IO正常
+```
+
+**基准测试方案：**
+```
+基准测试步骤:
+    1. 设置测试环境
+    2. 运行原始实现基准测试
+    3. 运行LangGraph实现基准测试
+    4. 对比性能指标
+    5. 分析性能差异
+    6. 优化关键路径
 ```
 
 ## 4. 迁移策略
 
-### 4.1 渐进式迁移方案
+### 4.1 双栈运行方案
 
-#### 4.1.1 第一阶段：双栈运行
-- 保留现有实现作为备用
-- 新增 LangGraph 实现
-- 通过配置开关控制使用哪个实现
+#### 4.1.1 配置开关设计
 
-```python
-# 在 app/config/config.py 中添加
-class AppConfig(BaseSettings):
-    # ... 现有配置
-    
-    # LangGraph 配置
-    enable_langgraph: bool = Field(default=False, description="启用LangGraph实现")
-    langgraph_fallback: bool = Field(default=True, description="LangGraph失败时回退到原实现")
+**配置结构：**
+```
+LangGraph配置 {
+    enable_langgraph: 布尔值 = false
+    langgraph_fallback: 布尔值 = true
+    langgraph_percentage: 整数 = 0
+    langgraph_user_whitelist: 字符串列表 = []
+    langgraph_message_whitelist: 字符串列表 = []
+}
 ```
 
-#### 4.1.2 第二阶段：灰度发布
-- 基于用户ID或消息ID进行灰度
-- 监控两个实现的性能差异
-- 收集用户反馈
-
-```python
-def should_use_langgraph(message_id: str) -> bool:
-    """基于消息ID决定是否使用LangGraph"""
+**切换逻辑：**
+```
+函数 should_use_langgraph(message_id, user_id):
+    // 1. 检查总开关
+    如果 不启用langgraph:
+        返回 false
+    
+    // 2. 检查白名单
+    如果 user_id 在用户白名单 或 message_id 在消息白名单:
+        返回 true
+    
+    // 3. 检查百分比
     hash_value = hash(message_id) % 100
-    return hash_value < 10  # 10% 流量使用LangGraph
+    返回 hash_value < langgraph_percentage
 ```
 
-#### 4.1.3 第三阶段：全量切换
-- 全量切换到 LangGraph 实现
-- 移除旧实现代码
-- 清理相关配置
+#### 4.1.2 降级策略
 
-### 4.2 数据迁移
+**降级触发条件：**
+```
+降级条件 {
+    LangGraph执行超时 (> 30秒)
+    LangGraph执行出错 (未处理异常)
+    LangGraph响应格式错误
+    用户显式请求降级
+}
+```
 
-#### 4.2.1 提示词迁移
-```python
-# 迁移脚本: scripts/migrate_prompts.py
-import os
-from pathlib import Path
-
-def migrate_prompt_templates():
-    """迁移提示词模板"""
-    old_prompt_file = Path("app/services/chat/prompt.md")
-    new_prompt_file = Path("app/services/chat/prompts/system_prompt.md")
+**降级执行流程：**
+```
+函数 execute_with_fallback(message_id, request):
+    如果 should_use_langgraph(message_id, request.user_id):
+        尝试:
+            // 使用LangGraph实现
+            设置超时 = 30秒
+            结果 = 等待 langgraph_chat_service.process(request)
+            返回 结果
+        
+        异常处理:
+            记录降级日志
+            // 降级到原实现
+            返回 等待 legacy_chat_service.process(request)
     
-    if old_prompt_file.exists():
-        content = old_prompt_file.read_text(encoding="utf-8")
-        
-        # 转换 Jinja2 语法到 LangChain 语法
-        content = content.replace("{{", "{").replace("}}", "}")
-        
-        # 确保目录存在
-        new_prompt_file.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 写入新文件
-        new_prompt_file.write_text(content, encoding="utf-8")
-        
-        print(f"Migrated prompt from {old_prompt_file} to {new_prompt_file}")
+    否则:
+        // 直接使用原实现
+        返回 等待 legacy_chat_service.process(request)
 ```
 
-#### 4.2.2 配置迁移
-```python
-# 迁移现有的模型配置和工具配置
-def migrate_model_configs():
-    """迁移模型配置"""
-    # 保持现有的模型配置格式
-    # 无需特殊迁移
-    pass
+### 4.2 数据一致性保证
+
+#### 4.2.1 输出格式统一
+
+**格式验证机制：**
 ```
-
-### 4.3 回滚策略
-
-#### 4.3.1 快速回滚
-```python
-# 在出现问题时快速回滚
-async def emergency_rollback():
-    """紧急回滚到原实现"""
-    # 1. 修改配置
-    config.enable_langgraph = False
+函数 validate_output_format(response):
+    // 1. 检查基本结构
+    如果 response 缺少必要字段:
+        返回 false
     
-    # 2. 重启服务
-    # 3. 监控服务状态
+    // 2. 检查数据类型
+    如果 response.content 不是字符串:
+        返回 false
+    
+    // 3. 检查特殊字段
+    如果 response.step 不在合法步骤列表:
+        返回 false
+    
+    返回 true
 ```
 
-#### 4.3.2 数据一致性保证
-- 确保两个实现产生的数据格式一致
-- 保持消息ID和会话状态的兼容性
-- 监控关键指标的连续性
+**输出标准化：**
+```
+函数 normalize_output(response):
+    // 1. 确保必要字段存在
+    如果 response.content 为空:
+        response.content = ""
+    
+    // 2. 格式化时间字段
+    如果 response.timestamp 存在:
+        response.timestamp = 标准化时间格式(response.timestamp)
+    
+    // 3. 确保输出格式一致
+    返回 response
+```
+
+#### 4.2.2 状态同步机制
+
+**状态同步策略：**
+```
+状态同步流程:
+    1. 两个实现共享相同的消息ID
+    2. 使用相同的上下文构建逻辑
+    3. 保持相同的工具调用接口
+    4. 同步会话状态到外部存储
+```
 
 ## 5. 风险评估与应对
 
 ### 5.1 技术风险
 
 #### 5.1.1 性能风险
-**风险：** LangGraph 引入额外的性能开销
+
+**风险描述：**
+- LangGraph 引入额外的图执行开销
+- 状态管理可能影响内存使用
+- 节点间通信可能增加延迟
+
 **应对措施：**
-- 详细的性能测试和基准测试
-- 设置性能监控和告警
-- 优化关键路径的性能
+```
+性能优化方案:
+    1. 图编译优化
+        - 预编译图结构
+        - 缓存编译结果
+        - 减少动态构建
+    
+    2. 状态管理优化
+        - 最小化状态对象大小
+        - 使用引用而非拷贝
+        - 及时清理无用状态
+    
+    3. 节点执行优化
+        - 异步并行处理
+        - 资源池化管理
+        - 智能缓存策略
+```
 
 #### 5.1.2 兼容性风险
-**风险：** 输出格式或行为的微小差异
+
+**风险描述：**
+- 输出格式可能存在细微差异
+- 时序行为可能不一致
+- 错误处理方式可能不同
+
 **应对措施：**
-- 全面的回归测试
-- 端到端的集成测试
-- 用户验收测试
+```
+兼容性保证方案:
+    1. 严格的输出格式验证
+    2. 详细的行为测试用例
+    3. 错误处理标准化
+    4. 回归测试自动化
+```
 
 #### 5.1.3 依赖风险
-**风险：** LangGraph 生态系统的稳定性
+
+**风险描述：**
+- LangGraph 库的稳定性
+- 版本兼容性问题
+- 上游依赖变更
+
 **应对措施：**
-- 锁定依赖版本
-- 准备降级方案
-- 跟踪上游项目动态
+```
+依赖管理策略:
+    1. 版本锁定策略
+        - 锁定所有依赖版本
+        - 定期评估升级
+        - 测试版本兼容性
+    
+    2. 降级备份方案
+        - 保留原实现作为备份
+        - 快速切换机制
+        - 应急回滚流程
+```
 
 ### 5.2 运维风险
 
 #### 5.2.1 部署风险
-**风险：** 新依赖导致的部署问题
+
+**风险描述：**
+- 新依赖的部署复杂度
+- 环境配置差异
+- 服务启动顺序依赖
+
 **应对措施：**
-- 容器化部署
-- 充分的测试环境验证
-- 分阶段部署策略
+```
+部署策略:
+    1. 容器化部署
+        - Docker镜像标准化
+        - 环境一致性保证
+        - 依赖打包管理
+    
+    2. 分阶段部署
+        - 测试环境验证
+        - 灰度环境试运行
+        - 生产环境分批发布
+    
+    3. 自动化部署
+        - CI/CD流水线
+        - 自动化测试
+        - 自动回滚机制
+```
 
 #### 5.2.2 监控风险
-**风险：** 新架构的监控盲点
+
+**风险描述：**
+- 新架构的监控盲点
+- 性能指标缺失
+- 错误检测不及时
+
 **应对措施：**
-- 完善监控指标
-- 设置关键告警
-- 日志增强和分析
+```
+监控完善方案:
+    1. 全链路监控
+        - 图执行路径跟踪
+        - 节点处理时间监控
+        - 状态变化记录
+    
+    2. 关键指标监控
+        - 响应时间分布
+        - 错误率统计
+        - 资源使用情况
+    
+    3. 告警机制
+        - 多级告警策略
+        - 自动故障检测
+        - 及时通知机制
+```
 
 ### 5.3 业务风险
 
 #### 5.3.1 用户体验风险
-**风险：** 响应时间或质量的变化
-**应对措施：**
-- 用户体验监控
-- A/B 测试
-- 快速反馈机制
 
-#### 5.3.2 稳定性风险
-**风险：** 新实现的稳定性问题
+**风险描述：**
+- 响应时间可能变化
+- 输出质量可能不稳定
+- 功能可用性受影响
+
 **应对措施：**
-- 全面的错误处理
-- 快速回滚机制
-- 24/7 监控
+```
+用户体验保证:
+    1. 性能基准测试
+        - 建立性能基线
+        - 持续性能监控
+        - 性能回归检测
+    
+    2. 质量保证机制
+        - 输出质量评估
+        - 用户反馈收集
+        - 质量改进循环
+    
+    3. 功能完整性验证
+        - 功能对比测试
+        - 边界情况测试
+        - 用户验收测试
+```
 
 ## 6. 实施计划
 
-### 6.1 时间安排
+### 6.1 详细时间安排
 
-| 阶段 | 时间 | 关键里程碑 |
-|------|------|------------|
-| 阶段一 | 第1-4天 | 核心架构搭建完成 |
-| 阶段二 | 第5-6天 | 提示词模板重构完成 |
-| 阶段三 | 第7-9天 | 服务层重构完成 |
-| 阶段四 | 第10-12天 | 集成测试完成 |
-| 阶段五 | 第13-15天 | 灰度发布 |
-| 阶段六 | 第16-18天 | 全量切换 |
+#### 第一阶段：核心架构搭建（第1-4天）
+
+**第1天：项目准备**
+```
+上午:
+    - 项目环境搭建
+    - 依赖库安装和配置
+    - 目录结构创建
+
+下午:
+    - 状态管理模块设计
+    - 基础类型定义
+    - 工具函数实现
+```
+
+**第2天：图节点实现**
+```
+上午:
+    - 初始化节点实现
+    - 提示词生成节点实现
+    - 基础测试用例编写
+
+下午:
+    - 模型调用节点实现
+    - 工具执行节点实现
+    - 节点单元测试
+```
+
+**第3天：图构建和流程控制**
+```
+上午:
+    - 图构建逻辑实现
+    - 条件判断函数实现
+    - 流程控制测试
+
+下午:
+    - 流式输出处理实现
+    - 输出处理节点实现
+    - 集成测试准备
+```
+
+**第4天：架构整合和测试**
+```
+上午:
+    - 清理节点实现
+    - 错误处理机制
+    - 完整流程测试
+
+下午:
+    - 架构整合验证
+    - 性能初步测试
+    - 问题修复和优化
+```
+
+#### 第二阶段：提示词模板重构（第5-6天）
+
+**第5天：模板系统设计**
+```
+上午:
+    - 提示词模板结构设计
+    - LangChain集成方案
+    - 模板加载机制实现
+
+下午:
+    - 动态参数注入实现
+    - 模板验证机制
+    - 兼容性测试
+```
+
+**第6天：提示词迁移**
+```
+上午:
+    - 现有提示词分析
+    - 迁移脚本编写
+    - 语法转换实现
+
+下午:
+    - 迁移验证测试
+    - 功能对比测试
+    - 迁移完成确认
+```
+
+#### 第三阶段：服务层重构（第7-9天）
+
+**第7天：ChatService重构**
+```
+上午:
+    - 服务层架构设计
+    - 主要方法重构
+    - 图工作流集成
+
+下午:
+    - 流式输出处理重构
+    - 错误处理机制重构
+    - 基础功能测试
+```
+
+**第8天：接口兼容性**
+```
+上午:
+    - SSE接口适配
+    - 特殊处理逻辑保持
+    - 输出格式统一
+
+下午:
+    - 接口兼容性测试
+    - 边界情况处理
+    - 性能对比测试
+```
+
+**第9天：服务整合**
+```
+上午:
+    - 服务层整合测试
+    - 端到端流程验证
+    - 问题修复
+
+下午:
+    - 性能优化
+    - 稳定性测试
+    - 代码审查
+```
+
+#### 第四阶段：测试验证（第10-12天）
+
+**第10天：单元测试**
+```
+上午:
+    - 节点功能测试用例
+    - 状态管理测试用例
+    - 工具函数测试用例
+
+下午:
+    - 测试用例执行
+    - 代码覆盖率检查
+    - 问题修复
+```
+
+**第11天：集成测试**
+```
+上午:
+    - 图工作流集成测试
+    - 外部依赖集成测试
+    - 错误场景测试
+
+下午:
+    - 性能测试
+    - 并发测试
+    - 稳定性测试
+```
+
+**第12天：端到端测试**
+```
+上午:
+    - 完整流程测试
+    - 兼容性验证
+    - 用户场景测试
+
+下午:
+    - 测试结果分析
+    - 性能指标评估
+    - 问题总结和修复
+```
 
 ### 6.2 人员分工
 
-**开发团队：**
-- 主开发：负责核心架构和节点实现
-- 测试开发：负责测试用例编写和验证
-- 运维支持：负责部署和监控
+#### 开发团队分工
+```
+主开发工程师 (1人):
+    - 负责核心架构设计
+    - 实现图节点和状态管理
+    - 代码质量把控
 
-**质量保证：**
-- 功能测试：验证功能完整性
-- 性能测试：验证性能指标
-- 安全测试：验证安全性
+后端开发工程师 (1人):
+    - 负责服务层重构
+    - 实现接口兼容性
+    - 集成测试支持
+
+提示词工程师 (1人):
+    - 负责提示词模板重构
+    - 实现动态参数注入
+    - 提示词迁移验证
+
+测试工程师 (1人):
+    - 负责测试用例设计
+    - 自动化测试实现
+    - 性能测试和分析
+
+运维工程师 (1人):
+    - 负责部署环境准备
+    - 监控系统配置
+    - 发布流程支持
+```
+
+#### 质量保证团队
+```
+QA负责人 (1人):
+    - 测试策略制定
+    - 质量标准把控
+    - 测试进度管理
+
+功能测试工程师 (1人):
+    - 功能完整性测试
+    - 边界情况测试
+    - 用户验收测试
+
+性能测试工程师 (1人):
+    - 性能基准测试
+    - 压力测试
+    - 性能分析报告
+```
 
 ### 6.3 关键检查点
 
-#### 6.3.1 开发检查点
-- [ ] LangGraph 核心模块开发完成
-- [ ] 单元测试覆盖率达到80%
-- [ ] 集成测试通过
-- [ ] 性能测试达标
+#### 开发检查点
+```
+检查点1 (第4天):
+    - 核心架构搭建完成
+    - 基础功能可用
+    - 单元测试通过
 
-#### 6.3.2 部署检查点
-- [ ] 测试环境部署成功
-- [ ] 端到端测试通过
-- [ ] 监控系统正常
-- [ ] 回滚方案验证
+检查点2 (第6天):
+    - 提示词模板重构完成
+    - 迁移验证通过
+    - 功能对比测试通过
 
-#### 6.3.3 发布检查点
-- [ ] 灰度发布无异常
-- [ ] 用户反馈正常
-- [ ] 关键指标稳定
-- [ ] 全量发布准备就绪
+检查点3 (第9天):
+    - 服务层重构完成
+    - 接口兼容性验证通过
+    - 端到端流程可用
+
+检查点4 (第12天):
+    - 所有测试通过
+    - 性能指标达标
+    - 质量标准满足
+```
+
+#### 质量检查点
+```
+代码质量检查:
+    - 代码审查通过
+    - 测试覆盖率 > 80%
+    - 静态分析通过
+
+功能质量检查:
+    - 功能完整性 100%
+    - 兼容性测试通过
+    - 边界情况处理正确
+
+性能质量检查:
+    - 响应时间满足要求
+    - 并发处理能力达标
+    - 资源使用合理
+```
 
 ## 7. 监控与维护
 
-### 7.1 关键指标监控
+### 7.1 监控体系设计
 
-#### 7.1.1 性能指标
-- 响应时间（P50, P95, P99）
-- 吞吐量（QPS）
-- 错误率
-- 资源使用率（CPU, 内存）
+#### 7.1.1 分层监控架构
+```
+监控架构层级:
+    应用层监控
+        ├── 图执行监控
+        ├── 节点性能监控
+        ├── 状态管理监控
+        └── 业务指标监控
+    
+    中间件层监控
+        ├── Redis连接监控
+        ├── OpenAI API监控
+        ├── 工具调用监控
+        └── 内存服务监控
+    
+    基础设施监控
+        ├── 服务器资源监控
+        ├── 网络连接监控
+        ├── 存储使用监控
+        └── 容器状态监控
+```
 
-#### 7.1.2 业务指标
-- 用户满意度
-- 工具调用成功率
-- 流式输出稳定性
-- 内容质量评分
+#### 7.1.2 关键指标定义
 
-#### 7.1.3 技术指标
-- 图执行时间
-- 节点处理时间
-- 状态传递效率
-- 错误恢复时间
+**性能指标：**
+```
+响应时间指标:
+    - 图执行总时间
+    - 节点平均执行时间
+    - 工具调用平均时间
+    - 端到端响应时间
+
+吞吐量指标:
+    - 每秒处理请求数 (QPS)
+    - 每秒完成图执行次数
+    - 每秒工具调用次数
+    - 并发处理能力
+
+资源使用指标:
+    - CPU使用率
+    - 内存使用率
+    - 网络带宽使用
+    - 存储空间使用
+```
+
+**业务指标：**
+```
+功能指标:
+    - 聊天成功率
+    - 工具调用成功率
+    - 特殊处理触发率
+    - 用户满意度评分
+
+质量指标:
+    - 响应内容质量
+    - 上下文理解准确度
+    - 工具调用准确度
+    - 错误恢复成功率
+```
 
 ### 7.2 告警机制
 
-#### 7.2.1 严重告警
-- 服务不可用
-- 响应时间超过阈值
-- 错误率异常
-- 资源使用过高
+#### 7.2.1 告警级别定义
+```
+严重告警 (Critical):
+    - 服务完全不可用
+    - 响应时间超过10秒
+    - 错误率超过10%
+    - 系统资源耗尽
 
-#### 7.2.2 警告告警
-- 性能下降
-- 工具调用失败
-- 内存泄漏
-- 依赖服务异常
+警告告警 (Warning):
+    - 性能明显下降
+    - 错误率超过5%
+    - 资源使用率超过80%
+    - 依赖服务异常
 
-### 7.3 日志策略
-
-#### 7.3.1 结构化日志
-```python
-# 统一的日志格式
-logger.info(
-    "Graph execution completed",
-    extra={
-        "message_id": message_id,
-        "execution_time": execution_time,
-        "nodes_executed": nodes_executed,
-        "tools_called": tools_called,
-        "final_state": final_state_summary
-    }
-)
+信息告警 (Info):
+    - 性能轻微下降
+    - 错误率超过1%
+    - 资源使用率超过60%
+    - 配置变更通知
 ```
 
-#### 7.3.2 调试日志
-- 图执行路径追踪
-- 状态变化记录
-- 错误栈追踪
-- 性能分析数据
+#### 7.2.2 告警处理流程
+```
+告警处理流程:
+    告警触发
+        ↓
+    告警分级和路由
+        ↓
+    通知相关人员
+        ↓
+    问题诊断和分析
+        ↓
+    应急处理措施
+        ↓
+    根因分析
+        ↓
+    永久性解决方案
+        ↓
+    告警关闭和总结
+```
+
+### 7.3 日志管理
+
+#### 7.3.1 日志分类
+```
+日志类型:
+    业务日志:
+        - 用户请求日志
+        - 聊天会话日志
+        - 工具调用日志
+        - 结果输出日志
+    
+    系统日志:
+        - 图执行日志
+        - 节点处理日志
+        - 状态变更日志
+        - 错误异常日志
+    
+    性能日志:
+        - 响应时间日志
+        - 资源使用日志
+        - 并发处理日志
+        - 性能指标日志
+```
+
+#### 7.3.2 日志格式标准
+```
+标准日志格式:
+{
+    "timestamp": "2024-01-01T12:00:00Z",
+    "level": "INFO",
+    "service": "ai-service",
+    "component": "langgraph",
+    "message": "详细消息内容",
+    "extra": {
+        "message_id": "msg_123",
+        "user_id": "user_456",
+        "graph_execution_id": "graph_789",
+        "node_name": "model_call",
+        "execution_time": 1.23,
+        "custom_fields": {}
+    }
+}
+```
+
+### 7.4 维护策略
+
+#### 7.4.1 定期维护任务
+```
+日常维护:
+    - 监控指标检查
+    - 日志分析
+    - 性能趋势分析
+    - 异常情况处理
+
+周期性维护:
+    - 性能基准测试
+    - 依赖版本检查
+    - 配置优化
+    - 容量规划
+
+季度维护:
+    - 架构优化评估
+    - 技术债务清理
+    - 安全审计
+    - 灾难恢复演练
+```
+
+#### 7.4.2 优化改进计划
+```
+短期优化 (1-3个月):
+    - 性能热点优化
+    - 内存使用优化
+    - 缓存策略优化
+    - 错误处理改进
+
+中期优化 (3-6个月):
+    - 架构重构优化
+    - 新功能添加
+    - 工具生态扩展
+    - 用户体验提升
+
+长期优化 (6-12个月):
+    - 智能化程度提升
+    - 多模态支持
+    - 分布式架构
+    - AI能力增强
+```
 
 ## 8. 总结
 
-### 8.1 项目价值
+### 8.1 项目价值评估
 
-#### 8.1.1 短期价值
-- 提升代码可维护性
-- 增强错误处理能力
-- 改善调试体验
-- 为未来功能扩展奠定基础
+#### 8.1.1 技术价值
+```
+架构价值:
+    - 提供更灵活的工作流编排能力
+    - 支持复杂的多步推理场景
+    - 提升系统可扩展性和可维护性
+    - 为未来AI能力扩展奠定基础
 
-#### 8.1.2 长期价值
-- 支持复杂的多步推理
-- 启用高级工作流编排
-- 提升系统可扩展性
-- 降低技术债务
+开发价值:
+    - 提高代码可读性和可维护性
+    - 简化复杂逻辑的实现
+    - 提供更好的调试和监控能力
+    - 降低新功能开发成本
+
+运维价值:
+    - 更清晰的系统状态可视化
+    - 更精确的性能监控和调优
+    - 更快的问题定位和修复
+    - 更稳定的服务运行质量
+```
+
+#### 8.1.2 业务价值
+```
+用户体验价值:
+    - 保持现有功能完全兼容
+    - 提供更稳定的服务质量
+    - 支持更复杂的交互场景
+    - 为未来功能扩展做准备
+
+产品价值:
+    - 提升产品竞争力
+    - 支持更多样化的AI应用
+    - 降低新功能开发门槛
+    - 提高产品迭代速度
+
+商业价值:
+    - 降低系统维护成本
+    - 提高开发效率
+    - 增强技术团队能力
+    - 支持业务快速发展
+```
 
 ### 8.2 成功标准
 
-#### 8.2.1 技术标准
-- 功能完全兼容
-- 性能无显著下降
-- 稳定性保持或提升
-- 可扩展性增强
+#### 8.2.1 技术成功标准
+```
+功能完整性:
+    - 100%功能兼容性
+    - 所有测试用例通过
+    - 无功能回归问题
+    - 特殊情况处理正确
 
-#### 8.2.2 业务标准
-- 用户体验无负面影响
-- 开发效率提升
-- 运维成本不增加
-- 技术债务减少
+性能标准:
+    - 响应时间不超过原实现10%
+    - 并发处理能力保持或提升
+    - 资源使用效率不降低
+    - 系统稳定性不下降
 
-### 8.3 后续演进
+质量标准:
+    - 代码质量符合规范
+    - 测试覆盖率达到80%以上
+    - 文档完整清晰
+    - 可维护性显著提升
+```
 
-#### 8.3.1 短期演进
-- 优化图执行性能
-- 增加更多节点类型
-- 完善监控和调试工具
-- 扩展工具调用能力
+#### 8.2.2 业务成功标准
+```
+用户体验标准:
+    - 用户无感知迁移
+    - 服务可用性99.9%以上
+    - 用户满意度保持或提升
+    - 客户投诉零增长
 
-#### 8.3.2 长期演进
-- 实现智能路由和负载均衡
-- 支持多模型协同
-- 引入强化学习优化
-- 构建可视化工作流编辑器
+运维标准:
+    - 部署成功率100%
+    - 监控覆盖率100%
+    - 故障恢复时间<5分钟
+    - 运维效率提升20%以上
+
+发展标准:
+    - 新功能开发效率提升30%
+    - 系统扩展性增强
+    - 技术债务减少
+    - 团队技术能力提升
+```
+
+### 8.3 后续演进规划
+
+#### 8.3.1 短期演进（1-3个月）
+```
+功能增强:
+    - 图可视化监控界面
+    - 更多内置节点类型
+    - 高级条件判断逻辑
+    - 性能优化工具
+
+工具生态:
+    - 更多外部工具集成
+    - 自定义工具开发框架
+    - 工具调用优化
+    - 工具安全性增强
+
+监控完善:
+    - 更详细的性能指标
+    - 实时监控仪表板
+    - 智能告警系统
+    - 自动化问题修复
+```
+
+#### 8.3.2 中期演进（3-6个月）
+```
+架构升级:
+    - 分布式图执行
+    - 多模型协同处理
+    - 智能路由和负载均衡
+    - 动态扩缩容支持
+
+能力扩展:
+    - 多模态输入支持
+    - 长期记忆管理
+    - 个性化推荐
+    - 上下文理解增强
+
+平台化:
+    - 工作流模板市场
+    - 可视化流程编辑器
+    - 第三方集成接口
+    - 开发者工具包
+```
+
+#### 8.3.3 长期演进（6-12个月）
+```
+智能化:
+    - 自适应工作流优化
+    - 智能参数调优
+    - 自动化问题诊断
+    - 预测性维护
+
+生态建设:
+    - 开源社区建设
+    - 插件生态系统
+    - 合作伙伴接入
+    - 技术标准制定
+
+创新应用:
+    - AGI能力探索
+    - 多智能体协作
+    - 知识图谱集成
+    - 认知计算应用
+```
 
 ---
 
-**注意：** 本方案需要根据实际项目情况进行调整，特别是时间安排和人员分工部分。建议在实施前进行充分的技术预研和风险评估。
+**项目联系信息：**
+- 项目负责人：[姓名] - [邮箱]
+- 技术负责人：[姓名] - [邮箱]
+- 项目群组：[群号/链接]
+- 文档更新：2024年1月（根据实际时间调整）
+
+**注意事项：**
+1. 本方案为详细技术实施方案，实际执行时需根据具体情况调整
+2. 时间安排基于理想情况，实际可能需要适当延长
+3. 人员分工需要根据团队实际情况进行调整
+4. 建议在实施前进行充分的技术预研和风险评估
+5. 重要决策和变更需要经过团队评审和确认

@@ -130,7 +130,7 @@ def should_use_langgraph(message_id: str) -> bool:
 ### 1. 依赖安装
 ```bash
 cd main-server
-pip install langgraph>=0.0.40 langchain>=0.1.0 langchain-openai>=0.1.0
+uv add langgraph>=0.0.40 langchain>=0.1.0 langchain-openai>=0.1.0
 ```
 
 ### 2. 目录创建
@@ -157,13 +157,6 @@ enable_langgraph: bool = True
 - [LangGraph 官方文档](https://langchain-ai.github.io/langgraph/)
 - [LangChain 提示词模板](https://python.langchain.com/docs/modules/model_io/prompts/)
 - [详细实施方案](./langgraph_refactor_plan.md)
-
-## 📞 联系方式
-
-如有问题或建议，请联系：
-- 技术负责人：[姓名]
-- 项目邮箱：[邮箱]
-- 项目群：[群号]
 
 ---
 
