@@ -12,26 +12,6 @@ from sqlalchemy.dialects.postgresql import UUID
 from .base import Base
 
 
-class FormatedMessage(Base):
-    __tablename__ = "formated_message"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(String, nullable=False)
-    user_open_id = Column(String, nullable=True)
-    user_name = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    is_mention_bot = Column(Boolean, nullable=False)
-    role = Column(String, nullable=False)
-    root_message_id = Column(String, nullable=True)
-    reply_message_id = Column(String, nullable=True)
-    message_id = Column(
-        String, nullable=False, unique=True
-    )  # 使用unique=True直接定义唯一约束
-    chat_id = Column(String, nullable=False)
-    chat_type = Column(String, nullable=False)
-    create_time = Column(TIMESTAMP, nullable=False)
-
-
 class ModelProvider(Base):
     __tablename__ = "model_provider"
     provider_id = Column(UUID(as_uuid=True), primary_key=True)  # 供应商ID，UUID类型

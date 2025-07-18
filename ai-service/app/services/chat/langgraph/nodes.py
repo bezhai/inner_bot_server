@@ -110,8 +110,13 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
     message_id = state["message_id"]
 
     try:
-        # 获取流式写入器
-        writer = get_stream_writer()
+        # 获取流式写入器，添加异常处理
+        writer = None
+        try:
+            writer = get_stream_writer()
+        except Exception as e:
+            logger.warning(f"无法获取stream writer: {str(e)}, 使用备用方案")
+            writer = None
 
         # 1. 准备模型服务
         model_service = LangGraphModelService()
@@ -168,7 +173,8 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
                 # 通过writer实时输出
                 if streaming_manager.should_yield():
                     accumulated_chunk = streaming_manager.yield_chunk(stream_chunk)
-                    writer(accumulated_chunk)
+                    if writer:
+                        writer(accumulated_chunk)
                 else:
                     # 即使不输出也要累积内容
                     streaming_manager.accumulate_chunk(stream_chunk)
@@ -204,7 +210,8 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
         # 9. 最终输出（如果有剩余内容）
         if streaming_manager.accumulated_content:
             final_chunk = streaming_manager.get_final_chunk()
-            writer(final_chunk)
+            if writer:
+                writer(final_chunk)
 
         # 10. 保存工具调用信息
         if pending_tool_calls:
@@ -245,8 +252,13 @@ async def tool_execution_node(state: ChatGraphState) -> ChatGraphState:
         return state
 
     try:
-        # 获取流式写入器
-        writer = get_stream_writer()
+        # 获取流式写入器，添加异常处理
+        writer = None
+        try:
+            writer = get_stream_writer()
+        except Exception as e:
+            logger.warning(f"无法获取stream writer: {str(e)}, 使用备用方案")
+            writer = None
 
         # 2. 获取工具管理器
         tool_manager = get_tool_manager()
@@ -262,7 +274,8 @@ async def tool_execution_node(state: ChatGraphState) -> ChatGraphState:
                 name=tool_name, nick_name=f"执行工具: {tool_name}"
             )
             start_chunk = ChatStreamChunk(tool_call_feedback=start_feedback)
-            writer(start_chunk)
+            if writer:
+                writer(start_chunk)
 
             try:
                 # 解析工具参数
@@ -279,7 +292,8 @@ async def tool_execution_node(state: ChatGraphState) -> ChatGraphState:
                     name=tool_name, nick_name=f"工具执行完成: {tool_name}"
                 )
                 success_chunk = ChatStreamChunk(tool_call_feedback=success_feedback)
-                writer(success_chunk)
+                if writer:
+                    writer(success_chunk)
 
                 # 创建工具结果
                 tool_result = {
@@ -312,7 +326,8 @@ async def tool_execution_node(state: ChatGraphState) -> ChatGraphState:
                     name=tool_name, nick_name=f"工具执行失败: {tool_name}"
                 )
                 error_chunk = ChatStreamChunk(tool_call_feedback=error_feedback)
-                writer(error_chunk)
+                if writer:
+                    writer(error_chunk)
 
                 # 添加错误结果
                 tool_result = {
