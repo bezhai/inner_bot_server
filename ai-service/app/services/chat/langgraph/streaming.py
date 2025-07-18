@@ -12,6 +12,64 @@ from .state import ChatGraphState, should_yield_output, create_yield_chunk, upda
 logger = logging.getLogger(__name__)
 
 
+class RealTimeStreamingManager:
+    """
+    实时流式输出管理器
+    负责管理实时流式输出的时间间隔和内容累积
+    """
+
+    def __init__(self, yield_interval: float = 0.5):
+        self.yield_interval = yield_interval
+        self.last_yield_time = 0.0
+        self.accumulated_content = ""
+        self.accumulated_reason = ""
+        self.total_chunks = 0
+
+    def should_yield(self) -> bool:
+        """检查是否应该输出"""
+        current_time = asyncio.get_event_loop().time()
+        time_passed = (current_time - self.last_yield_time) >= self.yield_interval
+
+        # 如果是第一次或者时间间隔达到要求
+        return self.total_chunks == 0 or time_passed
+
+    def yield_chunk(self, chunk: ChatStreamChunk) -> ChatStreamChunk:
+        """输出流式块"""
+        # 累积内容
+        if chunk.content:
+            self.accumulated_content += chunk.content
+        if chunk.reason_content:
+            self.accumulated_reason += chunk.reason_content
+
+        # 更新计数和时间
+        self.total_chunks += 1
+        self.last_yield_time = asyncio.get_event_loop().time()
+
+        # 返回累积的内容
+        return ChatStreamChunk(
+            content=self.accumulated_content,
+            reason_content=self.accumulated_reason,
+            tool_call_feedback=chunk.tool_call_feedback,
+        )
+
+    def accumulate_chunk(self, chunk: ChatStreamChunk) -> None:
+        """累积内容但不输出"""
+        if chunk.content:
+            self.accumulated_content += chunk.content
+        if chunk.reason_content:
+            self.accumulated_reason += chunk.reason_content
+
+        self.total_chunks += 1
+
+    def get_final_chunk(self) -> ChatStreamChunk:
+        """获取最终块"""
+        return ChatStreamChunk(
+            content=self.accumulated_content,
+            reason_content=self.accumulated_reason,
+            tool_call_feedback=None,
+        )
+
+
 class StreamingManager:
     """
     流式输出管理器

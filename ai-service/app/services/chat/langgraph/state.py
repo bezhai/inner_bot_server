@@ -122,10 +122,42 @@ def update_state_with_chunk(
         state["accumulated_reason"] += chunk.reason_content
     if chunk.tool_call_feedback:
         state["tool_call_feedback"] = chunk.tool_call_feedback
-    
+
     # 添加到当前块列表
     state["current_chunks"].append(chunk)
-    
+
+    return state
+
+
+def update_state_with_realtime_chunk(
+    state: ChatGraphState, chunk: ChatStreamChunk
+) -> ChatGraphState:
+    """
+    用实时流式块更新状态
+
+    Args:
+        state: 当前状态
+        chunk: 流式块
+
+    Returns:
+        更新后的状态
+    """
+    # 更新累积内容
+    if chunk.content:
+        state["accumulated_content"] += chunk.content
+    if chunk.reason_content:
+        state["accumulated_reason"] += chunk.reason_content
+    if chunk.tool_call_feedback:
+        state["tool_call_feedback"] = chunk.tool_call_feedback
+
+    # 添加到当前块列表
+    state["current_chunks"].append(chunk)
+
+    # 更新时间
+    import time
+
+    state["last_yield_time"] = time.time()
+
     return state
 
 

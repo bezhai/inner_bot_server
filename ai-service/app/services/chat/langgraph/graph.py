@@ -82,10 +82,10 @@ class ChatGraphExecutor:
     """
     聊天图执行器
     """
-    
+
     def __init__(self):
         self.graph = create_chat_graph()
-    
+
     async def execute(
         self,
         message_id: str,
@@ -110,35 +110,35 @@ class ChatGraphExecutor:
                 "temperature": 0.7,
                 "enable_tools": True,
             }
-        
+
         if streaming_config is None:
             streaming_config = {"yield_interval": 0.5}
-        
+
         # 初始化状态
         initial_state = init_state(
             message_id=message_id,
             model_config=model_config,
             streaming_config=streaming_config
         )
-        
+
         try:
             # 执行图
             final_state = await self.graph.ainvoke(initial_state)
-            
+
             # 检查是否有错误
             if final_state.get("error_message"):
                 logger.error(f"图执行出错: {final_state['error_message']}")
             else:
                 logger.info(f"图执行成功: {message_id}")
-            
+
             return final_state
-            
+
         except Exception as e:
             logger.error(f"图执行失败: {message_id}, 错误: {str(e)}")
             # 返回错误状态
             initial_state["error_message"] = str(e)
             return initial_state
-    
+
     async def stream_execute(
         self,
         message_id: str,
@@ -156,25 +156,71 @@ class ChatGraphExecutor:
         Yields:
             ChatStreamChunk: 流式响应块
         """
-        # 执行图
-        final_state = await self.execute(
+        # 默认配置
+        if model_config is None:
+            model_config = {
+                "model_id": "gpt-4o-mini",
+                "temperature": 0.7,
+                "enable_tools": True,
+            }
+
+        if streaming_config is None:
+            streaming_config = {"yield_interval": 0.5}
+
+        # 初始化状态
+        initial_state = init_state(
             message_id=message_id,
             model_config=model_config,
-            streaming_config=streaming_config
+            streaming_config=streaming_config,
         )
-        
-        # 如果有错误，输出错误信息
-        if final_state.get("error_message"):
-            error_chunk = ChatStreamChunk(
-                content=f"处理失败: {final_state['error_message']}"
-            )
-            yield error_chunk
-            return
-        
-        # 处理流式输出
-        yield_interval = streaming_config.get("yield_interval", 0.5) if streaming_config else 0.5
-        async for chunk in process_streaming_response(final_state, yield_interval):
-            yield chunk
+
+        try:
+            # 使用astream实现真正的流式处理
+            async for chunk in self.graph.astream(
+                initial_state, stream_mode=["updates", "custom"]  # 组合模式
+            ):
+                if isinstance(chunk, tuple):
+                    mode, data = chunk
+
+                    if mode == "custom":
+                        # 来自get_stream_writer的实时输出
+                        if isinstance(data, dict) and "content" in data:
+                            # 转换为ChatStreamChunk格式
+                            stream_chunk = ChatStreamChunk(**data)
+                            yield stream_chunk
+                        elif isinstance(data, ChatStreamChunk):
+                            yield data
+
+                    elif mode == "updates":
+                        # 节点状态更新处理
+                        for node_name, node_output in data.items():
+
+                            # 检查是否有错误
+                            if node_output.get("error_message"):
+                                error_chunk = ChatStreamChunk(
+                                    content=f"处理失败: {node_output['error_message']}"
+                                )
+                                yield error_chunk
+                                return
+
+                            # 处理特殊节点的输出
+                            if node_name == "output_processing":
+                                # 输出处理节点可能有特殊内容
+                                if node_output.get("accumulated_content"):
+                                    special_chunk = ChatStreamChunk(
+                                        content=node_output["accumulated_content"]
+                                    )
+                                    yield special_chunk
+
+                else:
+                    # 处理非元组格式的数据
+                    if hasattr(chunk, "content") and chunk.content:
+                        yield chunk
+
+        except Exception as e:
+            # 错误处理
+            logger.error(f"流式执行失败: {message_id}, 错误: {str(e)}")
+            yield ChatStreamChunk(content=f"处理失败: {str(e)}")
 
 
 # 全局图执行器实例
