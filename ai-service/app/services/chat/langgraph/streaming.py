@@ -90,45 +90,22 @@ async def process_streaming_response(
     Yields:
         ChatStreamChunk: 流式响应块
     """
-    streaming_manager = StreamingManager(yield_interval)
+    # 直接从state获取最终累积内容，避免重复处理chunks
+    accumulated_content = state.get("accumulated_content", "")
+    accumulated_reason = state.get("accumulated_reason", "")
+    tool_call_feedback = state.get("tool_call_feedback")
     
-    # 获取所有accumulated chunks
-    chunks = state.get("current_chunks", [])
-    
-    if not chunks:
-        # 如果没有chunks，直接返回累积的内容
-        if state.get("accumulated_content") or state.get("accumulated_reason"):
-            final_chunk = ChatStreamChunk(
-                content=state.get("accumulated_content", ""),
-                reason_content=state.get("accumulated_reason", ""),
-                tool_call_feedback=state.get("tool_call_feedback")
-            )
-            logger.info(f"输出累积内容: {final_chunk.model_dump_json()}")
-            yield final_chunk
-        return
-    
-    for chunk in chunks:
-        # 累积内容
-        streaming_manager.yield_chunk(chunk)
-        
-        # 检查是否应该输出
-        if streaming_manager.should_yield():
-            if (streaming_manager.accumulated_content.strip() or 
-                streaming_manager.accumulated_reason.strip()):
-                yield_chunk = ChatStreamChunk(
-                    content=streaming_manager.accumulated_content,
-                    reason_content=streaming_manager.accumulated_reason,
-                    tool_call_feedback=chunk.tool_call_feedback
-                )
-                logger.info(f"输出流式块: {yield_chunk.model_dump_json()}")
-                yield yield_chunk
-    
-    # 输出最终剩余内容
-    if (streaming_manager.accumulated_content.strip() or 
-        streaming_manager.accumulated_reason.strip()):
-        final_chunk = streaming_manager.get_final_chunk()
-        logger.info(f"输出最终块: {final_chunk.model_dump_json()}")
+    # 只输出一次最终的累积内容
+    if accumulated_content.strip() or accumulated_reason.strip():
+        final_chunk = ChatStreamChunk(
+            content=accumulated_content,
+            reason_content=accumulated_reason,
+            tool_call_feedback=tool_call_feedback
+        )
+        logger.info(f"输出最终累积内容: {final_chunk.model_dump_json()}")
         yield final_chunk
+    else:
+        logger.warning("没有内容需要输出")
 
 
 def process_graph_output_sync(

@@ -17,6 +17,7 @@ export class LarkBaseChatInfo {
         can_access_restricted_models?: boolean;
         can_access_restricted_prompts?: boolean;
         new_permission?: boolean;
+        is_canary?: boolean;
     }; // 权限配置，包含所有权限相关设置
 
     @Column({ type: 'boolean', nullable: true })

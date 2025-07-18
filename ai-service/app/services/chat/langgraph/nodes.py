@@ -138,7 +138,6 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
         
         # 6. 调用模型流式处理
         pending_tool_calls = []
-        accumulated_content = ""
         
         async for chunk in model_service.stream_chat_completion(
             model_id=model_id,
@@ -150,9 +149,8 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
             # 处理内容
             if chunk.delta and chunk.delta.content:
                 content = chunk.delta.content
-                accumulated_content += content
                 
-                # 创建流式块
+                # 创建流式块并更新状态，避免双重累积
                 stream_chunk = ChatStreamChunk(content=content)
                 state = update_state_with_chunk(state, stream_chunk)
             
@@ -181,7 +179,7 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
                 logger.info(f"模型调用完成: {message_id}, finish_reason: {chunk.finish_reason}")
                 break
         
-        # 7. 保存工具调用信息和内容
+        # 7. 保存工具调用信息
         if pending_tool_calls:
             # 过滤完整的工具调用
             complete_tool_calls = []
@@ -192,10 +190,6 @@ async def model_call_node(state: ChatGraphState) -> ChatGraphState:
             if complete_tool_calls:
                 state["pending_tool_calls"] = complete_tool_calls
                 logger.info(f"检测到工具调用: {len(complete_tool_calls)} 个")
-        
-        # 8. 更新累积内容
-        if accumulated_content:
-            state["accumulated_content"] += accumulated_content
         
         logger.info(f"模型调用节点完成: {message_id}")
         return state

@@ -4,7 +4,6 @@ import { LarkBaseChatInfo, LarkUser } from 'dal/entities';
 import { MessageMetadata, MessageMetadataUtils } from './message-metadata';
 import { MessageContent, MessageContentUtils } from './message-content';
 import { MessageBuilder } from './message-builder';
-import { batchGetUserName } from 'services/message-store/user';
 
 export class Message {
     private metadata: MessageMetadata;

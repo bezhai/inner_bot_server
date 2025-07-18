@@ -36,6 +36,7 @@ export async function makeCardReply(message: Message): Promise<void> {
     await sseChat({
         req: {
             message_id: message.messageId,
+            is_canary: message.basicChatInfo?.permission_config?.is_canary,
         },
         ...cardManager.createAdvancedCallbacks(message.messageId),
         onSaveMessage,

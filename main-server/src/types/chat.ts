@@ -73,6 +73,7 @@ export interface ChatMessage {
  */
 export interface ChatRequest {
     message_id: string; // 消息id / Message ID
+    is_canary?: boolean; // 是否开启灰度
 }
 
 /**
