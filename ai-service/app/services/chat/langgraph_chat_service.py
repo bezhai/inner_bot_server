@@ -5,8 +5,7 @@ LangGraph 聊天服务
 
 import logging
 import traceback
-import asyncio
-from typing import AsyncGenerator, Dict, Any, Optional
+from typing import AsyncGenerator
 
 from app.types.chat import ChatStreamChunk
 from app.services.chat.langgraph import execute_chat_graph
