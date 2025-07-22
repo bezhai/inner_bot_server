@@ -56,6 +56,7 @@ class SubjectTag(BaseModel):
 class Subject(BaseModel):
     """条目信息"""
 
+    id: int
     type: int
     name: str
     name_cn: Optional[str] = None
@@ -79,7 +80,6 @@ class Subject(BaseModel):
 class SimpleSubject(BaseModel):
     """条目信息"""
 
-    id: int
     type: str
     name: str
     name_cn: Optional[str] = None
@@ -251,19 +251,19 @@ async def search_subjects(
         search_filter["tags"] = tags
     if start_date is not None:
         search_filter["air_date"] = append_element(
-            search_filter["air_date"], f">={start_date}"
+            search_filter.get("air_date", []), f">={start_date}"
         )
     if end_date is not None:
         search_filter["air_date"] = append_element(
-            search_filter["air_date"], f"<{end_date}"
+            search_filter.get("air_date", []), f"<{end_date}"
         )
     if min_rating is not None:
         search_filter["rating"] = append_element(
-            search_filter["rating"], f">={min_rating}"
+            search_filter.get("rating", []), f">={min_rating}"
         )
     if max_rating is not None:
         search_filter["rating"] = append_element(
-            search_filter["rating"], f"<={max_rating}"
+            search_filter.get("rating", []), f"<={max_rating}"
         )
 
     # 构建请求体
@@ -301,8 +301,8 @@ async def search_subjects(
                 date=subject.date,
                 platform=subject.platform,
                 infobox=subject.infobox,
-                score=subject.rating.score,
-                tags=[tag.name for tag in subject.tags],
+                score=subject.rating.score if subject.rating else None,
+                tags=[tag.name for tag in subject.tags] if subject.tags else None,
             )
             for subject in mid_result.data
         ],
