@@ -248,7 +248,7 @@ async def search_subjects(
             )
         )
     if tags is not None:
-        search_filter["tags"] = tags
+        search_filter["tag"] = tags
     if start_date is not None:
         search_filter["air_date"] = append_element(
             search_filter.get("air_date", []), f">={start_date}"
