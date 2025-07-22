@@ -216,7 +216,7 @@ async def search_subjects(
 
     Args:
         keyword: 搜索关键词
-        sort: 排序方式，可选值：match(匹配度)/heat(热度)/rank(排名)/score(评分)，默认match
+        sort: 排序方式，可选值：match(匹配度)/heat(热度)/score(评分)，默认match
         limit: 分页限制，默认30，最大50, 范围比较明确时建议设置为5以下甚至1
         offset: 分页偏移，默认0
         types: 条目类型筛选，可选值包含"书籍", "动画", "音乐", "游戏", "三次元"，多值为"或"关系
