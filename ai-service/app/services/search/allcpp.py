@@ -24,6 +24,10 @@ class CppSearchResult(BaseModel):
     is_online: bool  # 是否为线上
 
 
+class CppSearchResultList(BaseModel):
+    list: List[CppSearchResult]  # 活动列表
+
+
 # 中间结果
 class CppSearchMidSingleResult(BaseModel):
     id: int  # 活动id
@@ -39,8 +43,8 @@ class CppSearchMidSingleResult(BaseModel):
     enterAddress: str  # 活动地址
     ended: Optional[bool] = False  # 是否已结束
     isOnline: int  # 是否为线上
-    
-    @field_validator('enterTime', 'endTime')
+
+    @field_validator("enterTime", "endTime")
     @classmethod
     def convert_timestamp_to_string(cls, v):
         """将时间戳转换为字符串格式"""
@@ -49,7 +53,7 @@ class CppSearchMidSingleResult(BaseModel):
         if isinstance(v, int):
             # 将毫秒时间戳转换为秒时间戳，然后格式化
             timestamp = v / 1000
-            return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+            return datetime.fromtimestamp(timestamp).strftime("%Y-%m-%d %H:%M:%S")
         return str(v)
 
 
@@ -141,21 +145,23 @@ async def search_donjin_event(
 
     mid_result = CppSearchMidResult(**data["result"])
 
-    return [
-        CppSearchResult(
-            event_url=f"https://www.allcpp.cn/allcpp/event/event.do?event={item.id}",
-            name=item.name,
-            type=item.type,
-            tag=item.tag,
-            enter_time=item.enterTime or "",
-            end_time=item.endTime or "",
-            wanna_go_count=item.wannaGoCount,
-            prov_name=item.provName or "",
-            city_name=item.cityName or "",
-            area_name=item.areaName or "",
-            enter_address=item.enterAddress,
-            ended=item.ended or False,
-            is_online=item.isOnline == 1,
-        )
-        for item in mid_result.list
-    ]
+    return CppSearchResultList(
+        list=[
+            CppSearchResult(
+                event_url=f"https://www.allcpp.cn/allcpp/event/event.do?event={item.id}",
+                name=item.name,
+                type=item.type,
+                tag=item.tag,
+                enter_time=item.enterTime or "",
+                end_time=item.endTime or "",
+                wanna_go_count=item.wannaGoCount,
+                prov_name=item.provName or "",
+                city_name=item.cityName or "",
+                area_name=item.areaName or "",
+                enter_address=item.enterAddress,
+                ended=item.ended or False,
+                is_online=item.isOnline == 1,
+            )
+            for item in mid_result.list
+        ]
+    )
