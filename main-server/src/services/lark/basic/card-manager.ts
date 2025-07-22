@@ -28,7 +28,7 @@ import dayjs from 'dayjs';
 export class ActionContentAdapter {
     private refLinkMap = new Map<string, number>();
     private refCounter = 1;
-    private readonly refRegex = /\(ref:(https?:\/\/[^\)]+)\)/g;
+    private readonly refRegex = /[(\（]ref:(https?:\/\/[^\)）]+)[\)）]/g;
 
     /**
      * 转换内容中的链接引用
