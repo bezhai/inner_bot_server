@@ -46,7 +46,7 @@ class CppSearchMidResult(BaseModel):
 @tool()
 @log_io
 async def search_donjin_event(
-    query: str,
+    query: Optional[str] = None,
     is_online: Optional[bool] = None,
     recent_days: Optional[int] = None,
     activity_status: Optional[str] = None,
@@ -57,7 +57,7 @@ async def search_donjin_event(
     搜索同人展活动, 返回结构化的活动列表
 
     Args:
-        query: 搜索关键词
+        query: 搜索关键词, 默认为空
         is_online: 是否为线上活动, 默认不限制
         recent_days: 最近几天内的活动, 默认为全部
         activity_status: 活动状态, 默认不限制, 可选值: ongoing(未结束), ended(已结束), 优先级比recent_days高
