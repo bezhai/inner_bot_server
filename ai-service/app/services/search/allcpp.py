@@ -1,8 +1,11 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from app.tools.decorators import tool
 from app.utils.decorators.log_decorator import log_io
 import httpx
-from pydantic import BaseModel
+import random
+import asyncio
+from datetime import datetime
+from pydantic import BaseModel, Field, field_validator
 
 
 class CppSearchResult(BaseModel):
@@ -27,15 +30,27 @@ class CppSearchMidSingleResult(BaseModel):
     name: str  # 活动名称
     type: str  # 活动类型
     tag: str  # 活动标签
-    enterTime: str  # 活动开始时间
-    endTime: str  # 活动结束时间
+    enterTime: Union[int, str, None] = None  # 活动开始时间（时间戳或字符串）
+    endTime: Union[int, str, None] = None  # 活动结束时间（时间戳或字符串）
     wannaGoCount: int  # 想参加人数
-    provName: str  # 省份
-    cityName: str  # 城市
-    areaName: str  # 地区
+    provName: Optional[str] = ""  # 省份
+    cityName: Optional[str] = ""  # 城市
+    areaName: Optional[str] = ""  # 地区
     enterAddress: str  # 活动地址
-    ended: bool  # 是否已结束
+    ended: Optional[bool] = False  # 是否已结束
     isOnline: int  # 是否为线上
+    
+    @field_validator('enterTime', 'endTime')
+    @classmethod
+    def convert_timestamp_to_string(cls, v):
+        """将时间戳转换为字符串格式"""
+        if v is None:
+            return ""
+        if isinstance(v, int):
+            # 将毫秒时间戳转换为秒时间戳，然后格式化
+            timestamp = v / 1000
+            return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        return str(v)
 
 
 class CppSearchMidResult(BaseModel):
@@ -90,12 +105,41 @@ async def search_donjin_event(
         }.get(activity_type, None),
     }
 
-    async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(url, params=query)
-        response.raise_for_status()
-        data = response.json()
+    # 构建浏览器请求头来绕过反爬检测
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "sec-ch-ua": '"Not)A;Brand";v="8", "Chromium";v="138", "Google Chrome";v="138"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": '"macOS"',
+    }
 
-    mid_result = CppSearchMidResult(data["result"])
+    # 添加重试机制
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=15, headers=headers) as client:
+                # 添加随机延迟避免频繁请求
+                if attempt > 0:
+                    await asyncio.sleep(random.uniform(1, 3))
+
+                response = await client.get(url, params=query)
+                response.raise_for_status()
+                data = response.json()
+                break  # 成功则跳出重试循环
+
+        except (httpx.HTTPStatusError, httpx.RequestError) as e:
+            if attempt == max_retries - 1:  # 最后一次尝试失败
+                raise e
+            continue
+
+    mid_result = CppSearchMidResult(**data["result"])
 
     return [
         CppSearchResult(
@@ -103,14 +147,14 @@ async def search_donjin_event(
             name=item.name,
             type=item.type,
             tag=item.tag,
-            enter_time=item.enterTime,
-            end_time=item.endTime,
+            enter_time=item.enterTime or "",
+            end_time=item.endTime or "",
             wanna_go_count=item.wannaGoCount,
-            prov_name=item.provName,
-            city_name=item.cityName,
-            area_name=item.areaName,
+            prov_name=item.provName or "",
+            city_name=item.cityName or "",
+            area_name=item.areaName or "",
             enter_address=item.enterAddress,
-            ended=item.ended,
+            ended=item.ended or False,
             is_online=item.isOnline == 1,
         )
         for item in mid_result.list
