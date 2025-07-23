@@ -80,6 +80,7 @@ class Subject(BaseModel):
 class SimpleSubject(BaseModel):
     """条目信息"""
 
+    id: int
     type: str
     name: str
     name_cn: Optional[str] = None
@@ -130,6 +131,7 @@ class Character(BaseModel):
 class SimpleCharacter(BaseModel):
     """角色信息"""
 
+    id: int
     name: str
     type: str  # 角色类型, 角色, 机体, 舰船, 组织
     summary: Optional[str] = None
@@ -288,6 +290,7 @@ async def search_subjects(
         offset=mid_result.offset,
         data=[
             SimpleSubject(
+                id=subject.id,
                 type={
                     1: "书籍",
                     2: "动画",
@@ -348,6 +351,7 @@ async def search_characters(
         offset=mid_result.offset,
         data=[
             SimpleCharacter(
+                id=character.id,
                 type={
                     1: "角色",
                     2: "机体",
