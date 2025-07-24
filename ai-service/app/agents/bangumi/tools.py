@@ -6,13 +6,18 @@ from app.config import settings
 from app.utils.decorators import redis_cache
 from app.agents.bangumi.models import (
     SimpleSubject,
+    SimpleSubjectPerson,
     Subject,
+    SubjectCharacter,
     SubjectForAIResult,
     CharacterForAIResult,
     SubjectSearchResult,
     CharacterSearchResult,
     SimpleCharacter,
     Character,
+    SimplePerson,
+    Person,
+    SubjectPerson,
 )
 
 
@@ -74,10 +79,10 @@ async def search_subjects(
     Args:
         keyword: 搜索关键词
         sort: 排序方式，可选值：match(匹配度)/heat(热度)/score(评分)，默认match
-        limit: 分页限制，默认30，最大50, 范围比较明确时建议设置为5以下甚至1
+        limit: 分页限制，默认10，最大50, 范围比较明确时建议设置为5以下甚至1
         offset: 分页偏移，默认0
         types: 条目类型筛选，可选值包含"书籍", "动画", "音乐", "游戏", "三次元"，多值为"或"关系
-        tags: 标签筛选，多值为"且"关系，可用"-"前缀排除标签
+        tags: 标签筛选，多值为"且"关系
         start_date: 开始日期(包含)筛选，格式如"YYYY-MM-DD"
         end_date: 结束日期(不包含)筛选，格式如"YYYY-MM-DD"
         min_rating: 最小评分，取值范围为1-10
@@ -190,7 +195,7 @@ async def search_characters(
 @tool
 async def get_subject_characters(
     subject_id: int,
-) -> CharacterForAIResult:
+) -> List[SimpleCharacter]:
     """
     获取条目关联的角色
 
@@ -203,7 +208,25 @@ async def get_subject_characters(
     response = await send_bangumi_request(
         path=f"/v0/subjects/{subject_id}/characters", method="GET"
     )
-    mid_result = CharacterSearchResult(**response)
+    mid_result = [SubjectCharacter(**item).to_simple() for item in response]
+    for item in mid_result:
+        item.detail = await _get_character_info(item.id)
+    return mid_result
+
+@tool
+async def get_subject_persons(
+    subject_id: int,
+) -> List[SimpleSubjectPerson]:
+    """
+    获取条目关联的人物
+    """
+    response = await send_bangumi_request(
+        path=f"/v0/subjects/{subject_id}/people", method="GET"
+    )
+    mid_result = [SubjectPerson(**item).to_simple() for item in response]
+    for item in mid_result:
+        item.detail = await _get_person_info(item.id)
+    return mid_result
 
 
 async def _get_subject_info(subject_id: int) -> SimpleSubject:
@@ -218,3 +241,10 @@ async def _get_character_info(character_id: int) -> SimpleCharacter:
         path=f"/v0/characters/{character_id}", method="GET"
     )
     return Character(**response).to_simple()
+
+
+async def _get_person_info(person_id: int) -> SimplePerson:
+    response = await send_bangumi_request(
+        path=f"/v0/people/{person_id}", method="GET"
+    )
+    return Person(**response).to_simple()

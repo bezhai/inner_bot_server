@@ -4,6 +4,7 @@ from app.api.router import api_router
 from app.core.events import init_events
 from app.tools.startup import startup_tools
 from app.utils.middlewares import TraceIdMiddleware
+from app.agents import *
 import logging
 
 logger = logging.getLogger(__name__)
