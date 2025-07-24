@@ -64,7 +64,7 @@ def append_element(array, element):
 async def search_subjects(
     keyword: Optional[str] = None,
     sort: str = "match",
-    limit: int = 30,
+    limit: int = 10,
     offset: int = 0,
     types: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
@@ -219,6 +219,12 @@ async def get_subject_persons(
 ) -> List[SimpleSubjectPerson]:
     """
     获取条目关联的人物
+
+    Args:
+        subject_id: 条目ID
+
+    Returns:
+        人物列表
     """
     response = await send_bangumi_request(
         path=f"/v0/subjects/{subject_id}/people", method="GET"
