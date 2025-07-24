@@ -62,11 +62,11 @@ def append_element(array, element):
 
 @tool
 async def search_subjects(
+    types: List[str] = None,
     keyword: Optional[str] = None,
     sort: str = "match",
     limit: int = 10,
     offset: int = 0,
-    types: Optional[List[str]] = None,
     tags: Optional[List[str]] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
