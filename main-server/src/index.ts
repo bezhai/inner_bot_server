@@ -14,6 +14,7 @@ import koaBody from 'koa-body';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
 import { traceMiddleware } from './middleware/trace';
 import { initEvents } from './events';
+import promptRoutes from './handlers/prompts';
 
 async function initializeServer() {
     console.log('Start initialization with bot', getBotAppId());
@@ -63,6 +64,7 @@ async function startHttpServer() {
     });
 
     server.use(router.routes());
+    server.use(promptRoutes.routes());
 
     server.listen(3000);
     console.log('HTTP server started on port 3000');
