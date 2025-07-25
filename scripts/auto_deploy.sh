@@ -35,14 +35,14 @@ send_feishu_notification() {
   
   # 发送通知
   log "发送飞书通知: $MESSAGE"
-  curl -s -X POST -H "Content-Type: application/json" \
+  HTTP_STATUS=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" \
     -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MESSAGE\"}}" \
-    "$DEPLOY_WEBHOOK_URL"
+    -o /dev/null "$DEPLOY_WEBHOOK_URL")
     
-  if [ $? -eq 0 ]; then
-    log "飞书通知发送成功"
+  if [ "$HTTP_STATUS" = "200" ]; then
+    log "飞书通知发送成功 (HTTP $HTTP_STATUS)"
   else
-    log "飞书通知发送失败"
+    log "飞书通知发送失败 (HTTP $HTTP_STATUS)"
   fi
 }
 
@@ -140,4 +140,4 @@ fi
 
 # 删除锁文件
 rm -f $LOCK_FILE
-log "部署检查完成" 
+log "部署检查完成"
