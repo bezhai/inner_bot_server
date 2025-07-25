@@ -11,6 +11,7 @@ import { getBotAppId } from './utils/bot/bot-var';
 import Koa from 'koa';
 import Router from '@koa/router';
 import koaBody from 'koa-body';
+import cors from '@koa/cors';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
 import { traceMiddleware } from './middleware/trace';
 import { initEvents } from './events';
@@ -37,6 +38,7 @@ async function startHttpServer() {
     const router = new Router();
     const { eventRouter, cardActionRouter } = initializeHttpMode();
 
+    server.use(cors());
     server.use(traceMiddleware);
     server.use(koaBody());
 

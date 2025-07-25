@@ -21,6 +21,7 @@
     "author": "Chiwei",
     "license": "MIT",
     "devDependencies": {
+        "@types/koa__cors": "^5.0.0",
         "@types/lodash": "^4.17.13",
         "@types/node": "^18.0.0",
         "@types/uuid": "^10.0.0",
@@ -34,6 +35,7 @@
         "typescript": "^5.6.3"
     },
     "dependencies": {
+        "@koa/cors": "^5.0.0",
         "@koa/router": "^12.0.1",
         "@larksuiteoapi/node-sdk": "^1.23.0",
         "@types/koa": "^2.15.0",
