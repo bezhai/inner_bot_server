@@ -175,10 +175,18 @@ export interface AuthorDownloadRequestCallback {
 
 export interface LarkCardThumbsUpCallback {
     type: typeof LarkCardThumbsUp;
+    message_id: string;
+    chat_id: string;
+    parent_message_id: string;
+    union_id: string;
 }
 
 export interface LarkCardThumbsDownCallback {
     type: typeof LarkCardThumbsDown;
+    message_id: string;
+    chat_id: string;
+    parent_message_id: string;
+    union_id: string;
 }
 
 export interface LarkCardRetryCallback {

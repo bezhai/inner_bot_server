@@ -7,6 +7,7 @@ import {
     LarkCardContext,
     LarkUserOpenId,
     UserChatMapping,
+    ResponseFeedback,
 } from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
@@ -18,3 +19,4 @@ export const LarkUserOpenIdRepository = AppDataSource.getRepository(LarkUserOpen
 export const CardContextRepository = AppDataSource.getRepository(LarkCardContext);
 export const UserChatMappingRepository = AppDataSource.getRepository(UserChatMapping);
 export const UserGroupBindingRepository = new CustomUserGroupBindingRepository(AppDataSource);
+export const ResponseFeedbackRepository = AppDataSource.getRepository(ResponseFeedback);

@@ -4,10 +4,13 @@ import {
     FetchPhotoDetails,
     UpdateDailyPhotoCard,
     LarkCardRetry,
+    LarkCardThumbsDown,
+    LarkCardThumbsUp,
 } from 'types/lark';
 import { fetchAndSendPhotoDetail } from '@callback/fetch-photo-detail';
 import { handleUpdatePhotoCard, handleUpdateDailyPhotoCard } from '@callback/update-card';
 import { handleRetryCard } from '@callback/retry-card';
+import { handleFeedback } from '@callback/feedback';
 
 export async function handleCardAction(data: LarkCallbackInfo) {
     switch (data.action.value?.type) {
@@ -22,6 +25,12 @@ export async function handleCardAction(data: LarkCallbackInfo) {
             break;
         case LarkCardRetry:
             handleRetryCard(data.action.value);
+            break;
+        case LarkCardThumbsDown:
+            handleFeedback(data.action.value, data.operator.union_id);
+            break;
+        case LarkCardThumbsUp:
+            handleFeedback(data.action.value, data.operator.union_id);
             break;
         default:
             console.log('unknown card action', data);

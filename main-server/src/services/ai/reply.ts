@@ -12,6 +12,7 @@ export async function makeCardReply(message: Message): Promise<void> {
         chat_id: message.chatId,
         root_id: message.rootId,
         is_p2p: message.isP2P(),
+        union_id: message.senderInfo?.union_id,
     });
 
     const onSaveMessage = async (content: string) => {

@@ -478,6 +478,8 @@ export class CardManager {
                     )
                     .addCallbackBehavior({
                         type: LarkCardThumbsUp,
+                        message_id: this.messageId!,
+                        ...this.cardContext,
                     })
                     .setCornerRadius('2px')
                     .setHorizontalAlign('center')
@@ -497,6 +499,8 @@ export class CardManager {
                     )
                     .addCallbackBehavior({
                         type: LarkCardThumbsDown,
+                        message_id: this.messageId!,
+                        ...this.cardContext,
                     })
                     .setCornerRadius('2px')
                     .setHorizontalAlign('center')
