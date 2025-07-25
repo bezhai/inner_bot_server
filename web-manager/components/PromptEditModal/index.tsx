@@ -6,13 +6,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAtom } from 'jotai';
 import { X, Save } from 'lucide-react';
-import { editingPromptAtom, editModalOpenAtom } from '../../states/promptsState';
+import { editingPromptAtom, editModalOpenAtom, promptsAtom } from '../../states/promptsState';
 import { usePrompts } from '../../hooks/usePrompts';
 import { Prompt } from '../../types/prompt';
 
 export const PromptEditModal: React.FC = () => {
   const [editingPrompt, setEditingPrompt] = useAtom(editingPromptAtom);
   const [isOpen, setIsOpen] = useAtom(editModalOpenAtom);
+  const [prompts] = useAtom(promptsAtom);
   const { savePrompt, saving } = usePrompts();
 
   const [formData, setFormData] = useState<Partial<Prompt>>({});
@@ -33,11 +34,19 @@ export const PromptEditModal: React.FC = () => {
       return;
     }
 
+    // 检查新提示词的ID是否已存在
+    if (isNewPrompt && prompts.some(p => p.id === formData.id)) {
+      alert('提示词ID已存在，请使用其他ID');
+      return;
+    }
+
     try {
-      await savePrompt({
+      const promptToSave: Prompt = {
         ...formData,
         updatedAt: new Date().toISOString(),
-      } as Prompt);
+      } as Prompt;
+      
+      await savePrompt(promptToSave);
       handleClose();
     } catch (error) {
       // 错误已在 hook 中处理
@@ -55,12 +64,16 @@ export const PromptEditModal: React.FC = () => {
     return null;
   }
 
+  const isNewPrompt = !prompts.find(p => p.id === editingPrompt.id);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold text-gray-900">编辑提示词</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            {isNewPrompt ? '新建提示词' : '编辑提示词'}
+          </h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -72,17 +85,26 @@ export const PromptEditModal: React.FC = () => {
         {/* 内容 */}
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="space-y-6">
-            {/* ID（只读） */}
+            {/* ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                ID
+                ID {isNewPrompt && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="text"
                 value={formData.id || ''}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                onChange={(e) => handleInputChange('id', e.target.value)}
+                disabled={!isNewPrompt}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
+                  isNewPrompt 
+                    ? 'focus:ring-2 focus:ring-blue-500 focus:border-transparent' 
+                    : 'bg-gray-50 text-gray-500'
+                }`}
+                placeholder={isNewPrompt ? "请输入提示词ID" : ""}
               />
+              {isNewPrompt && (
+                <p className="text-sm text-gray-500 mt-1">提示词的唯一标识符，创建后不可修改</p>
+              )}
             </div>
 
             {/* 名称 */}

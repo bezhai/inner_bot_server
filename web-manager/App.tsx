@@ -5,17 +5,33 @@
 
 import React, { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { FileText, RefreshCw } from 'lucide-react';
+import { FileText, RefreshCw, Plus } from 'lucide-react';
 import { PromptList } from './components/PromptList';
 import { PromptEditModal } from './components/PromptEditModal';
 import { usePrompts } from './hooks/usePrompts';
+import { editingPromptAtom, editModalOpenAtom } from './states/promptsState';
+import { useAtom } from 'jotai';
 
 const App: React.FC = () => {
   const { prompts, loading, fetchPrompts } = usePrompts();
+  const [, setEditingPrompt] = useAtom(editingPromptAtom);
+  const [, setEditModalOpen] = useAtom(editModalOpenAtom);
 
   useEffect(() => {
     fetchPrompts();
   }, []);
+
+  const handleNewPrompt = () => {
+    setEditingPrompt({
+      id: '',
+      name: '',
+      description: '',
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setEditModalOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -32,14 +48,23 @@ const App: React.FC = () => {
               </h1>
             </div>
             
-            <button
-              onClick={fetchPrompts}
-              disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              刷新
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleNewPrompt}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                <Plus size={16} />
+                新建提示词
+              </button>
+              <button
+                onClick={fetchPrompts}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                刷新
+              </button>
+            </div>
           </div>
         </div>
       </div>
