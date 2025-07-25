@@ -48,7 +48,7 @@ class AIChatService:
 
         try:
             prompt = await ChatPromptService.get_prompt({})
-            message_context = MessageContext(message_id, lambda: prompt)
+            message_context = MessageContext(message_id, lambda param: prompt)
             await message_context.init_context_messages()
 
             # 准备工具调用参数
