@@ -58,7 +58,7 @@ async def _get_agent():
     global _agent
     if _agent is None:
         # 构建模型
-        model = await ModelBuilder.build_chat_model("gpt-4o-mini")
+        model = await ModelBuilder.build_chat_model("gpt-4.1-mini")
         
         _agent = create_react_agent(
             model, 
