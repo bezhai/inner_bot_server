@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from app.services.chat.context import MessageContext
-from app.services.chat.prompt import PromptGeneratorParam, PromptService
+from app.services.chat.prompt import PromptGeneratorParam, ChatPromptService
 from app.services.meta_info import AsyncRedisClient
 from app.types.chat import ChatStreamChunk, ToolCallFeedbackResponse
 from app.tools import get_tool_manager
@@ -45,7 +45,8 @@ async def initialize_node(state: ChatGraphState) -> ChatGraphState:
     
     # 2. 初始化消息上下文
     try:
-        context = MessageContext(message_id, PromptService.get_prompt)
+        prompt = await ChatPromptService.get_prompt(PromptGeneratorParam())
+        context = MessageContext(message_id, lambda: prompt)
         await context.init_context_messages()
         state["context"] = context
         logger.info(f"消息上下文初始化成功: {message_id}")

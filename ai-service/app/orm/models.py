@@ -40,3 +40,13 @@ class AIModel(Base):
     provider_id = Column(
         UUID(as_uuid=True), ForeignKey("model_provider.provider_id"), nullable=False
     )  # 供应商外键
+
+
+class Prompt(Base):
+    __tablename__ = "prompt"
+    id = Column(String, primary_key=True)  # 模板ID
+    name = Column(String, nullable=False)  # 模板名称
+    description = Column(String, nullable=False)  # 模板描述
+    content = Column(Text, nullable=False)  # 模板内容
+    created_at = Column(TIMESTAMP, nullable=False)
+    updated_at = Column(TIMESTAMP, nullable=False)

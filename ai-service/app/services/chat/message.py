@@ -2,7 +2,7 @@ import logging
 import traceback
 from typing import AsyncGenerator
 from .model import ModelService
-from .prompt import PromptService
+from .prompt import ChatPromptService
 from app.types.chat import ChatMessage, ChatStreamChunk
 from app.services.chat.context import MessageContext
 from app.services.meta_info import AsyncRedisClient
@@ -47,7 +47,8 @@ class AIChatService:
             logger.warning(f"消息加锁失败: {message_id}, 错误: {str(e)}")
 
         try:
-            message_context = MessageContext(message_id, PromptService.get_prompt)
+            prompt = await ChatPromptService.get_prompt({})
+            message_context = MessageContext(message_id, lambda: prompt)
             await message_context.init_context_messages()
 
             # 准备工具调用参数
