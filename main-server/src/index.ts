@@ -13,9 +13,9 @@ import Router from '@koa/router';
 import koaBody from 'koa-body';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
 import { traceMiddleware } from './middleware/trace';
-import { mixedContentMiddleware } from './middleware/mixed-content';
 import { initEvents } from './events';
 import promptRoutes from './handlers/prompts';
+import cors from '@koa/cors';
 
 async function initializeServer() {
     console.log('Start initialization with bot', getBotAppId());
@@ -39,7 +39,7 @@ async function startHttpServer() {
     const { eventRouter, cardActionRouter } = initializeHttpMode();
 
     // 混合内容处理中间件（包含CORS配置）
-    server.use(mixedContentMiddleware);
+    server.use(cors());
     server.use(traceMiddleware);
     server.use(koaBody());
 

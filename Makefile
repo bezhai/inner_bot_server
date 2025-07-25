@@ -38,7 +38,7 @@ deploy:
 	docker compose up -d --no-deps logstash kibana
 	sleep 10
 	# 最后更新应用服务
-	docker compose up -d --no-deps ai-app app meme
+	docker compose up -d --no-deps ai-app app meme web-manager
 
 # 用于自动部署的生产环境部署命令
 deploy-live:
@@ -51,7 +51,7 @@ deploy-live:
 	docker compose up -d --no-deps --no-recreate logstash kibana
 	sleep 5
 	# 最后更新应用服务（仅当有变更时）
-	docker compose up -d --no-deps ai-app app meme
+	docker compose up -d --no-deps ai-app app meme web-manager
 	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
 
 # 设置自动部署定时任务（每3分钟检查一次）
