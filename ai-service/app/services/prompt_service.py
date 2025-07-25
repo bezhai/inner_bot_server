@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from app.orm.models import Prompt
-from app.orm.crud import get_db_session
+from app.orm.base import AsyncSessionLocal
 from app.utils.decorators.cache_decorator import redis_cache
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ class PromptService:
             提示词内容，如果未找到则返回None
         """
         try:
-            async with get_db_session() as session:
+            async with AsyncSessionLocal() as session:
                 result = await session.execute(
                     select(Prompt).where(Prompt.id == prompt_id)
                 )
