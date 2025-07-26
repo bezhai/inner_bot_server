@@ -11,13 +11,13 @@ router.get('/', async (ctx) => {
         ctx.body = {
             success: true,
             data: prompts,
-            message: 'Prompts retrieved successfully'
+            message: 'Prompts retrieved successfully',
         };
         ctx.status = 200;
     } catch (error) {
         ctx.body = {
             success: false,
-            message: error instanceof Error ? error.message : 'Failed to retrieve prompts'
+            message: error instanceof Error ? error.message : 'Failed to retrieve prompts',
         };
         ctx.status = 500;
     }
@@ -27,11 +27,11 @@ router.get('/', async (ctx) => {
 router.post('/', async (ctx) => {
     try {
         const promptData: Prompt = ctx.request.body;
-        
+
         if (!promptData.id || !promptData.name || !promptData.content) {
             ctx.body = {
                 success: false,
-                message: 'Missing required fields: id, name, or content'
+                message: 'Missing required fields: id, name, or content',
             };
             ctx.status = 400;
             return;
@@ -41,13 +41,13 @@ router.post('/', async (ctx) => {
         ctx.body = {
             success: true,
             data: prompt,
-            message: 'Prompt saved successfully'
+            message: 'Prompt saved successfully',
         };
         ctx.status = 200;
     } catch (error) {
         ctx.body = {
             success: false,
-            message: error instanceof Error ? error.message : 'Failed to save prompt'
+            message: error instanceof Error ? error.message : 'Failed to save prompt',
         };
         ctx.status = 500;
     }

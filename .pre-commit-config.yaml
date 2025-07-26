@@ -13,10 +13,22 @@ repos:
 
   - repo: local
     hooks:
-      # 检查main-server代码格式化
+      # 检查main-server代码格式化和编译
       - id: main-server-format
         name: Check main-server format
         entry: bash -c 'cd main-server && npx prettier --check src/**/*.ts'
+        language: system
+        files: ^main-server/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+      - id: main-server-build
+        name: Check main-server build
+        entry: bash -c 'cd main-server && npm run build'
+        language: system
+        files: ^main-server/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+      - id: main-server-lint
+        name: Check main-server lint
+        entry: bash -c 'cd main-server && npx eslint src --ext .ts'
         language: system
         files: ^main-server/.*\.(ts|tsx|js|jsx)$
         pass_filenames: false
