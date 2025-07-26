@@ -208,8 +208,8 @@ async def search_subjects(
     )
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def search_characters(
     keyword: str,
     limit: int = 30,
@@ -249,8 +249,8 @@ async def search_characters(
     )
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def search_persons(
     keyword: str,
     careers: list[str] | None = None,
@@ -305,8 +305,8 @@ async def search_persons(
     )
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_subject_characters(
     subject_id: int,
 ) -> list[SimpleCharacter]:
@@ -328,8 +328,8 @@ async def get_subject_characters(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_subject_relations(
     subject_id: int,
 ) -> list[SimpleSubjectRelation]:
@@ -345,8 +345,8 @@ async def get_subject_relations(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_subject_persons(
     subject_id: int,
 ) -> list[SimpleSubjectPerson]:
@@ -368,8 +368,8 @@ async def get_subject_persons(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_character_subjects(
     character_id: int,
 ) -> list[SimpleCharacterSubject]:
@@ -391,8 +391,8 @@ async def get_character_subjects(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_character_persons(
     character_id: int,
 ) -> list[SimpleCharacterPerson]:
@@ -414,8 +414,8 @@ async def get_character_persons(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_person_characters(
     person_id: int,
 ) -> list[SimplePersonCharacter]:
@@ -437,8 +437,8 @@ async def get_person_characters(
     return mid_result
 
 
-@auto_serialize_tool
 @tool
+@auto_serialize_tool
 async def get_person_subjects(
     person_id: int,
 ) -> list[SimplePersonSubject]:
