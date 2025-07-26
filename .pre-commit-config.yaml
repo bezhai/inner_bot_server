@@ -13,6 +13,16 @@ repos:
 
   - repo: local
     hooks:
+      # 检查ai-service是否能通过编译
+      - id: ai-service-build-check
+        name: Check ai-service build
+        entry: bash -c 'cd ai-service && uv build'
+        language: system
+        files: ^ai-service/.*\.py$
+        pass_filenames: false
+
+  - repo: local
+    hooks:
       # 检查main-server代码格式化和编译
       - id: main-server-format
         name: Check main-server format
