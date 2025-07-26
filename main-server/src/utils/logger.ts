@@ -50,13 +50,7 @@ const logger = winston.createLogger({
 
 // 只在启用文件日志时重写 console 方法
 if (enableFileLogging) {
-    const originalConsole = {
-        log: console.log,
-        error: console.error,
-        info: console.info,
-        warn: console.warn,
-    };
-
+    // eslint-disable-next-line no-console
     console.log = (...args) => {
         const traceId = trace.get();
         logger.info(

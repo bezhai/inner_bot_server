@@ -33,6 +33,6 @@ export async function handleCardAction(data: LarkCallbackInfo) {
             handleFeedback(data.action.value, data.operator.union_id);
             break;
         default:
-            console.log('unknown card action', data);
+            console.warn('unknown card action', data);
     }
 }

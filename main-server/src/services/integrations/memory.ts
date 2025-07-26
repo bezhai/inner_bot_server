@@ -5,7 +5,6 @@ import { AxiosError } from "axios";
 const BASE_URL = `${process.env.MEMORY_BASE_URL}/api/v1/memory`;
 
 export async function storeMessage(message: ChatMessage): Promise<void> {
-    console.log('storeMessage', JSON.stringify(message));
     try {
         await http.post(`${BASE_URL}/message`, message, {
             headers: {

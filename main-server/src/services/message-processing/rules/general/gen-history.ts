@@ -59,7 +59,6 @@ export async function genHistoryCard(message: Message) {
     // 这里取T-6到T-0的消息
     const messagesGroupByDate = messageGroupByDate(messageTimeFilter(allMessages, 6, 0));
 
-    console.log('messagesGroupByDate', messagesGroupByDate);
 
     // 生成最近7天的日期列表
     const dateKeys = Array.from({ length: 7 }, (_, i) =>
@@ -160,7 +159,6 @@ export async function genHistoryCard(message: Message) {
     personTable.addColumn(TableColumn.markdown('score').setDisplayName('活跃分'));
     personTable.addColumn(TableColumn.text('rankChange').setDisplayName('排名变化'));
 
-    console.log('sortedRankMap', sortedRankMap);
 
     sortedRankMap.forEach((item) => {
         let rankChange = '';
@@ -258,7 +256,6 @@ async function getHistoryMessage(
 
     try {
         await Promise.all(promises);
-        console.log('All messages fetched successfully!');
     } catch (error) {
         console.error('Error fetching messages:', error);
         throw error;

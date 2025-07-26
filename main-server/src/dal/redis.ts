@@ -19,7 +19,7 @@ const redis = new Redis(redisConfig);
 const redisSub = new Redis(redisConfig);
 
 redis.on('connect', () => {
-    console.log(`Connected to Redis`);
+    console.info(`Connected to Redis`);
 });
 
 redis.on('error', (err: Error) => {
@@ -27,7 +27,7 @@ redis.on('error', (err: Error) => {
 });
 
 redisSub.on('connect', () => {
-    console.log(`Connected to Redis Subscriber`);
+    console.info(`Connected to Redis Subscriber`);
 });
 
 redisSub.on('error', (err: Error) => {
@@ -145,7 +145,7 @@ export async function psubscribe(
     // 注册新的处理函数
     redisSub.on('pmessage', handler);
 
-    console.log(`Redis: 已订阅模式 ${pattern}`);
+    console.info(`Redis: 已订阅模式 ${pattern}`);
 }
 
 /**

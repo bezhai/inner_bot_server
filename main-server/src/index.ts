@@ -13,24 +13,19 @@ import Router from '@koa/router';
 import koaBody from 'koa-body';
 import { initializeHttpMode, startLarkWebSocket } from './services/lark/events/service';
 import { traceMiddleware } from './middleware/trace';
-import { initEvents } from './events';
 import promptRoutes from './handlers/prompts';
 import cors from '@koa/cors';
 
 async function initializeServer() {
-    console.log('Start initialization with bot', getBotAppId());
+    console.info('Start initialization with bot', getBotAppId());
 
     // 初始化数据库
     await Promise.all([mongoInitPromise(), AppDataSource.initialize()]);
-    console.log('Database connections established!');
-
-    // 初始化事件系统
-    initEvents();
-    console.log('Event system initialized successfully!');
+    console.info('Database connections established!');
 
     // 初始化机器人
     await botInitialization();
-    console.log('Bot initialized successfully!');
+    console.info('Bot initialized successfully!');
 }
 
 async function startHttpServer() {
@@ -70,27 +65,17 @@ async function startHttpServer() {
     server.use(promptRoutes.routes());
 
     server.listen(3000);
-    console.log('HTTP server started on port 3000');
+    console.info('HTTP server started on port 3000');
 }
 
 process.on('SIGINT', async function () {
-    console.log('Gracefully shutting down...');
-
-    // 关闭事件系统
-    try {
-        const { getEventSystem } = await import('./events');
-        const eventSystem = getEventSystem();
-        await eventSystem.close();
-        console.log('Event system closed');
-    } catch (error: any) {
-        console.warn('Error while closing event system:', error);
-    }
+    console.info('Gracefully shutting down...');
 
     // 关闭Redis连接
     try {
         const { close } = await import('./dal/redis');
         await close();
-        console.log('Redis connections closed');
+        console.info('Redis connections closed');
     } catch (error: any) {
         console.warn('Error while closing Redis connections:', error);
     }

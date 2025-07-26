@@ -23,7 +23,7 @@ function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params:
     return function (params: T): void {
         // 异步调用原函数，但不等待结果
 
-        console.log('receive event_type: ' + (params as { event_type: string })['event_type']);
+        console.info('receive event_type: ' + (params as { event_type: string })['event_type']);
 
         asyncFn(params).catch((err) => {
             console.error('Error in async operation:', err);
@@ -83,5 +83,5 @@ export function startLarkWebSocket() {
     eventDispatcher.handles.set('card.action.trigger', createVoidDecorator(handleCardAction));
 
     wsClient.start({ eventDispatcher });
-    console.log('Feishu WebSocket client started.');
+    console.info('Feishu WebSocket client started.');
 }

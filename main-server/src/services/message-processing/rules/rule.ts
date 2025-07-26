@@ -37,8 +37,8 @@ export interface GenCombineRule {
  *
  * @example
  * const originRules = [
- *   { key: "rule1", handler: async (message) => console.log("Handled rule1") },
- *   { key: "rule2", handler: async (message) => console.log("Handled rule2") },
+ *   { key: "rule1", handler: async (message) => console.info("Handled rule1") },
+ *   { key: "rule2", handler: async (message) => console.info("Handled rule2") },
  * ];
  *
  * const adaptor = (key: string) => (message: Message) => message.text().includes(key);

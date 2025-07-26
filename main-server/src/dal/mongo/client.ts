@@ -45,7 +45,7 @@ class MongoService {
                 database.collection('lark_reaction'),
             );
 
-            console.log('MongoDB initialization completed.');
+            console.info('MongoDB initialization completed.');
         } catch (err) {
             console.error('MongoDB initialization failed:', err);
             throw err;

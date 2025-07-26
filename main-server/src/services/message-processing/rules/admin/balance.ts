@@ -32,7 +32,6 @@ export async function sendBalance(message: Message) {
                     ),
             );
 
-        console.log('card json:', JSON.stringify(balanceCard));
 
         await replyCard(message.messageId, balanceCard);
     } catch (error) {

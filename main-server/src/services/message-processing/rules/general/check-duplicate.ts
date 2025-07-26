@@ -1,13 +1,5 @@
 import { Message } from 'models/message';
 import { replyMessage } from '@lark-basic/message';
-import { publishEventAndWait } from '@events';
-import { getMessage } from 'services/message-store/basic';
-
-interface FindSimilarMessageResponse {
-    found: boolean;
-    message_id?: string;
-    similarity?: number;
-}
 
 export async function checkDuplicate(message: Message) {
     replyMessage(message.messageId, '查重功能已下线', true);

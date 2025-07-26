@@ -413,7 +413,7 @@ export class CardManager {
             this.card.addElement(...elements);
         }
 
-        console.log('addElements', JSON.stringify(elements));
+        console.debug('addElements', JSON.stringify(elements));
 
         await sendReq(
             `/open-apis/cardkit/v1/cards/${this.cardId}/elements`,

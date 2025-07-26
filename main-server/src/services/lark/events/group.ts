@@ -36,8 +36,6 @@ export async function handleChatMemberAdd(data: LarkGroupMemberChangeInfo) {
                 name: user.name!,
             };
         }) || [];
-    console.log('users', users);
-    console.log('updateUsers', updateUsers);
 
     await Promise.all([
         GroupMemberRepository.save(updateUsers),
@@ -57,7 +55,6 @@ export async function handleChatMemberRemove(data: LarkGroupMemberChangeInfo) {
             };
         }) || [];
 
-    console.log('removeUsers', updateUsers);
 
     await Promise.all([
         GroupMemberRepository.save(updateUsers),
