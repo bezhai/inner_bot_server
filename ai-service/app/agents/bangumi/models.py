@@ -232,12 +232,12 @@ class Career(str, Enum):
 
     def to_str(self) -> str:
         return {
-            Career.PRODUCER: "制作人",
+            Career.PRODUCER: "制作人员",
             Career.MANGAKA: "漫画家",
-            Career.ARTIST: "艺术家",
+            Career.ARTIST: "音乐人",
             Career.SEIYU: "声优",
-            Career.WRITER: "编剧",
-            Career.ILLUSTRATOR: "插画师",
+            Career.WRITER: "作家",
+            Career.ILLUSTRATOR: "绘师",
             Career.ACTOR: "演员",
         }[self]
 
@@ -293,6 +293,24 @@ class SimplePerson(BaseModel):
     career: list[str]
     summary: str | None = None
     infobox: list[WikiInfoboxItem] | None = None
+
+
+class PersonSearchResult(BaseModel):
+    """人物搜索结果"""
+
+    total: int
+    limit: int
+    offset: int
+    data: list[Person]
+
+
+class PersonForAIResult(BaseModel):
+    """人物信息"""
+
+    total: int
+    limit: int
+    offset: int
+    data: list[SimplePerson]
 
 
 class SubjectCharacter(BaseModel):
@@ -388,6 +406,7 @@ class SimpleSubjectRelation(BaseModel):
     name: str
     name_cn: str | None = None
     relation: str
+    detail: SimpleSubject | None = None
 
 
 class CharacterSubject(BaseModel):
@@ -418,6 +437,7 @@ class SimpleCharacterSubject(BaseModel):
     staff: str
     name: str
     name_cn: str | None = None
+    detail: SimpleSubject | None = None
 
 
 class CharacterPerson(BaseModel):
@@ -455,3 +475,72 @@ class SimpleCharacterPerson(BaseModel):
     subject_id: int
     subject_type: str
     subject_name: str
+    detail: SimplePerson | None = None
+
+
+class PersonCharacter(BaseModel):
+    """人物关联角色"""
+
+    id: int
+    name: str
+    type: CharacterType
+    images: Images | None = None
+    subject_id: int
+    subject_type: SubjectType
+    subject_name: str
+    subject_name_cn: str | None = None
+    staff: str | None = None
+
+    def to_simple(self) -> "SimplePersonCharacter":
+        return SimplePersonCharacter(
+            id=self.id,
+            name=self.name,
+            type=self.type.to_str(),
+            subject_id=self.subject_id,
+            subject_type=self.subject_type.to_str(),
+            subject_name=self.subject_name,
+            subject_name_cn=self.subject_name_cn,
+            staff=self.staff,
+        )
+
+
+class SimplePersonCharacter(BaseModel):
+    """人物关联角色(基础)"""
+
+    id: int
+    name: str
+    type: str
+    subject_id: int
+    subject_type: str
+    subject_name: str
+    detail: SimpleCharacter | None = None
+
+
+class PersonSubject(BaseModel):
+    """人物关联条目"""
+
+    id: int
+    name: str
+    type: SubjectType
+    image: str | None = None
+    staff: str | None = None
+
+    def to_simple(self) -> "SimplePersonSubject":
+        return SimplePersonSubject(
+            id=self.id,
+            name=self.name,
+            type=self.type.to_str(),
+            image=self.image,
+            staff=self.staff,
+        )
+
+
+class SimplePersonSubject(BaseModel):
+    """人物关联条目(基础)"""
+
+    id: int
+    name: str
+    type: str
+    image: str | None = None
+    staff: str | None = None
+    detail: SimpleSubject | None = None

@@ -5,7 +5,6 @@ repos:
       # Run the linter.
       - id: ruff
         args: [--fix]
-        # 指定只对ai-service目录生效
         files: ^ai-service/.*\.py$
       # Run the formatter.
       - id: ruff-format
@@ -16,7 +15,7 @@ repos:
       # 自动修复ai-service格式并检查编译
       - id: ai-service-format-fix
         name: Fix ai-service format
-        entry: bash -c 'cd ai-service && ruff format .'
+        entry: bash -c 'cd ai-service && uv run ruff format .'
         language: system
         files: ^ai-service/.*\.py$
         pass_filenames: false

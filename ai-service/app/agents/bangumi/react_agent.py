@@ -9,9 +9,14 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.prebuilt import create_react_agent
 
 from app.agents.bangumi.tools import (
+    get_character_persons,
+    get_character_subjects,
+    get_person_characters,
+    get_person_subjects,
     get_subject_characters,
     get_subject_persons,
     search_characters,
+    search_persons,
     search_subjects,
 )
 from app.langgraph_infra import ModelBuilder
@@ -27,6 +32,11 @@ BANGUMI_TOOLS = [
     search_characters,
     get_subject_characters,
     get_subject_persons,
+    search_persons,
+    get_person_subjects,
+    get_person_characters,
+    get_character_persons,
+    get_character_subjects,
 ]
 
 # 全局agent实例
