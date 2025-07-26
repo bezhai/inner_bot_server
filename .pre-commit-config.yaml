@@ -5,5 +5,8 @@ repos:
       # Run the linter.
       - id: ruff
         args: [--fix]
+        # 指定只对ai-service目录生效
+        files: ^ai-service/.*\.py$
       # Run the formatter.
       - id: ruff-format
+        files: ^ai-service/.*\.py$

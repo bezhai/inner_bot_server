@@ -4,8 +4,6 @@ import json
 import logging
 from typing import Any
 
-from app.services.meta_info import AsyncRedisClient
-
 logger = logging.getLogger(__name__)
 
 
@@ -23,7 +21,9 @@ def redis_cache(expire_seconds: int = 86400):  # 默认24小时(86400秒)
             # 生成缓存键
             cache_key = _generate_cache_key(func.__name__, args, kwargs)
 
-            # 获取Redis客户端
+            # 动态导入并获取Redis客户端
+            from app.services.meta_info import AsyncRedisClient
+
             redis_client = AsyncRedisClient.get_instance()
 
             try:
@@ -44,7 +44,8 @@ def redis_cache(expire_seconds: int = 86400):  # 默认24小时(86400秒)
                     json.dumps(result, ensure_ascii=False, default=str),
                 )
                 logger.info(
-                    f"结果已缓存: {func.__name__}, key: {cache_key}, expire: {expire_seconds}s"
+                    f"结果已缓存: {func.__name__}, "
+                    f"key: {cache_key}, expire: {expire_seconds}s"
                 )
 
                 return result
