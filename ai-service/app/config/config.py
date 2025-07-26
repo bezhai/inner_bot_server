@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     qdrant_service_api_key: str
 
     search_api_key: str
-    
+
     bangumi_access_token: str
 
     class Config:

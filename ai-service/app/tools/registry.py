@@ -5,13 +5,13 @@
 """
 
 import logging
-from typing import List, Dict, Any
+from typing import Any
 
 from .decorators import (
-    get_pending_tools,
     get_instance_tools,
-    set_initialized,
+    get_pending_tools,
     is_initialized,
+    set_initialized,
 )
 from .manager import get_tool_manager, init_tool_manager
 
@@ -149,7 +149,7 @@ def reload_tools() -> bool:
     return True
 
 
-def get_tools_summary() -> Dict[str, Any]:
+def get_tools_summary() -> dict[str, Any]:
     """
     获取工具系统状态摘要
 
@@ -179,7 +179,7 @@ def get_tools_summary() -> Dict[str, Any]:
         return {"error": str(e)}
 
 
-def list_pending_tools() -> List[Dict[str, Any]]:
+def list_pending_tools() -> list[dict[str, Any]]:
     """
     列出所有待注册的工具
 
@@ -204,7 +204,7 @@ def list_pending_tools() -> List[Dict[str, Any]]:
     return result
 
 
-def list_instance_tools() -> List[Dict[str, Any]]:
+def list_instance_tools() -> list[dict[str, Any]]:
     """
     列出所有实例工具
 

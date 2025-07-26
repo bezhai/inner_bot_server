@@ -1,33 +1,35 @@
-from langchain_core.tools import tool
-from typing import Any, Dict, List, Optional
-import httpx
 import json
-from app.config import settings
-from app.utils.decorators import redis_cache
+from typing import Any
+
+import httpx
+from langchain_core.tools import tool
+
 from app.agents.bangumi.models import (
+    Character,
+    CharacterForAIResult,
+    CharacterSearchResult,
+    Person,
+    SimpleCharacter,
+    SimplePerson,
     SimpleSubject,
     SimpleSubjectPerson,
     Subject,
     SubjectCharacter,
     SubjectForAIResult,
-    CharacterForAIResult,
-    SubjectSearchResult,
-    CharacterSearchResult,
-    SimpleCharacter,
-    Character,
-    SimplePerson,
-    Person,
     SubjectPerson,
+    SubjectSearchResult,
 )
+from app.config import settings
+from app.utils.decorators import redis_cache
 
 
 @redis_cache(expire_seconds=86400)  # 24小时缓存
 async def send_bangumi_request(
     path: str,
-    params: Dict[str, Any] = None,
+    params: dict[str, Any] = None,
     method: str = "GET",
     data: dict = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """发送 Bangumi API 请求"""
     headers = {
         "Authorization": f"Bearer {settings.bangumi_access_token}",
@@ -62,16 +64,16 @@ def append_element(array, element):
 
 @tool
 async def search_subjects(
-    types: List[str] = None,
-    keyword: Optional[str] = None,
+    types: list[str] = None,
+    keyword: str | None = None,
     sort: str = "match",
     limit: int = 10,
     offset: int = 0,
-    tags: Optional[List[str]] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    min_rating: Optional[int] = None,
-    max_rating: Optional[int] = None,
+    tags: list[str] | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    min_rating: int | None = None,
+    max_rating: int | None = None,
 ) -> SubjectForAIResult:
     """
     搜索条目, 包含书籍, 动画, 音乐, 游戏, 三次元
@@ -190,12 +192,12 @@ async def search_characters(
         offset=mid_result.offset,
         data=[character.to_simple() for character in mid_result.data],
     )
-    
-    
+
+
 @tool
 async def get_subject_characters(
     subject_id: int,
-) -> List[SimpleCharacter]:
+) -> list[SimpleCharacter]:
     """
     获取条目关联的角色
 
@@ -213,10 +215,11 @@ async def get_subject_characters(
         item.detail = await _get_character_info(item.id)
     return mid_result
 
+
 @tool
 async def get_subject_persons(
     subject_id: int,
-) -> List[SimpleSubjectPerson]:
+) -> list[SimpleSubjectPerson]:
     """
     获取条目关联的人物
 
@@ -250,7 +253,5 @@ async def _get_character_info(character_id: int) -> SimpleCharacter:
 
 
 async def _get_person_info(person_id: int) -> SimplePerson:
-    response = await send_bangumi_request(
-        path=f"/v0/people/{person_id}", method="GET"
-    )
+    response = await send_bangumi_request(path=f"/v0/people/{person_id}", method="GET")
     return Person(**response).to_simple()

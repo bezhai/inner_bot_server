@@ -5,12 +5,13 @@ LangGraph基础设施异常定义
 
 class ModelBuilderError(Exception):
     """ModelBuilder相关异常基类"""
+
     pass
 
 
 class UnsupportedModelError(ModelBuilderError):
     """不支持的模型类型异常"""
-    
+
     def __init__(self, model_id: str, message: str = None):
         self.model_id = model_id
         if message is None:
@@ -20,7 +21,7 @@ class UnsupportedModelError(ModelBuilderError):
 
 class ModelConfigError(ModelBuilderError):
     """模型配置错误异常"""
-    
+
     def __init__(self, model_id: str, message: str = None):
         self.model_id = model_id
         if message is None:

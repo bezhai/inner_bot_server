@@ -3,6 +3,7 @@ API路由汇总
 """
 
 from fastapi import APIRouter
+
 from app.api.chat import router as chat_router
 from app.api.extraction import router as extraction_router
 

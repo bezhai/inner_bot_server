@@ -1,16 +1,17 @@
-from pydantic import BaseModel
-from typing import Any, Dict, List, Optional
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel
 
 
 class Images(BaseModel):
     """图片结构"""
 
-    large: Optional[str] = None
-    common: Optional[str] = None
-    medium: Optional[str] = None
-    small: Optional[str] = None
-    grid: Optional[str] = None
+    large: str | None = None
+    common: str | None = None
+    medium: str | None = None
+    small: str | None = None
+    grid: str | None = None
 
 
 class WikiInfoboxItem(BaseModel):
@@ -23,20 +24,20 @@ class WikiInfoboxItem(BaseModel):
 class SubjectRating(BaseModel):
     """条目评分信息"""
 
-    rank: Optional[int] = None
-    total: Optional[int] = None
-    count: Optional[Dict[str, int]] = None  # "1": count, "2": count, etc.
-    score: Optional[float] = None
+    rank: int | None = None
+    total: int | None = None
+    count: dict[str, int] | None = None  # "1": count, "2": count, etc.
+    score: float | None = None
 
 
 class SubjectCollection(BaseModel):
     """条目收藏信息"""
 
-    wish: Optional[int] = None
-    collect: Optional[int] = None
-    doing: Optional[int] = None
-    on_hold: Optional[int] = None
-    dropped: Optional[int] = None
+    wish: int | None = None
+    collect: int | None = None
+    doing: int | None = None
+    on_hold: int | None = None
+    dropped: int | None = None
 
 
 class SubjectTag(BaseModel):
@@ -44,17 +45,17 @@ class SubjectTag(BaseModel):
 
     name: str
     count: int
-    
+
 
 class SubjectType(int, Enum):
     """条目类型"""
-    
+
     BOOK = 1
     ANIME = 2
     MUSIC = 3
     GAME = 4
     THIRD_PARTY = 6
-    
+
     def to_str(self) -> str:
         return {
             SubjectType.BOOK: "书籍",
@@ -71,22 +72,22 @@ class Subject(BaseModel):
     id: int
     type: SubjectType
     name: str
-    name_cn: Optional[str] = None
-    summary: Optional[str] = None
-    series: Optional[bool] = None
-    nsfw: Optional[bool] = None
-    locked: Optional[bool] = None
-    date: Optional[str] = None  # YYYY-MM-DD格式
-    platform: Optional[str] = None
-    images: Optional[Images] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    volumes: Optional[int] = None
-    eps: Optional[int] = None
-    total_episodes: Optional[int] = None
-    rating: Optional[SubjectRating] = None
-    collection: Optional[SubjectCollection] = None
-    meta_tags: Optional[List[str]] = None
-    tags: Optional[List[SubjectTag]] = None
+    name_cn: str | None = None
+    summary: str | None = None
+    series: bool | None = None
+    nsfw: bool | None = None
+    locked: bool | None = None
+    date: str | None = None  # YYYY-MM-DD格式
+    platform: str | None = None
+    images: Images | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+    volumes: int | None = None
+    eps: int | None = None
+    total_episodes: int | None = None
+    rating: SubjectRating | None = None
+    collection: SubjectCollection | None = None
+    meta_tags: list[str] | None = None
+    tags: list[SubjectTag] | None = None
 
     def to_simple(self) -> "SimpleSubject":
         return SimpleSubject(
@@ -109,13 +110,13 @@ class SimpleSubject(BaseModel):
     id: int
     type: str
     name: str
-    name_cn: Optional[str] = None
-    summary: Optional[str] = None
-    date: Optional[str] = None
-    platform: Optional[str] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    score: Optional[float] = None  # 评分
-    tags: Optional[List[str]] = None  # 标签
+    name_cn: str | None = None
+    summary: str | None = None
+    date: str | None = None
+    platform: str | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+    score: float | None = None  # 评分
+    tags: list[str] | None = None  # 标签
 
 
 class SubjectSearchResult(BaseModel):
@@ -124,7 +125,7 @@ class SubjectSearchResult(BaseModel):
     total: int
     limit: int
     offset: int
-    data: List[Subject]
+    data: list[Subject]
 
 
 class SubjectForAIResult(BaseModel):
@@ -133,17 +134,17 @@ class SubjectForAIResult(BaseModel):
     total: int
     limit: int
     offset: int
-    data: List[SimpleSubject]
-    
+    data: list[SimpleSubject]
+
 
 class CharacterType(int, Enum):
     """角色类型"""
-    
+
     CHARACTER = 1
     MACHINE = 2
     SHIP = 3
     GROUP = 4
-    
+
     def to_str(self) -> str:
         return {
             CharacterType.CHARACTER: "角色",
@@ -159,19 +160,18 @@ class Character(BaseModel):
     id: int
     name: str
     type: CharacterType
-    summary: Optional[str] = None
-    locked: Optional[bool] = None
-    images: Optional[Images] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    gender: Optional[str] = None
-    blood_type: Optional[int] = None  # 1=A, 2=B, 3=AB, 4=O
-    birth_year: Optional[int] = None
-    birth_mon: Optional[int] = None
-    birth_day: Optional[int] = None
-    stat: Optional[Dict[str, int]] = None  # comments, collects
+    summary: str | None = None
+    locked: bool | None = None
+    images: Images | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+    gender: str | None = None
+    blood_type: int | None = None  # 1=A, 2=B, 3=AB, 4=O
+    birth_year: int | None = None
+    birth_mon: int | None = None
+    birth_day: int | None = None
+    stat: dict[str, int] | None = None  # comments, collects
 
     def to_simple(self) -> "SimpleCharacter":
-
         return SimpleCharacter(
             id=self.id,
             name=self.name,
@@ -192,13 +192,13 @@ class SimpleCharacter(BaseModel):
     id: int
     name: str
     type: str  # 角色类型, 角色, 机体, 舰船, 组织
-    summary: Optional[str] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    gender: Optional[str] = None
-    blood_type: Optional[int] = None  # 1=A, 2=B, 3=AB, 4=O
-    birth_year: Optional[int] = None
-    birth_mon: Optional[int] = None
-    birth_day: Optional[int] = None
+    summary: str | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+    gender: str | None = None
+    blood_type: int | None = None  # 1=A, 2=B, 3=AB, 4=O
+    birth_year: int | None = None
+    birth_mon: int | None = None
+    birth_day: int | None = None
 
 
 class CharacterSearchResult(BaseModel):
@@ -207,7 +207,7 @@ class CharacterSearchResult(BaseModel):
     total: int
     limit: int
     offset: int
-    data: List[Character]
+    data: list[Character]
 
 
 class CharacterForAIResult(BaseModel):
@@ -216,9 +216,10 @@ class CharacterForAIResult(BaseModel):
     total: int
     limit: int
     offset: int
-    data: List[SimpleCharacter]
-    
-class Career(str, Enum):    
+    data: list[SimpleCharacter]
+
+
+class Career(str, Enum):
     """职业"""
 
     PRODUCER = "producer"
@@ -228,7 +229,7 @@ class Career(str, Enum):
     WRITER = "writer"
     ILLUSTRATOR = "illustrator"
     ACTOR = "actor"
-    
+
     def to_str(self) -> str:
         return {
             Career.PRODUCER: "制作人",
@@ -239,14 +240,15 @@ class Career(str, Enum):
             Career.ILLUSTRATOR: "插画师",
             Career.ACTOR: "演员",
         }[self]
-        
+
+
 class PersonType(int, Enum):
     """人物类型"""
-    
+
     PERSON = 1
     COMPANY = 2
     GROUP = 3
-    
+
     def to_str(self) -> str:
         return {
             PersonType.PERSON: "个人",
@@ -254,24 +256,25 @@ class PersonType(int, Enum):
             PersonType.GROUP: "组合",
         }[self]
 
+
 class Person(BaseModel):
     """人物信息"""
 
     id: int
     name: str
     type: PersonType
-    career: List[Career]
-    summary: Optional[str] = None
-    locked: Optional[bool] = None
-    images: Optional[Images] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    gender: Optional[str] = None
-    blood_type: Optional[int] = None  # 1=A, 2=B, 3=AB, 4=O
-    birth_year: Optional[int] = None
-    birth_mon: Optional[int] = None
-    birth_day: Optional[int] = None
-    stat: Optional[Dict[str, int]] = None  # comments, collects
-    
+    career: list[Career]
+    summary: str | None = None
+    locked: bool | None = None
+    images: Images | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+    gender: str | None = None
+    blood_type: int | None = None  # 1=A, 2=B, 3=AB, 4=O
+    birth_year: int | None = None
+    birth_mon: int | None = None
+    birth_day: int | None = None
+    stat: dict[str, int] | None = None  # comments, collects
+
     def to_simple(self) -> "SimplePerson":
         return SimplePerson(
             id=self.id,
@@ -279,18 +282,18 @@ class Person(BaseModel):
             type=self.type.to_str(),
             career=[career.to_str() for career in self.career],
         )
-    
-    
+
+
 class SimplePerson(BaseModel):
     """人物信息(基础)"""
 
     id: int
     name: str
     type: str
-    career: List[str]
-    summary: Optional[str] = None
-    infobox: Optional[List[WikiInfoboxItem]] = None
-    
+    career: list[str]
+    summary: str | None = None
+    infobox: list[WikiInfoboxItem] | None = None
+
 
 class SubjectCharacter(BaseModel):
     """条目关联角色"""
@@ -298,10 +301,10 @@ class SubjectCharacter(BaseModel):
     id: int
     name: str
     type: CharacterType
-    images: Optional[Images] = None
+    images: Images | None = None
     relation: str
-    actor: Optional[List[Person]] = None
-    
+    actor: list[Person] | None = None
+
     def to_simple(self) -> "SimpleSubjectCharacter":
         return SimpleSubjectCharacter(
             id=self.id,
@@ -311,6 +314,7 @@ class SubjectCharacter(BaseModel):
             actor=[person.to_simple() for person in self.actor] if self.actor else None,
         )
 
+
 class SimpleSubjectCharacter(BaseModel):
     """条目关联角色(基础)"""
 
@@ -318,9 +322,9 @@ class SimpleSubjectCharacter(BaseModel):
     name: str
     type: str
     relation: str
-    actor: Optional[List[SimplePerson]] = None
-    detail: Optional[SimpleCharacter] = None
-    
+    actor: list[SimplePerson] | None = None
+    detail: SimpleCharacter | None = None
+
 
 class SubjectPerson(BaseModel):
     """条目关联人物"""
@@ -328,11 +332,11 @@ class SubjectPerson(BaseModel):
     id: int
     name: str
     type: PersonType
-    images: Optional[Images] = None
+    images: Images | None = None
     relation: str
     eps: str
-    career: List[Career]
-    
+    career: list[Career]
+
     def to_simple(self) -> "SimpleSubjectPerson":
         return SimpleSubjectPerson(
             id=self.id,
@@ -342,8 +346,8 @@ class SubjectPerson(BaseModel):
             eps=self.eps,
             career=[career.to_str() for career in self.career],
         )
-        
-        
+
+
 class SimpleSubjectPerson(BaseModel):
     """条目关联人物(基础)"""
 
@@ -352,20 +356,20 @@ class SimpleSubjectPerson(BaseModel):
     type: str
     relation: str
     eps: str
-    career: List[str]
-    detail: Optional[SimplePerson] = None
-    
-    
+    career: list[str]
+    detail: SimplePerson | None = None
+
+
 class SubjectRelation(BaseModel):
     """条目关联"""
-    
+
     id: int
     type: SubjectType
     name: str
-    name_cn: Optional[str] = None
-    images: Optional[Images] = None
+    name_cn: str | None = None
+    images: Images | None = None
     relation: str
-    
+
     def to_simple(self) -> "SimpleSubjectRelation":
         return SimpleSubjectRelation(
             id=self.id,
@@ -374,7 +378,7 @@ class SubjectRelation(BaseModel):
             name_cn=self.name_cn,
             relation=self.relation,
         )
-        
+
 
 class SimpleSubjectRelation(BaseModel):
     """条目关联(基础)"""
@@ -382,10 +386,10 @@ class SimpleSubjectRelation(BaseModel):
     id: int
     type: str
     name: str
-    name_cn: Optional[str] = None
+    name_cn: str | None = None
     relation: str
-    
-    
+
+
 class CharacterSubject(BaseModel):
     """角色关联条目"""
 
@@ -393,7 +397,7 @@ class CharacterSubject(BaseModel):
     type: SubjectType
     staff: str
     name: str
-    name_cn: Optional[str] = None
+    name_cn: str | None = None
     image: str
 
     def to_simple(self) -> "SimpleCharacterSubject":
@@ -404,8 +408,8 @@ class CharacterSubject(BaseModel):
             name=self.name,
             name_cn=self.name_cn,
         )
-    
-    
+
+
 class SimpleCharacterSubject(BaseModel):
     """角色关联条目(基础)"""
 
@@ -413,7 +417,7 @@ class SimpleCharacterSubject(BaseModel):
     type: str
     staff: str
     name: str
-    name_cn: Optional[str] = None
+    name_cn: str | None = None
 
 
 class CharacterPerson(BaseModel):
@@ -422,13 +426,13 @@ class CharacterPerson(BaseModel):
     id: int
     name: str
     type: PersonType
-    images: Optional[Images] = None
+    images: Images | None = None
     subject_id: int
     subject_type: SubjectType
     subject_name: str
-    subject_name_cn: Optional[str] = None
-    staff: Optional[str] = None
-    
+    subject_name_cn: str | None = None
+    staff: str | None = None
+
     def to_simple(self) -> "SimpleCharacterPerson":
         return SimpleCharacterPerson(
             id=self.id,
@@ -440,7 +444,8 @@ class CharacterPerson(BaseModel):
             subject_name_cn=self.subject_name_cn,
             staff=self.staff,
         )
-        
+
+
 class SimpleCharacterPerson(BaseModel):
     """角色关联人物(基础)"""
 

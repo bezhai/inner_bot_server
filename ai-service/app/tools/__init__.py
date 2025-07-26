@@ -8,10 +8,10 @@ AI工具系统
 - Pydantic模型集成
 """
 
-from .decorators import tool, ToolProvider
+from .decorators import ToolProvider, tool
 from .manager import get_tool_manager, init_tool_manager
+from .registry import clear_tools, init_tools
 from .schema_generator import generate_tool_schema
-from .registry import init_tools, clear_tools
 from .startup import startup_tools
 
 __all__ = [

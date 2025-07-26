@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Union
+
 from pydantic import BaseModel
 
 
@@ -24,13 +25,15 @@ class ChatMessage(BaseModel):
     """
 
     user_id: str  # 用户id / User ID
-    user_open_id: Optional[str] = None  # 用户open_id, 仅当用户为真人时存在 / User open ID, only exists when user is real person
+    user_open_id: str | None = (
+        None  # 用户open_id, 仅当用户为真人时存在 / User open ID, only exists when user is real person
+    )
     user_name: str  # 用户名 / User name
     content: str  # 转义成markdown的消息内容，包括图片等 / Markdown content (may include images)
     is_mention_bot: bool  # 是否@机器人 / Mention bot
     role: str  # 角色: 'user' | 'assistant' / Role
-    root_message_id: Optional[str] = None  # 根消息id / Root message ID
-    reply_message_id: Optional[str] = None  # 回复消息的id / Reply message ID
+    root_message_id: str | None = None  # 根消息id / Root message ID
+    reply_message_id: str | None = None  # 回复消息的id / Reply message ID
     message_id: str  # 消息id / Message ID
     chat_id: str  # 聊天id / Chat ID
     chat_type: str  # 聊天类型: 'p2p' | 'group' / Chat type
@@ -42,6 +45,7 @@ class ChatSimpleMessage(BaseModel):
     聊天简单消息
     Chat simple message
     """
+
     user_name: str  # 用户名 / User name
     content: str  # 转义成markdown的消息内容，包括图片等 / Markdown content (may include images)
     role: str  # 角色: 'user' | 'assistant' | 'system' / Role
@@ -52,8 +56,9 @@ class ChatRequest(BaseModel):
     聊天请求
     Chat request
     """
+
     message_id: str  # 消息id / Message ID
-    is_canary: Optional[bool] = False  # 是否开启灰度
+    is_canary: bool | None = False  # 是否开启灰度
 
 
 class ToolCallFeedbackResponse(BaseModel):
@@ -63,7 +68,7 @@ class ToolCallFeedbackResponse(BaseModel):
     """
 
     name: str  # 工具调用名称 / Tool call name
-    nick_name: Optional[str] = None  # 工具调用昵称 / Tool call nick name
+    nick_name: str | None = None  # 工具调用昵称 / Tool call nick name
 
 
 class ChatStreamChunk(BaseModel):
@@ -72,9 +77,9 @@ class ChatStreamChunk(BaseModel):
     Chat stream response
     """
 
-    reason_content: Optional[str] = None  # 思维链内容 / Reasoning content
-    content: Optional[str] = None  # 回复内容 / Reply content
-    tool_call_feedback: Optional[ToolCallFeedbackResponse] = (
+    reason_content: str | None = None  # 思维链内容 / Reasoning content
+    content: str | None = None  # 回复内容 / Reply content
+    tool_call_feedback: ToolCallFeedbackResponse | None = (
         None  # 工具调用反馈 / Tool call feedback
     )
 
@@ -86,9 +91,9 @@ class ChatProcessResponse(BaseModel):
     """
 
     step: Step = Step.SEND  # 步骤 / Step
-    reason_content: Optional[str] = None  # 思维链内容 / Reasoning content
-    content: Optional[str] = None  # 回复内容 / Reply content
-    tool_call_feedback: Optional[ToolCallFeedbackResponse] = (
+    reason_content: str | None = None  # 思维链内容 / Reasoning content
+    content: str | None = None  # 回复内容 / Reply content
+    tool_call_feedback: ToolCallFeedbackResponse | None = (
         None  # 工具调用反馈 / Tool call feedback
     )
 

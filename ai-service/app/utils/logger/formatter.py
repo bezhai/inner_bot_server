@@ -2,11 +2,12 @@
 自定义日志格式化器
 """
 
-import json
 import logging
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
 from pythonjsonlogger import jsonlogger
+
 from app.utils.middlewares import get_trace_id
 
 
@@ -22,9 +23,9 @@ class CustomJSONFormatter(jsonlogger.JsonFormatter):
 
     def add_fields(
         self,
-        log_record: Dict[str, Any],
+        log_record: dict[str, Any],
         record: logging.LogRecord,
-        message_dict: Dict[str, Any],
+        message_dict: dict[str, Any],
     ) -> None:
         """添加字段到日志记录"""
         super().add_fields(log_record, record, message_dict)

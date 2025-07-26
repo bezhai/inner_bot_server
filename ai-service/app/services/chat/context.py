@@ -1,23 +1,24 @@
 import logging
-from typing import Any, Callable, List, Dict
-from app.types.chat import ChatMessage, ChatSimpleMessage
+from collections.abc import Callable
+from typing import Any
+
+from app.clients import memory_client
 from app.services.chat.prompt import PromptGeneratorParam
-from app.core.clients.memory_client import memory_client
 from app.services.meta_info import AsyncRedisClient
+from app.types.chat import ChatSimpleMessage
 
 logger = logging.getLogger(__name__)
 
 
 class MessageContext:
-
     def __init__(
         self,
         message_id: str,
         system_prompt_generator: Callable[[PromptGeneratorParam], str],
     ):
         self.message_id = message_id
-        self.context_messages: List[ChatSimpleMessage] = []
-        self.temp_messages: List[Any] = []
+        self.context_messages: list[ChatSimpleMessage] = []
+        self.temp_messages: list[Any] = []
         self.system_prompt_generator = system_prompt_generator
 
     async def init_context_messages(self):
@@ -65,7 +66,6 @@ class MessageContext:
                 )
                 self.context_messages.append(simple_message)
 
-            
             logger.info(
                 f"Memory上下文构建完成，包含 {len(self.context_messages)} 条消息"
             )
@@ -86,7 +86,7 @@ class MessageContext:
     def append_message(self, message: Any):
         self.temp_messages.append(message)
 
-    def build(self, param: PromptGeneratorParam) -> List[Dict[str, Any]]:
+    def build(self, param: PromptGeneratorParam) -> list[dict[str, Any]]:
         system_prompt = self.system_prompt_generator(param)
         return [
             {"role": "system", "content": system_prompt},

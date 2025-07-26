@@ -3,9 +3,11 @@
 """
 
 import functools
-import traceback
-from typing import Callable, Any
 import logging
+import traceback
+from collections.abc import Callable
+from typing import Any
+
 from fastapi.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 

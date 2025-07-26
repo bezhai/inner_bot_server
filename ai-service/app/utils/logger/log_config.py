@@ -4,6 +4,7 @@
 
 import logging
 import sys
+
 from .formatter import CustomJSONFormatter
 
 

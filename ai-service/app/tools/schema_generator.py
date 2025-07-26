@@ -6,24 +6,22 @@
 
 import inspect
 import json
+import logging
+from collections.abc import Callable
 from typing import (
     Any,
-    Dict,
-    List,
-    Optional,
     Union,
-    get_type_hints,
-    get_origin,
     get_args,
-    Callable,
+    get_origin,
+    get_type_hints,
 )
+
 from pydantic import BaseModel
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _python_type_to_json_schema(py_type: Any) -> Dict[str, Any]:
+def _python_type_to_json_schema(py_type: Any) -> dict[str, Any]:
     """将Python类型转换为JSON Schema类型"""
 
     # 处理联合类型 (Union)
@@ -61,7 +59,7 @@ def _python_type_to_json_schema(py_type: Any) -> Dict[str, Any]:
     return type_mapping.get(py_type, {"type": "string"})
 
 
-def _extract_docstring_info(func: Callable) -> Dict[str, Any]:
+def _extract_docstring_info(func: Callable) -> dict[str, Any]:
     """从文档字符串中提取函数和参数描述"""
     docstring = inspect.getdoc(func)
     if not docstring:
@@ -111,8 +109,8 @@ def _extract_docstring_info(func: Callable) -> Dict[str, Any]:
 
 
 def generate_tool_schema(
-    func: Callable, name: Optional[str] = None, description: Optional[str] = None
-) -> Dict[str, Any]:
+    func: Callable, name: str | None = None, description: str | None = None
+) -> dict[str, Any]:
     """
     为函数生成OpenAI工具调用schema
 

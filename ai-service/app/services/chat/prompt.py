@@ -1,7 +1,8 @@
-from typing import TypedDict
-from jinja2 import Template
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import TypedDict
+
+from jinja2 import Template
 
 from app.services.prompt_service import PromptService as DBPromptService
 
@@ -13,15 +14,14 @@ class PromptGeneratorParam(TypedDict):
 
 
 class ChatPromptService:
-
     @staticmethod
     async def get_prompt(param: PromptGeneratorParam) -> str:
         """从数据库获取主提示词"""
         prompt_content = await DBPromptService.get_prompt("main")
-        
+
         if not prompt_content:
             raise ValueError("未找到主提示词(id='main')")
-        
+
         template = Template(prompt_content)
         return template.render(
             {

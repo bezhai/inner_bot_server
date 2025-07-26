@@ -1,11 +1,12 @@
-from typing import List, Optional, Union
+import asyncio
+import random
+from datetime import datetime
+
+import httpx
+from pydantic import BaseModel, field_validator
+
 from app.tools.decorators import tool
 from app.utils.decorators.log_decorator import log_io
-import httpx
-import random
-import asyncio
-from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
 
 
 class CppSearchResult(BaseModel):
@@ -25,7 +26,7 @@ class CppSearchResult(BaseModel):
 
 
 class CppSearchResultList(BaseModel):
-    list: List[CppSearchResult]  # 活动列表
+    list: list[CppSearchResult]  # 活动列表
 
 
 # 中间结果
@@ -34,14 +35,14 @@ class CppSearchMidSingleResult(BaseModel):
     name: str  # 活动名称
     type: str  # 活动类型
     tag: str  # 活动标签
-    enterTime: Union[int, str, None] = None  # 活动开始时间（时间戳或字符串）
-    endTime: Union[int, str, None] = None  # 活动结束时间（时间戳或字符串）
+    enterTime: int | str | None = None  # 活动开始时间（时间戳或字符串）
+    endTime: int | str | None = None  # 活动结束时间（时间戳或字符串）
     wannaGoCount: int  # 想参加人数
-    provName: Optional[str] = ""  # 省份
-    cityName: Optional[str] = ""  # 城市
-    areaName: Optional[str] = ""  # 地区
+    provName: str | None = ""  # 省份
+    cityName: str | None = ""  # 城市
+    areaName: str | None = ""  # 地区
     enterAddress: str  # 活动地址
-    ended: Optional[bool] = False  # 是否已结束
+    ended: bool | None = False  # 是否已结束
     isOnline: int  # 是否为线上
 
     @field_validator("enterTime", "endTime")
@@ -59,19 +60,19 @@ class CppSearchMidSingleResult(BaseModel):
 
 class CppSearchMidResult(BaseModel):
     total: int  # 总活动数
-    list: List[CppSearchMidSingleResult]  # 活动列表
+    list: list[CppSearchMidSingleResult]  # 活动列表
 
 
 @tool()
 @log_io
 async def search_donjin_event(
-    query: Optional[str] = None,
-    is_online: Optional[bool] = None,
-    recent_days: Optional[int] = None,
-    activity_status: Optional[str] = None,
-    activity_type: Optional[str] = None,
-    ticket_status: Optional[int] = None,
-) -> List[CppSearchResult]:
+    query: str | None = None,
+    is_online: bool | None = None,
+    recent_days: int | None = None,
+    activity_status: str | None = None,
+    activity_type: str | None = None,
+    ticket_status: int | None = None,
+) -> list[CppSearchResult]:
     """
     搜索同人展活动, 返回结构化的活动列表
 

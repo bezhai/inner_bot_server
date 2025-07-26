@@ -5,9 +5,9 @@
 """
 
 import asyncio
-import json
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -16,16 +16,16 @@ class ToolManager:
     """工具管理器类"""
 
     def __init__(self):
-        self._tools: Dict[str, Callable] = {}
-        self._tool_schemas: List[Dict[str, Any]] = []
-        self._tool_metadata: Dict[str, Dict[str, Any]] = {}
+        self._tools: dict[str, Callable] = {}
+        self._tool_schemas: list[dict[str, Any]] = []
+        self._tool_metadata: dict[str, dict[str, Any]] = {}
 
     def register_tool(
         self,
         name: str,
         func: Callable,
-        schema: Dict[str, Any],
-        metadata: Optional[Dict[str, Any]] = None,
+        schema: dict[str, Any],
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """
         注册一个工具
@@ -77,19 +77,19 @@ class ToolManager:
         logger.info(f"已注销工具: {name}")
         return True
 
-    def get_tools_schema(self) -> List[Dict[str, Any]]:
+    def get_tools_schema(self) -> list[dict[str, Any]]:
         """获取所有工具的schema"""
         return self._tool_schemas.copy()
 
-    def get_available_functions(self) -> Dict[str, Callable]:
+    def get_available_functions(self) -> dict[str, Callable]:
         """获取所有可用函数"""
         return self._tools.copy()
 
-    def get_tool_metadata(self, name: str) -> Dict[str, Any]:
+    def get_tool_metadata(self, name: str) -> dict[str, Any]:
         """获取工具的元数据"""
         return self._tool_metadata.get(name, {})
 
-    def list_tools(self) -> List[str]:
+    def list_tools(self) -> list[str]:
         """列出所有已注册的工具名称"""
         return list(self._tools.keys())
 
@@ -97,7 +97,7 @@ class ToolManager:
         """检查是否存在指定的工具"""
         return name in self._tools
 
-    async def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
+    async def execute_tool(self, tool_name: str, arguments: dict[str, Any]) -> Any:
         """
         执行指定的工具
 
@@ -135,7 +135,7 @@ class ToolManager:
             logger.error(f"工具 {tool_name} 执行失败: {type(e).__name__}: {repr(e)}")
             raise
 
-    def get_tool_info(self, tool_name: str) -> Optional[Dict[str, Any]]:
+    def get_tool_info(self, tool_name: str) -> dict[str, Any] | None:
         """
         获取工具的详细信息
 
@@ -172,7 +172,7 @@ class ToolManager:
 
 
 # 全局工具管理器实例
-_tool_manager: Optional[ToolManager] = None
+_tool_manager: ToolManager | None = None
 
 
 def get_tool_manager() -> ToolManager:

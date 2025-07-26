@@ -4,10 +4,10 @@ TraceId中间件 - 用于读取和传递X-Trace-Id
 
 import contextvars
 import uuid
-from typing import Callable
+from collections.abc import Callable
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-
 
 # 创建context变量来存储traceId
 trace_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(

@@ -1,7 +1,5 @@
-import json
-from typing import Dict, List
-import asyncpg
-from redis.asyncio import Redis, ConnectionPool
+from redis.asyncio import ConnectionPool, Redis
+
 from app.config import settings
 
 

@@ -1,19 +1,21 @@
 import logging
 import traceback
-from typing import AsyncGenerator
-from .model import ModelService
-from .prompt import ChatPromptService
-from app.types.chat import ChatMessage, ChatStreamChunk
+from collections.abc import AsyncGenerator
+
 from app.services.chat.context import MessageContext
 from app.services.meta_info import AsyncRedisClient
 
 # 使用新的工具系统
 from app.tools import get_tool_manager
+from app.types.chat import ChatStreamChunk
+
+from .model import ModelService
+from .prompt import ChatPromptService
 
 logger = logging.getLogger(__name__)
 
-class AIChatService:
 
+class AIChatService:
     @staticmethod
     async def stream_ai_reply(
         message_id: str,
@@ -96,9 +98,7 @@ class AIChatService:
         except Exception as e:
             # 如果出现错误，输出错误信息
             logger.error(f"生成回复时出现错误: {str(e)}\n{traceback.format_exc()}")
-            yield ChatStreamChunk(
-                content=f"生成回复时出现错误: {str(e)}"
-            )
+            yield ChatStreamChunk(content=f"生成回复时出现错误: {str(e)}")
         finally:
             # 解锁
             try:

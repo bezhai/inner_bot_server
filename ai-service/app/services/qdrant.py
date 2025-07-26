@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 from qdrant_client import QdrantClient
@@ -37,9 +37,9 @@ class QdrantService:
     async def upsert_vectors(
         self,
         collection_name: str,
-        vectors: List[List[float]],
-        ids: List[str],
-        payloads: Optional[List[Dict[str, Any]]] = None,
+        vectors: list[list[float]],
+        ids: list[str],
+        payloads: list[dict[str, Any]] | None = None,
     ) -> bool:
         """插入或更新向量"""
         try:
@@ -55,8 +55,8 @@ class QdrantService:
             return False
 
     async def search_vectors(
-        self, collection_name: str, query_vector: List[float], limit: int = 10
-    ) -> List[Dict[str, Any]]:
+        self, collection_name: str, query_vector: list[float], limit: int = 10
+    ) -> list[dict[str, Any]]:
         """搜索最相似的向量"""
         try:
             results = self.client.search(
@@ -73,12 +73,12 @@ class QdrantService:
     async def search_vectors_with_score_boost(
         self,
         collection_name: str,
-        query_vector: List[float],
-        query_filter: Optional[Filter] = None,
+        query_vector: list[float],
+        query_filter: Filter | None = None,
         limit: int = 10,
         score_threshold: float = 0.8,
         time_boost_factor: float = 0.1,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """搜索向量并应用时间权重提升
 
         Args:

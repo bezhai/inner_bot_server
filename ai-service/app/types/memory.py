@@ -2,10 +2,10 @@
 智能记忆管理相关数据类型
 """
 
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel
 
 
 class MessageType(str, Enum):
@@ -34,10 +34,10 @@ class MessageFeatures(BaseModel):
     chat_id: str
     content: str
     timestamp: int
-    reply_to: Optional[ReplyInfo] = None
-    mentions: List[str] = []
+    reply_to: ReplyInfo | None = None
+    mentions: list[str] = []
     message_type: MessageType = MessageType.CASUAL
-    keywords: List[str] = []
+    keywords: list[str] = []
 
     # 特征评分
     has_question: bool = False
@@ -63,10 +63,10 @@ class ContextUsageRecord(BaseModel):
     chat_id: str
     user_id: str
     trigger_message_id: str
-    context_message_ids: List[str]
+    context_message_ids: list[str]
     context_message_count: int
-    relevance_scores: Optional[Dict[str, float]] = None
-    processing_time_ms: Optional[int] = None
+    relevance_scores: dict[str, float] | None = None
+    processing_time_ms: int | None = None
     fallback_used: bool = False
     created_at: datetime = datetime.now()
 

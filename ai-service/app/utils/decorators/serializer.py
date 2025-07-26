@@ -3,9 +3,9 @@
 """
 
 import functools
-from typing import AsyncGenerator
-import logging
 import json
+import logging
+from collections.abc import AsyncGenerator
 
 logger = logging.getLogger(__name__)
 

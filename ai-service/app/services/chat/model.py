@@ -1,26 +1,29 @@
-from app.orm.crud import get_model_and_provider_info
-from openai import AsyncOpenAI
-from openai.types.chat.chat_completion import Choice
-from typing import Dict, List, AsyncGenerator, Optional, Any
 import asyncio
 import json
-from contextlib import asynccontextmanager
+import logging
 from collections import defaultdict
-from app.tools import get_tool_manager
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+from typing import Any
+
+from openai import AsyncOpenAI
+from openai.types.chat.chat_completion import Choice
+
+from app.orm.crud import get_model_and_provider_info
 from app.services.chat.context import MessageContext
 from app.services.chat.prompt import PromptGeneratorParam
-import logging
+from app.tools import get_tool_manager
 
 logger = logging.getLogger(__name__)
 
 
 class ModelService:
     # 类级别缓存，用于存储OpenAI客户端实例
-    _client_cache: Dict[str, AsyncOpenAI] = {}
+    _client_cache: dict[str, AsyncOpenAI] = {}
     # 类级别锁，用于保护缓存访问
     _cache_lock = asyncio.Lock()
     # 模型级别锁，用于防止同一模型并发创建多个实例
-    _model_locks: Dict[str, asyncio.Lock] = {}
+    _model_locks: dict[str, asyncio.Lock] = {}
 
     @staticmethod
     async def get_model_info(model_id: str) -> dict:
@@ -73,7 +76,7 @@ class ModelService:
             return client
 
     @staticmethod
-    def _assemble_tool_calls(tool_call_chunks: List[Any]) -> List[Dict[str, Any]]:
+    def _assemble_tool_calls(tool_call_chunks: list[Any]) -> list[dict[str, Any]]:
         """
         组装流式工具调用片段为完整的工具调用对象
 
@@ -109,8 +112,8 @@ class ModelService:
         model_id: str,
         context: MessageContext,
         temperature: float = 1.0,
-        tools: Optional[List[dict]] = None,
-        tool_choice: Optional[str] = "auto",
+        tools: list[dict] | None = None,
+        tool_choice: str | None = "auto",
         max_tool_iterations: int = 10,
         **kwargs,
     ) -> AsyncGenerator[Choice, None]:

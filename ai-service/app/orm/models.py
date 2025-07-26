@@ -1,14 +1,14 @@
 from sqlalchemy import (
-    Column,
-    String,
-    Boolean,
-    Integer,
-    Text,
-    TIMESTAMP,
-    ForeignKey,
     JSON,
+    TIMESTAMP,
+    Boolean,
+    Column,
+    ForeignKey,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
+
 from .base import Base
 
 

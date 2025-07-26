@@ -1,6 +1,6 @@
-from pydantic import BaseModel
-from typing import List, Optional
 import httpx
+from pydantic import BaseModel
+
 from app.config import settings
 from app.tools import tool
 from app.utils.decorators import log_io
@@ -11,27 +11,28 @@ class SearchResult(BaseModel):
 
 
 class AnswerBox(BaseModel):
-    snippet: Optional[str] = None
-    answer: Optional[str] = None
-    answer_list: Optional[List[str]] = None
+    snippet: str | None = None
+    answer: str | None = None
+    answer_list: list[str] | None = None
 
 
 class OrganicResult(BaseModel):
-    title: Optional[str] = None
-    link: Optional[str] = None
-    snippet: Optional[str] = None
-    snippet_highlighted_words: Optional[List[str]] = None
-    
+    title: str | None = None
+    link: str | None = None
+    snippet: str | None = None
+    snippet_highlighted_words: list[str] | None = None
+
 
 class KnowledgeGraph(BaseModel):
-    title: Optional[str] = None
-    type: Optional[str] = None
-    description: Optional[str] = None
+    title: str | None = None
+    type: str | None = None
+    description: str | None = None
+
 
 class WebSearchResult(BaseModel):
-    answer_box: Optional[AnswerBox] = None
-    organic_results: Optional[List[OrganicResult]] = None
-    knowledge_graph: Optional[KnowledgeGraph] = None
+    answer_box: AnswerBox | None = None
+    organic_results: list[OrganicResult] | None = None
+    knowledge_graph: KnowledgeGraph | None = None
 
 
 @tool()

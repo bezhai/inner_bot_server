@@ -5,8 +5,8 @@
 """
 
 import logging
+
 from .registry import init_tools
-from . import builtin_tools  # 导入内置工具以触发装饰器注册
 
 logger = logging.getLogger(__name__)
 

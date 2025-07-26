@@ -1,18 +1,17 @@
-from pydantic import BaseModel
-from typing import List, Dict
 import jieba.analyse
+from pydantic import BaseModel
 
 
 # 输入数据模型
 class BatchExtractRequest(BaseModel):
-    texts: List[str]  # 批量文本
+    texts: list[str]  # 批量文本
     top_n: int  # 每个文本提取的关键词数量
 
 
 # 输出数据模型
 class ExtractResult(BaseModel):
     text: str
-    keywords: List[Dict[str, float]]
+    keywords: list[dict[str, float]]
 
 
 def extract_batch(request: BatchExtractRequest):

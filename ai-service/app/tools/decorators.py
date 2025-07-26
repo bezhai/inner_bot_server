@@ -8,7 +8,8 @@ import asyncio
 import functools
 import inspect
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 from weakref import WeakKeyDictionary
 
 from .schema_generator import generate_tool_schema, validate_tool_function
@@ -16,7 +17,7 @@ from .schema_generator import generate_tool_schema, validate_tool_function
 logger = logging.getLogger(__name__)
 
 # 存储待注册的工具
-_pending_tools: List[Dict[str, Any]] = []
+_pending_tools: list[dict[str, Any]] = []
 
 # 标记是否已初始化
 _initialized = False
@@ -25,9 +26,7 @@ _initialized = False
 _instance_tools = WeakKeyDictionary()
 
 
-def tool(
-    name: Optional[str] = None, description: Optional[str] = None, enabled: bool = True
-):
+def tool(name: str | None = None, description: str | None = None, enabled: bool = True):
     """
     工具装饰器，用于注册AI工具函数
 
@@ -227,12 +226,12 @@ class ToolProvider:
         _register_instance_tools(self)
 
 
-def get_pending_tools() -> List[Dict[str, Any]]:
+def get_pending_tools() -> list[dict[str, Any]]:
     """获取所有待注册的工具"""
     return _pending_tools.copy()
 
 
-def get_instance_tools() -> Dict[Any, List[Dict[str, Any]]]:
+def get_instance_tools() -> dict[Any, list[dict[str, Any]]]:
     """获取所有实例工具"""
     return dict(_instance_tools)
 

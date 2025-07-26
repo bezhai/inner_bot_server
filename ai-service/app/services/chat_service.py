@@ -3,74 +3,27 @@
 处理聊天相关的业务逻辑
 """
 
+import asyncio
 import logging
 import traceback
-import asyncio
-from datetime import datetime
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from app.services.chat.langgraph_chat_service import LangGraphChatService
+from app.services.chat.message import AIChatService
 from app.types.chat import (
-    ChatMessage,
+    ChatNormalResponse,
+    ChatProcessResponse,
     ChatRequest,
     ChatStreamChunk,
     Step,
-    ChatProcessResponse,
-    ChatNormalResponse,
 )
-from app.core.clients.memory_client import memory_client
 from app.utils.decorators import auto_json_serialize
-from app.services.chat.message import AIChatService
 
 logger = logging.getLogger(__name__)
 
 
 class ChatService:
     """聊天服务类"""
-
-    @staticmethod
-    async def get_message_by_id(
-        message_id: str, chat_id: str, user_id: str
-    ) -> ChatMessage:
-        """
-        根据消息ID从Memory服务获取消息
-
-        Args:
-            message_id: 消息ID
-            chat_id: 聊天ID
-            user_id: 用户ID
-
-        Returns:
-            ChatMessage: 消息对象
-        """
-        try:
-            result = await memory_client.get_message_by_id(
-                chat_id=chat_id, user_id=user_id, message_id=message_id
-            )
-
-            if not result:
-                raise ValueError(
-                    f"Message with ID {message_id} not found in Memory service"
-                )
-
-            # 将Memory返回的结果转换为ChatMessage
-            return ChatMessage(
-                user_id=user_id,
-                user_name=result.get("user_name", "未知用户"),
-                content=result.get("content", ""),
-                is_mention_bot=True,  # 重放时默认为True
-                role="user",  # Memory服务暂时不返回role
-                message_id=message_id,
-                chat_id=chat_id,
-                chat_type="group",  # 默认值
-                create_time=result.get(
-                    "create_time", str(int(datetime.now().timestamp() * 1000))
-                ),
-            )
-
-        except Exception as e:
-            logger.error(f"从Memory服务获取消息失败: {str(e)}")
-            raise
 
     @staticmethod
     async def generate_ai_reply(
@@ -92,7 +45,6 @@ class ChatService:
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
-
             # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
                 message_id=message_id,
@@ -114,7 +66,6 @@ class ChatService:
                         complete_content.content.strip()
                         or complete_content.reason_content.strip()
                     ):
-
                         # 创建新的chunk对象，包含当前chunk和完整内容
                         yield_chunk = ChatStreamChunk(
                             content=complete_content.content,
@@ -131,7 +82,6 @@ class ChatService:
                 complete_content.content.strip()
                 or complete_content.reason_content.strip()
             ):
-
                 final_chunk = ChatStreamChunk(
                     content=complete_content.content,
                     reason_content=complete_content.reason_content,
