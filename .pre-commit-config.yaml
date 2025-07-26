@@ -10,3 +10,13 @@ repos:
       # Run the formatter.
       - id: ruff-format
         files: ^ai-service/.*\.py$
+
+  - repo: local
+    hooks:
+      # 检查main-server代码格式化
+      - id: main-server-format
+        name: Check main-server format
+        entry: bash -c 'cd main-server && npx prettier --check src/**/*.ts'
+        language: system
+        files: ^main-server/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
