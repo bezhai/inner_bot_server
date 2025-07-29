@@ -11,6 +11,13 @@ from .model import ModelService
 logger = logging.getLogger(__name__)
 
 
+class ContentFilterError(Exception):
+    """内容过滤异常"""
+
+    def __init__(self):
+        super().__init__("内容被过滤")
+
+
 class AIChatService:
     @staticmethod
     async def stream_ai_reply(
@@ -61,11 +68,9 @@ class AIChatService:
                 # finish_reason包含四种结果, 除tool_calls外, 其他结果都表示完成
                 if chunk.finish_reason:
                     logger.info(f"chunk.finish_reason: {chunk.finish_reason}")
-                    # 如果是content_filter, 需要返回原因, 截断需要告知用户
+                    # 如果是content_filter, 抛出异常以便上层处理
                     if chunk.finish_reason == "content_filter":
-                        yield ChatStreamChunk(
-                            content="赤尾有点不想讨论这个话题呢~",
-                        )
+                        raise ContentFilterError()
                     elif chunk.finish_reason == "length":
                         yield ChatStreamChunk(
                             content="(后续内容被截断)",
