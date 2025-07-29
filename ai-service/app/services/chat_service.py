@@ -8,7 +8,6 @@ import logging
 import traceback
 from collections.abc import AsyncGenerator
 
-from app.services.chat.langgraph_chat_service import LangGraphChatService
 from app.services.chat.message import AIChatService
 from app.types.chat import (
     ChatNormalResponse,
@@ -122,33 +121,17 @@ class ChatService:
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容
 
-            if request.is_canary:
-                # 使用 LangGraph 服务
-                async for chunk in LangGraphChatService.stream_ai_reply(
-                    message_id=request.message_id,
-                    yield_interval=yield_interval,
-                    model_id="gpt-4o-mini",
-                    temperature=0.7,
-                    enable_tools=True,
-                ):
-                    last_content = chunk.content
-                    yield ChatProcessResponse(
-                        step=Step.SEND,
-                        content=chunk.content,
-                        tool_call_feedback=chunk.tool_call_feedback,
-                    )
-            else:
-                # 使用原有服务
-                async for chunk in ChatService.generate_ai_reply(
-                    request.message_id, yield_interval=yield_interval
-                ):
-                    last_content = chunk.content  # 保存最后的内容（已经转换过）
-                    yield ChatProcessResponse(
-                        step=Step.SEND,
-                        content=chunk.content,
-                        # reason_content=chunk.reason_content,
-                        tool_call_feedback=chunk.tool_call_feedback,
-                    )
+            # 使用原有服务
+            async for chunk in ChatService.generate_ai_reply(
+                request.message_id, yield_interval=yield_interval
+            ):
+                last_content = chunk.content  # 保存最后的内容（已经转换过）
+                yield ChatProcessResponse(
+                    step=Step.SEND,
+                    content=chunk.content,
+                    # reason_content=chunk.reason_content,
+                    tool_call_feedback=chunk.tool_call_feedback,
+                )
 
             # 5. 回复成功，返回完整内容
             yield ChatProcessResponse(
