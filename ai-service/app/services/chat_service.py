@@ -9,6 +9,7 @@ import traceback
 from collections.abc import AsyncGenerator
 
 from app.services.chat.message import AIChatService
+from app.services.chat.prompt import PromptGeneratorParam
 from app.types.chat import (
     ChatNormalResponse,
     ChatProcessResponse,
@@ -33,20 +34,31 @@ class ChatService:
         生成 AI 回复内容（支持多轮对话）
 
         Args:
-            request: 聊天请求对象
+            message_id: 消息ID，用于获取上下文消息
             yield_interval: 输出间隔时间，用于控制客户端接收频率
 
         Yields:
             ChatStreamChunk: AI 生成的回复内容片段，包含当前chunk和累积的完整内容
         """
+        from app.services.chat.context import MessageContext
+        from app.services.chat.prompt import ChatPromptService
+
         # 用于累积内容
         complete_content = ChatStreamChunk(content="", reason_content="")
         last_yield_time = asyncio.get_event_loop().time()
 
         try:
+            # 获取上下文消息
+            prompt = await ChatPromptService.get_prompt({})
+            message_context = MessageContext(message_id, lambda param: prompt)
+            await message_context.init_context_messages()
+
+            # 构建完整的消息列表，包含系统提示词和上下文消息
+            messages = message_context.build(PromptGeneratorParam())
+
             # 调用底层AI服务，传入完整的对话历史
             async for chunk in AIChatService.stream_ai_reply(
-                message_id=message_id,
+                messages=messages,
                 model_id="gpt-4.1",
                 enable_tools=True,
             ):
@@ -111,6 +123,20 @@ class ChatService:
         Yields:
             ChatNormalResponse | ChatProcessResponse: 聊天响应对象
         """
+        from app.services.meta_info import AsyncRedisClient
+
+        # 获取Redis实例并加锁
+        redis = AsyncRedisClient.get_instance()
+        lock_key = f"msg_lock:{request.message_id}"
+
+        try:
+            # 加锁，过期时间60秒
+            await redis.set(lock_key, "1", nx=True, ex=60)
+            logger.info(f"消息锁定成功: {request.message_id}")
+        except Exception as e:
+            logger.warning(f"消息加锁失败: {request.message_id}, 错误: {str(e)}")
+            # 即使加锁失败也继续处理
+
         try:
             # 1. 接收消息确认
             yield ChatNormalResponse(step=Step.ACCEPT)
@@ -144,6 +170,13 @@ class ChatService:
             logger.error(f"SSE 聊天处理失败: {str(e)}\n{traceback.format_exc()}")
             yield ChatNormalResponse(step=Step.FAILED)
         finally:
+            # 解锁
+            try:
+                await redis.delete(lock_key)
+                logger.info(f"消息解锁成功: {request.message_id}")
+            except Exception as e:
+                logger.warning(f"消息解锁失败: {request.message_id}, 错误: {str(e)}")
+
             # 7. 流程结束
             yield ChatNormalResponse(step=Step.END)
 

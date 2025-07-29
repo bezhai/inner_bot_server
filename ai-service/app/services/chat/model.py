@@ -10,8 +10,6 @@ from openai import AsyncOpenAI
 from openai.types.chat.chat_completion import Choice
 
 from app.orm.crud import get_model_and_provider_info
-from app.services.chat.context import MessageContext
-from app.services.chat.prompt import PromptGeneratorParam
 from app.tools import get_tool_manager
 
 logger = logging.getLogger(__name__)
@@ -110,7 +108,7 @@ class ModelService:
     @staticmethod
     async def chat_completion_stream(
         model_id: str,
-        context: MessageContext,
+        messages: list[dict],
         temperature: float = 1.0,
         tools: list[dict] | None = None,
         tool_choice: str | None = "auto",
@@ -122,7 +120,7 @@ class ModelService:
 
         Args:
             model_id: 内部模型ID
-            context: 消息上下文
+            messages: 消息列表，包含对话历史和系统提示词
             temperature: 温度参数，控制随机性
             tools: 可用工具列表
             tool_choice: 工具选择策略 ("auto", "none", 或特定工具)
@@ -141,14 +139,13 @@ class ModelService:
 
         # 复制消息列表以避免修改原始数据
         iteration_count = 0
-
-        prompt_param = PromptGeneratorParam()
+        current_messages = messages.copy()
 
         while iteration_count < max_tool_iterations:
             # 构建请求参数
             request_params = {
                 "model": model_name,
-                "messages": context.build(prompt_param),
+                "messages": current_messages,
                 "temperature": temperature,
                 "stream": True,
                 **kwargs,
@@ -196,7 +193,7 @@ class ModelService:
             tool_calls = ModelService._assemble_tool_calls(tool_call_chunks)
 
             # 添加助手消息到对话历史
-            context.append_message(
+            current_messages.append(
                 {
                     "role": "assistant",
                     "content": current_content if current_content else None,
@@ -219,7 +216,7 @@ class ModelService:
                     )
 
                     # 添加工具响应
-                    context.append_message(
+                    current_messages.append(
                         {
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
@@ -239,7 +236,7 @@ class ModelService:
                 except Exception as e:
                     logger.error(f"工具执行错误: {e}")
                     # 工具执行错误处理
-                    context.append_message(
+                    current_messages.append(
                         {
                             "tool_call_id": tool_call["id"],
                             "role": "tool",
