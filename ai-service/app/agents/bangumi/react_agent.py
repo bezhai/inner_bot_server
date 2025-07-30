@@ -20,7 +20,7 @@ from app.agents.bangumi.tools import (
     search_subjects,
 )
 from app.langgraph_infra import ModelBuilder
-from app.services.prompt_service import PromptService
+from app.services.chat.prompt import ChatPromptService
 from app.tools import tool
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ async def _get_agent():
     global _agent
     if _agent is None:
         # 从数据库获取Bangumi提示词
-        prompt_content = await PromptService.get_prompt("bangumi")
+        prompt_content = await ChatPromptService.get_bangumi_prompt()
         if not prompt_content:
             raise ValueError("未找到Bangumi提示词(id='bangumi')")
 

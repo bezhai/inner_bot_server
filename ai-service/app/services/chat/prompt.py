@@ -30,3 +30,20 @@ class ChatPromptService:
                 **param,
             }
         )
+
+    @staticmethod
+    async def get_bangumi_prompt(param: PromptGeneratorParam) -> str:
+        """从数据库获取番剧提示词"""
+        prompt_content = await DBPromptService.get_prompt("bangumi")
+
+        if not prompt_content:
+            raise ValueError("未找到番剧提示词(id='bangumi')")
+
+        template = Template(prompt_content)
+        return template.render(
+            {
+                "currDate": datetime.now().strftime("%Y-%m-%d"),
+                "currTime": datetime.now().strftime("%H:%M:%S"),
+                **param,
+            }
+        )
