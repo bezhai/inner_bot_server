@@ -32,7 +32,7 @@ class ChatPromptService:
         )
 
     @staticmethod
-    async def get_bangumi_prompt(param: PromptGeneratorParam) -> str:
+    async def get_bangumi_prompt() -> str:
         """从数据库获取番剧提示词"""
         prompt_content = await DBPromptService.get_prompt("bangumi")
 
@@ -44,6 +44,5 @@ class ChatPromptService:
             {
                 "currDate": datetime.now().strftime("%Y-%m-%d"),
                 "currTime": datetime.now().strftime("%H:%M:%S"),
-                **param,
             }
         )
