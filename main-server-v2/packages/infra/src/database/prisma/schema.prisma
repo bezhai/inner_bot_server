@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../../../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User entity - based on existing LarkUser
+model LarkUser {
+  unionId      String   @id @map("union_id")
+  name         String
+  avatarOrigin String?  @map("avatar_origin")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  openIds       LarkUserOpenId[]
+  chatMappings  UserChatMapping[]
+  groupBindings UserGroupBinding[]
+  feedbacks     ResponseFeedback[]
+  sentMessages  Message[]          @relation("SentMessages")
+
+  @@map("lark_user")
+}
+
+// OpenId mapping - based on existing LarkUserOpenId
+model LarkUserOpenId {
+  openId    String   @id @map("open_id")
+  unionId   String   @map("union_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user LarkUser @relation(fields: [unionId], references: [unionId], onDelete: Cascade)
+
+  @@index([unionId])
+  @@map("lark_user_open_id")
+}
+
+// Chat info - based on existing LarkBaseChatInfo
+model LarkBaseChatInfo {
+  chatId           String   @id @map("chat_id")
+  chatMode         String   @map("chat_mode") // 'group' | 'topic' | 'p2p'
+  permissionConfig Json?    @map("permission_config")
+  hasMainBot       Boolean? @default(false) @map("has_main_bot")
+  hasDevBot        Boolean? @default(false) @map("has_dev_bot")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  members      LarkGroupMember[]
+  chatMappings UserChatMapping[]
+  cardContexts LarkCardContext[]
+  messages     Message[]
+  groupInfo    LarkGroupChatInfo?
+
+  @@map("lark_base_chat_info")
+}
+
+// Group chat info - based on existing LarkGroupChatInfo
+model LarkGroupChatInfo {
+  chatId        String   @id @map("chat_id")
+  name          String?
+  description   String?
+  ownerOpenId   String?  @map("owner_open_id")
+  ownerUnionId  String?  @map("owner_union_id")
+  memberCount   Int?     @map("member_count")
+  addMemberVerify Boolean? @default(false) @map("add_member_verify")
+  shareAllowed    Boolean? @default(true) @map("share_allowed")
+  atAllAllowed    Boolean? @default(true) @map("at_all_allowed")
+  editAllowed     Boolean? @default(true) @map("edit_allowed")
+  chatType        String?  @map("chat_type")
+  external        Boolean? @default(false)
+  tenantKey       String?  @map("tenant_key")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  baseChatInfo LarkBaseChatInfo @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+
+  @@map("lark_group_chat_info")
+}
+
+// Group members - based on existing LarkGroupMember
+model LarkGroupMember {
+  id        Int      @id @default(autoincrement())
+  chatId    String   @map("chat_id")
+  openId    String   @map("open_id")
+  unionId   String?  @map("union_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  chat LarkBaseChatInfo @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+
+  @@unique([chatId, openId])
+  @@index([chatId])
+  @@index([openId])
+  @@map("lark_group_member")
+}
+
+// User chat mapping - based on existing UserChatMapping
+model UserChatMapping {
+  id         Int      @id @default(autoincrement())
+  chatId     String   @map("chat_id")
+  unionId    String   @map("union_id")
+  openId     String   @map("open_id")
+  memberName String?  @map("member_name")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  chat LarkBaseChatInfo @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+  user LarkUser        @relation(fields: [unionId], references: [unionId], onDelete: Cascade)
+
+  @@unique([chatId, openId])
+  @@index([chatId])
+  @@index([unionId])
+  @@map("user_chat_mapping")
+}
+
+// User group binding - based on existing UserGroupBinding
+model UserGroupBinding {
+  id        Int      @id @default(autoincrement())
+  unionId   String   @map("union_id")
+  groupName String   @map("group_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user LarkUser @relation(fields: [unionId], references: [unionId], onDelete: Cascade)
+
+  @@unique([unionId, groupName])
+  @@index([unionId])
+  @@map("user_group_binding")
+}
+
+// Card context - based on existing LarkCardContext
+model LarkCardContext {
+  id        Int      @id @default(autoincrement())
+  chatId    String   @map("chat_id")
+  cardId    String   @map("card_id")
+  context   Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  chat LarkBaseChatInfo @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+
+  @@unique([chatId, cardId])
+  @@map("lark_card_context")
+}
+
+// Response feedback - based on existing ResponseFeedback
+model ResponseFeedback {
+  id           Int      @id @default(autoincrement())
+  messageId    String   @map("message_id")
+  unionId      String   @map("union_id")
+  feedbackType String   @map("feedback_type")
+  content      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user LarkUser @relation(fields: [unionId], references: [unionId], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([unionId])
+  @@map("response_feedback")
+}
+
+// Prompt - based on existing Prompt
+model Prompt {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  content     String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("prompts")
+}
+
+// Message - new table for v2
+model Message {
+  id            String   @id @default(cuid())
+  messageId     String   @unique @map("message_id") // Lark message ID
+  chatId        String   @map("chat_id")
+  senderId      String   @map("sender_id") // union_id
+  senderOpenId  String?  @map("sender_open_id")
+  content       Json     // Structured message content
+  metadata      Json     // Message metadata
+  messageType   String   @map("message_type")
+  rootId        String?  @map("root_id")
+  parentId      String?  @map("parent_id")
+  threadId      String?  @map("thread_id")
+  processed     Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  chat   LarkBaseChatInfo @relation(fields: [chatId], references: [chatId])
+  sender LarkUser         @relation("SentMessages", fields: [senderId], references: [unionId])
+
+  // Indexes for query optimization
+  @@index([chatId, createdAt])
+  @@index([senderId])
+  @@index([processed])
+  @@index([threadId])
+  @@map("messages")
+}

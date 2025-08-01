@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  main-server-v2:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./tsconfig.base.json:/app/tsconfig.base.json
+      - /app/node_modules
+      - /app/packages/*/node_modules
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    ports:
+      - "3001:3000"
+      - "9229:9229" # Node.js debugging port
+    command: ["pnpm", "run", "dev"]
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: mainserver_dev
+      POSTGRES_USER: mainserver
+      POSTGRES_PASSWORD: mainserver_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mainserver
+      MONGO_INITDB_ROOT_PASSWORD: mainserver_dev_password
+      MONGO_INITDB_DATABASE: mainserver_dev
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  postgres_data:
+  redis_data:
+  mongo_data:
