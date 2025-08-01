@@ -59,42 +59,93 @@
 - [ ] 配置 **eslint, prettier, lint-staged, husky**
 - [ ] 创建 **GitHub Actions** CI：install → lint → test → build
 - [ ] Dockerfile.multi-stage & docker-compose.override.yml (dev env)
+- [ ] 创建根级 `tsconfig.base.json` 并在各 package 继承
+- [ ] 安装依赖：`pnpm add -D typescript jest ts-jest @types/jest eslint prettier lint-staged husky commitizen commitlint cz-conventional-changelog`
+- [ ] 在 `package.json` 添加 script：`dev`, `lint`, `test`, `test:watch`, `build`, `release`
+- [ ] 编写 `.prettierrc.json`：2 空格缩进、行宽 120、单引号
+- [ ] 更新 `.eslintrc.js`：启用 `@typescript-eslint`, `import/order`, `unused-imports` 规则
+- [ ] `husky install` 并添加 `pre-commit`、`commit-msg` 钩子
+- [ ] CI: `.github/workflows/ci.yml` Node 20 matrix，步骤：checkout→setup-pnpm→cache→install→lint→test→upload-codecov
+- [ ] 新建 `Dockerfile.dev`：基于 node:20-alpine，热重载 `pnpm run dev`
+- [ ] README 增加本地启动、调试、测试、CI 说明
 
 ### M1 核心域建模
 - [ ] 梳理业务流程与实体：Message, Conversation, User, Task …
 - [ ] 使用 **C4 Model** 生成上下文 & 容器图
 - [ ] 定义领域事件 & 用例接口 (TypeScript interface)
 - [ ] 输出 ADR（Architecture Decision Record）
+- [ ] 召开 2h 领域研讨会，输出事件风暴白板
+- [ ] 在 `docs/` 保存 `C4_Context.puml`, `C4_Container.puml`
+- [ ] 定义实体：`Message`, `Conversation`, `User`, `Attachment`
+- [ ] 为实体编写工厂函数与不变式校验测试
+- [ ] 定义领域事件：`MessageReceived`, `ConversationClosed`, `UserMentioned`
+- [ ] 在 `core/domain/events` 放置事件定义与发布接口
+- [ ] 撰写三条 ADR：
+  1. 采用事件驱动架构
+  2. 选择 Prisma 作为 ORM
+  3. Clean Architecture 分层命名约定
 
 ### M2 框架落地
 - [ ] 选择 & 初始化 NestJS / DI 容器
 - [ ] 实现跨切面中间件：Logging, Validation, ExceptionFilter
 - [ ] configuration module 统一 env 读取
 - [ ] Bootstrapping: graceful shutdown, health check endpoint
+- [ ] 安装 NestJS 依赖：`@nestjs/{core,common,testing}`, `reflect-metadata`, `class-validator`
+- [ ] 建立 `app.module.ts`，导入 Controllers & Providers skeleton
+- [ ] 创建全局管道：`ValidationPipe`、`LoggingInterceptor`
+- [ ] 配置 `ConfigModule.forRoot({ isGlobal:true, envFilePath:['.env','.env.local']})`
+- [ ] `main.ts` 启动脚本：启用 CORS、graceful shutdown、swagger `@/docs`
+- [ ] 编写 `health.controller.ts` 返回 build info
+- [ ] 单元测试 `health.controller.spec.ts`
 
 ### M3 核心用例实现（TDD）
 - [ ] **MessagePipeline** : parse → enrich → dispatch
   - 编写失败与成功场景测试
 - [ ] **AIAdapter**: 统一 LLM 调用接口, 支持 multi-vendor
 - [ ] **RateLimiter**: redis token bucket (unit & integration tests)
+- [ ] 目录 `packages/core/usecase/message` 下建立 `pipeline.spec.ts` （红）
+- [ ] Stage1 `parseService`：解析来源渠道、指令，mock transport
+- [ ] Stage2 `enrichService`：填充用户 profile、会话上下文
+- [ ] Stage3 `dispatchService`：调用 `AIAdapter`、返回 streaming
+- [ ] `AIAdapter`：定义 `IAIProvider` 接口，具体实现 `OpenAIProvider`, `LLamaProvider`
+- [ ] 提供 retry/backoff 装饰器，单元测试失败重试 3 次
+- [ ] `RateLimiter`：token bucket 算法，单位时间窗口 60 req
+- [ ] 为以上服务编写 mock & spies，覆盖异常分支
 
 ### M4 外设集成
 - [ ] **Prisma schema** + migrations script
 - [ ] **Repository pattern** 接入 domain
 - [ ] **ExternalWebhookAdapter** for Lark/Slack/etc.
 - [ ] e2e 测试通过 docker-compose-ci
+- [ ] 定义 `prisma/schema.prisma`，entity → table（遵循 snake_case）
+- [ ] `pnpm prisma migrate dev` 生成本地 sqlite 用于 CI
+- [ ] 创建 `MessageRepository` with findById/save/listByConversation
+- [ ] `redis.module.ts`：创建连接，导出 `RedisService`
+- [ ] `ExternalWebhookAdapter`：实现 `LarkController`, 校验签名 middleware
+- [ ] e2e 测试脚本：`test/e2e/message.e2e-spec.ts` 使用 supertest + sqlite memory
+- [ ] 添加 `docker-compose.ci.yml`：services redis, postgres, minio
 
 ### M5 迁移网关
 - [ ] 在 v1 前端/客户端侧增加 `X-API-Version` header
 - [ ] 网关根据 header 将请求路由至 v2
 - [ ] 监控指标：Latency, ErrorRate, Throughput
 - [ ] 灰度策略：10%→25%→50%→100%
+- [ ] Nginx ingress：配置 `map $http_x_api_version` 路由 v1/v2
+- [ ] `k8s/deployment.yaml` 增加 v2 canary，flagger 分阶段自动放量
+- [ ] 实现 `traffic-mirror` middleware 记录并对比 v1/v2 响应差异
+- [ ] Prometheus & Grafana dashboard：延迟 p95、错误率、RPS
+- [ ] 自动回滚脚本 on SLO breach
 
 ### M6 全量迁移 & 收尾
 - [ ] 切流完成，关闭 v1
 - [ ] 数据备份与只读模式
 - [ ] 更新文档 & 交接
 - [ ] 归档旧仓库 / tag v1-legacy
+- [ ] 编写 `scripts/data-backfill.ts` 校验并补齐 v1 与 v2 数据差异
+- [ ] 执行 `kubectl rollout restart` 并观察 1h
+- [ ] 发版公告 & 更新内部 Wiki
+- [ ] 关闭 v1 相关 CI job、归档镜像
+- [ ] post-mortem：复盘本次迁移，收集改进点
 
 ---
 
