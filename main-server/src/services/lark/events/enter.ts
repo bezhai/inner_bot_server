@@ -22,8 +22,7 @@ export async function handlerEnterChat(data: LarkEnterChatEvent) {
             chatInfo: {
                 chat_id: data.chat_id!,
                 chat_mode: 'p2p',
-                has_main_bot: process.env.IS_DEV === 'true' ? undefined : true,
-                has_dev_bot: process.env.IS_DEV === 'true' ? true : undefined,
+                // 已移除 has_main_bot 和 has_dev_bot 字段，使用多机器人配置表替代
             },
         });
     });

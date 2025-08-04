@@ -2,9 +2,7 @@ import { StreamAction } from 'types/ai';
 import { ChatMessage, ChatRequest, ChatResponse, Step } from 'types/chat';
 import { SSEClient } from 'utils/sse/client';
 import { ChatStateMachineManager } from './chat-state-machine';
-import { AxiosError } from 'axios';
-import http from 'utils/http';
-import { trace } from 'utils/trace';
+import { context } from 'utils/context';
 import { storeMessage } from 'services/integrations/memory';
 
 const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
@@ -33,7 +31,7 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
         method: 'POST' as const,
         headers: {
             'Content-Type': 'application/json',
-            'X-Trace-Id': trace.get(),
+            'X-Trace-Id': context.getTraceId(),
         },
         body: options.req,
         retries: 3,

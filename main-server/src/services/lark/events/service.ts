@@ -10,32 +10,26 @@ import {
 } from './group';
 import { handleCardAction } from './card';
 import { handleReaction } from './reaction';
-import {
-    getBotAppId,
-    getBotAppSecret,
-    getVerificationToken,
-    getEncryptKey,
-} from 'utils/bot/bot-var';
 import { handlerEnterChat } from './enter';
+import { BotConfig } from '../../../dal/entities/bot-config';
+import { multiBotManager } from '../../../utils/bot/multi-bot-manager';
 
 // Helper function to create void decorators for async handlers
 function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params: T) => void {
     return function (params: T): void {
-        // 异步调用原函数，但不等待结果
-
         console.info('receive event_type: ' + (params as { event_type: string })['event_type']);
-
+        
         asyncFn(params).catch((err) => {
             console.error('Error in async operation:', err);
         });
     };
 }
 
-// Create event dispatcher with all handlers
-function createEventDispatcher() {
+// Create event dispatcher for a specific bot
+function createEventDispatcher(botConfig: BotConfig) {
     return new Lark.EventDispatcher({
-        verificationToken: getVerificationToken(),
-        encryptKey: getEncryptKey(),
+        verificationToken: botConfig.verification_token,
+        encryptKey: botConfig.encrypt_key,
     }).register({
         'im.message.receive_v1': createVoidDecorator(handleMessageReceive),
         'im.message.recalled_v1': createVoidDecorator(handleMessageRecalled),
@@ -51,37 +45,55 @@ function createEventDispatcher() {
     });
 }
 
-// Initialize HTTP mode components
-export function initializeHttpMode() {
-    const eventDispatcher = createEventDispatcher();
-    const cardActionHandler = new Lark.CardActionHandler(
+// Create card action handler for a specific bot
+function createCardActionHandler(botConfig: BotConfig) {
+    return new Lark.CardActionHandler(
         {
-            verificationToken: getVerificationToken(),
-            encryptKey: getEncryptKey(),
+            verificationToken: botConfig.verification_token,
+            encryptKey: botConfig.encrypt_key,
         },
         createVoidDecorator(handleCardAction),
     );
-
-    return {
-        eventRouter: Lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }),
-        cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, {
-            autoChallenge: true,
-        }),
-    };
 }
 
-// Initialize and start WebSocket mode
-export function startLarkWebSocket() {
-    const eventDispatcher = createEventDispatcher();
-    const wsClient = new Lark.WSClient({
-        appId: getBotAppId(),
-        appSecret: getBotAppSecret(),
-        loggerLevel: Lark.LoggerLevel.info,
-    });
+// Initialize HTTP mode for multiple bots
+export function initializeMultiBotHttpMode() {
+    const httpBots = multiBotManager.getBotsByInitType('http');
+    const routers: Array<{ botName: string; eventRouter: any; cardActionRouter: any; isDefault: boolean }> = [];
 
-    // Register card action handler for WebSocket mode
-    eventDispatcher.handles.set('card.action.trigger', createVoidDecorator(handleCardAction));
+    for (const botConfig of httpBots) {
+        const eventDispatcher = createEventDispatcher(botConfig);
+        const cardActionHandler = createCardActionHandler(botConfig);
 
-    wsClient.start({ eventDispatcher });
-    console.info('Feishu WebSocket client started.');
+        routers.push({
+            botName: botConfig.bot_name,
+            eventRouter: Lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }),
+            cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, { autoChallenge: true }),
+            isDefault: botConfig.is_default,
+        });
+
+        console.info(`Initialized HTTP router for bot: ${botConfig.bot_name} (${botConfig.app_id})`);
+    }
+
+    return routers;
+}
+
+// Start WebSocket for multiple bots
+export function startMultiBotWebSocket() {
+    const websocketBots = multiBotManager.getBotsByInitType('websocket');
+
+    for (const botConfig of websocketBots) {
+        const eventDispatcher = createEventDispatcher(botConfig);
+        const wsClient = new Lark.WSClient({
+            appId: botConfig.app_id,
+            appSecret: botConfig.app_secret,
+            loggerLevel: Lark.LoggerLevel.info,
+        });
+
+        // Register card action handler for WebSocket mode
+        eventDispatcher.handles.set('card.action.trigger', createVoidDecorator(handleCardAction));
+
+        wsClient.start({ eventDispatcher });
+        console.info(`Started WebSocket for bot: ${botConfig.bot_name} (${botConfig.app_id})`);
+    }
 }

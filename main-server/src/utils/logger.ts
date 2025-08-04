@@ -1,6 +1,6 @@
 import winston from 'winston';
 import path from 'node:path';
-import { trace } from './trace';
+import { context } from './context';
 
 // 获取环境变量，决定是否写入文件
 const enableFileLogging = process.env.ENABLE_FILE_LOGGING === 'true';
@@ -15,7 +15,7 @@ const transports: winston.transport[] = [
             winston.format.colorize(),
             winston.format.simple(),
             winston.format.printf((info) => {
-                const traceId = trace.get();
+                const traceId = context.getTraceId();
                 return `${info.level}: ${info.message} ${traceId ? `[traceId: ${traceId}]` : ''}`;
             }),
         ),
@@ -32,7 +32,7 @@ if (enableFileLogging) {
             format: winston.format.combine(
                 winston.format.timestamp(),
                 winston.format.printf((info) => {
-                    const traceId = trace.get();
+                    const traceId = context.getTraceId();
                     return JSON.stringify({
                         ...info,
                         traceId,
@@ -52,7 +52,7 @@ const logger = winston.createLogger({
 if (enableFileLogging) {
     // eslint-disable-next-line no-console
     console.log = (...args) => {
-        const traceId = trace.get();
+        const traceId = context.getTraceId();
         logger.info(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
             { traceId },
@@ -60,7 +60,7 @@ if (enableFileLogging) {
     };
 
     console.error = (...args) => {
-        const traceId = trace.get();
+        const traceId = context.getTraceId();
         logger.error(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
             { traceId },
@@ -68,7 +68,7 @@ if (enableFileLogging) {
     };
 
     console.info = (...args) => {
-        const traceId = trace.get();
+        const traceId = context.getTraceId();
         logger.info(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
             { traceId },
@@ -76,7 +76,7 @@ if (enableFileLogging) {
     };
 
     console.warn = (...args) => {
-        const traceId = trace.get();
+        const traceId = context.getTraceId();
         logger.warn(
             args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
             { traceId },

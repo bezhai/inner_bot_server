@@ -52,8 +52,7 @@ export async function searchLarkChatInfo(chat_id: string) {
         baseChatInfo: {
             chat_id,
             chat_mode: chatInfo.chat_mode as 'topic' | 'group',
-            has_main_bot: process.env.IS_DEV === 'true' ? undefined : true,
-            has_dev_bot: process.env.IS_DEV === 'true' ? true : undefined,
+            // 已移除 has_main_bot 和 has_dev_bot 字段，使用多机器人配置表替代
         },
         is_leave: false,
     };

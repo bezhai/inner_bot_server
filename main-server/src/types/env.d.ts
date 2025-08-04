@@ -17,7 +17,6 @@ declare namespace NodeJS {
         MAIN_BOT_APP_SECRET: string;
         DEV_BOT_APP_ID: string;
         DEV_BOT_APP_SECRET: string;
-        IS_DEV: string; // true or false
         POSTGRES_USER: string;
         POSTGRES_PASSWORD: string;
         POSTGRES_DB: string;
