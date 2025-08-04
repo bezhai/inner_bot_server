@@ -1,39 +1,23 @@
-export function getVerificationToken() {
-    if (process.env.IS_DEV === 'true') {
-        return process.env.DEV_VERIFICATION_TOKEN!;
-    } else {
-        return process.env.MAIN_VERIFICATION_TOKEN!;
+import { context } from 'utils/context';
+import { multiBotManager } from './multi-bot-manager';
+
+function getBotConfigInternal() {
+    const botName = context.getBotName();
+
+    if (!botName) {
+        throw new Error('Bot name is not set in the context');
     }
+    const botConfig = multiBotManager.getBotConfig(botName);
+    if (botConfig) {
+        return botConfig;
+    }
+    throw new Error(`Bot configuration not found for bot: ${botName}`);
 }
 
-export function getEncryptKey() {
-    if (process.env.IS_DEV === 'true') {
-        return process.env.DEV_ENCRYPT_KEY!;
-    } else {
-        return process.env.MAIN_ENCRYPT_KEY!;
-    }
+export function getBotUnionId(): string {
+    return getBotConfigInternal().robot_union_id;
 }
 
-export function getBotUnionId() {
-    if (process.env.IS_DEV === 'true') {
-        return process.env.DEV_ROBOT_UNION_ID!;
-    } else {
-        return process.env.MAIN_ROBOT_UNION_ID!;
-    }
-}
-
-export function getBotAppId() {
-    if (process.env.IS_DEV === 'true') {
-        return process.env.DEV_BOT_APP_ID!;
-    } else {
-        return process.env.MAIN_BOT_APP_ID!;
-    }
-}
-
-export function getBotAppSecret() {
-    if (process.env.IS_DEV === 'true') {
-        return process.env.DEV_BOT_APP_SECRET!;
-    } else {
-        return process.env.MAIN_BOT_APP_SECRET!;
-    }
+export function getBotAppId(): string {
+    return getBotConfigInternal().app_id;
 }

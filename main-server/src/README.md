@@ -215,7 +215,6 @@ MAIN_ENCRYPT_KEY=your_encrypt_key
 MAIN_ROBOT_UNION_ID=your_robot_union_id
 
 # 开发环境配置
-IS_DEV=false
 DEV_BOT_APP_ID=your_dev_app_id
 DEV_BOT_APP_SECRET=your_dev_app_secret
 

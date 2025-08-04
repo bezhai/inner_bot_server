@@ -1,5 +1,6 @@
 import * as lark from '@larksuiteoapi/node-sdk';
-import { getBotAppId, getBotAppSecret } from 'utils/bot/bot-var';
+import { multiBotManager } from '../../utils/bot/multi-bot-manager';
+import { context } from '../../utils/context';
 import { Readable } from 'node:stream';
 import { ReadStream } from 'node:fs';
 
@@ -7,10 +8,92 @@ const errorMap: Record<number, string> = {
     41050: '无用户权限，请将当前操作的用户添加到应用或用户的权限范围内',
 };
 
-const client = new lark.Client({
-    appId: getBotAppId(),
-    appSecret: getBotAppSecret(),
-});
+// 客户端池管理器
+class LarkClientManager {
+    private static instance: LarkClientManager;
+    private clientPool: Map<string, lark.Client> = new Map();
+    private initialized = false;
+
+    private constructor() {}
+
+    static getInstance(): LarkClientManager {
+        if (!LarkClientManager.instance) {
+            LarkClientManager.instance = new LarkClientManager();
+        }
+        return LarkClientManager.instance;
+    }
+
+    // 初始化客户端池
+    async initialize(): Promise<void> {
+        if (this.initialized) return;
+
+        const allBots = multiBotManager.getAllBotConfigs();
+        this.clientPool.clear();
+
+        for (const bot of allBots) {
+            const client = new lark.Client({
+                appId: bot.app_id,
+                appSecret: bot.app_secret,
+            });
+            this.clientPool.set(bot.bot_name, client);
+        }
+
+        this.initialized = true;
+        console.info(`Initialized ${allBots.length} Lark clients`);
+    }
+
+    // 获取当前上下文的客户端
+    getCurrentClient(): lark.Client {
+        const botName = context.getBotName();
+        if (!botName) {
+            throw new Error('Bot name is not set in the context');
+        }
+
+        const client = this.clientPool.get(botName);
+        if (!client) {
+            throw new Error(`Lark client not found for bot: ${botName}`);
+        }
+
+        return client;
+    }
+
+    // 根据机器人名称获取客户端
+    getClient(botName: string): lark.Client | null {
+        return this.clientPool.get(botName) || null;
+    }
+
+    // 重新加载客户端池
+    async reload(): Promise<void> {
+        this.initialized = false;
+        await this.initialize();
+    }
+
+    // 添加或更新客户端
+    addOrUpdateClient(botName: string, appId: string, appSecret: string): void {
+        const client = new lark.Client({
+            appId,
+            appSecret,
+        });
+        this.clientPool.set(botName, client);
+    }
+
+    // 移除客户端
+    removeClient(botName: string): void {
+        this.clientPool.delete(botName);
+    }
+}
+
+const larkClientManager = LarkClientManager.getInstance();
+
+// 导出初始化函数
+export const initializeLarkClients = async () => {
+    await larkClientManager.initialize();
+};
+
+// 导出重新加载函数
+export const reloadLarkClients = async () => {
+    await larkClientManager.reload();
+};
 
 interface LarkResp<T> {
     code?: number;
@@ -35,6 +118,7 @@ async function handleResponse<T>(promise: Promise<LarkResp<T>>): Promise<T> {
 }
 
 export async function getUserInfo(unionId: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.contact.v3.user.get({
             path: { user_id: unionId },
@@ -44,6 +128,7 @@ export async function getUserInfo(unionId: string) {
 }
 
 export async function send(chat_id: string, content: any, msgType: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.message.create({
             params: { receive_id_type: 'chat_id' },
@@ -62,6 +147,7 @@ export async function reply(
     msgType: string,
     replyInThread?: boolean,
 ) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.message.reply({
             path: { message_id: messageId },
@@ -75,6 +161,7 @@ export async function reply(
 }
 
 export async function sendReq<T>(url: string, data: any, method: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.request<LarkResp<T>>({
             url,
@@ -85,6 +172,7 @@ export async function sendReq<T>(url: string, data: any, method: string) {
 }
 
 export async function getChatList(page_token?: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.chat.list({
             params: { page_size: 100, page_token, sort_type: 'ByCreateTimeAsc' },
@@ -93,6 +181,7 @@ export async function getChatList(page_token?: string) {
 }
 
 export async function getChatInfo(chat_id: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.chat.get({
             path: { chat_id },
@@ -106,6 +195,7 @@ export async function searchAllMembers(
     page_token?: string,
     member_id_type: 'user_id' | 'union_id' | 'open_id' = 'union_id',
 ) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.chatMembers.get({
             path: { chat_id },
@@ -115,6 +205,7 @@ export async function searchAllMembers(
 }
 
 export async function getMessageInfo(message_id: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.message.get({
             path: { message_id },
@@ -124,6 +215,7 @@ export async function getMessageInfo(message_id: string) {
 }
 
 export async function deleteMessage(message_id: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.message.delete({
             path: { message_id },
@@ -137,6 +229,7 @@ export async function getMessageList(
     endTime?: number,
     pageToken?: string,
 ) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.message.list({
             params: {
@@ -153,6 +246,7 @@ export async function getMessageList(
 }
 
 export async function downloadResource(messageId: string, fileKey: string, type: 'image' | 'file') {
+    const client = larkClientManager.getCurrentClient();
     return client.im.v1.messageResource.get({
         path: {
             message_id: messageId,
@@ -165,6 +259,7 @@ export async function downloadResource(messageId: string, fileKey: string, type:
 }
 
 export async function uploadFile(fileStream: Readable) {
+    const client = larkClientManager.getCurrentClient();
     return client.im.v1.image.create({
         data: {
             image: fileStream as ReadStream,
@@ -174,6 +269,7 @@ export async function uploadFile(fileStream: Readable) {
 }
 
 export async function addChatMember(chat_id: string, open_id: string) {
+    const client = larkClientManager.getCurrentClient();
     return handleResponse(
         client.im.chatMembers.create({
             path: { chat_id },
