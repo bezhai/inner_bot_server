@@ -13,8 +13,9 @@ import { handleReaction } from './reaction';
 import { handlerEnterChat } from './enter';
 import { BotConfig } from '../../../dal/entities/bot-config';
 import { multiBotManager } from '../../../utils/bot/multi-bot-manager';
+import { createWebSocketVoidDecorator } from '../../../utils/websocket-context';
 
-// Helper function to create void decorators for async handlers
+// Helper function to create void decorators for async handlers (HTTP mode)
 function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params: T) => void {
     return function (params: T): void {
         console.info('receive event_type: ' + (params as { event_type: string })['event_type']);
@@ -25,7 +26,7 @@ function createVoidDecorator<T>(asyncFn: (params: T) => Promise<void>): (params:
     };
 }
 
-// Create event dispatcher for a specific bot
+// Create event dispatcher for a specific bot (HTTP mode)
 function createEventDispatcher(botConfig: BotConfig) {
     return new Lark.EventDispatcher({
         verificationToken: botConfig.verification_token,
@@ -45,7 +46,27 @@ function createEventDispatcher(botConfig: BotConfig) {
     });
 }
 
-// Create card action handler for a specific bot
+// Create event dispatcher for WebSocket mode with context injection
+function createWebSocketEventDispatcher(botConfig: BotConfig) {
+    return new Lark.EventDispatcher({
+        verificationToken: botConfig.verification_token,
+        encryptKey: botConfig.encrypt_key,
+    }).register({
+        'im.message.receive_v1': createWebSocketVoidDecorator(botConfig, handleMessageReceive),
+        'im.message.recalled_v1': createWebSocketVoidDecorator(botConfig, handleMessageRecalled),
+        'im.chat.member.user.added_v1': createWebSocketVoidDecorator(botConfig, handleChatMemberAdd),
+        'im.chat.member.user.deleted_v1': createWebSocketVoidDecorator(botConfig, handleChatMemberRemove),
+        'im.chat.member.user.withdrawn_v1': createWebSocketVoidDecorator(botConfig, handleChatMemberRemove),
+        'im.chat.member.bot.added_v1': createWebSocketVoidDecorator(botConfig, handleChatRobotAdd),
+        'im.chat.member.bot.deleted_v1': createWebSocketVoidDecorator(botConfig, handleChatRobotRemove),
+        'im.message.reaction.created_v1': createWebSocketVoidDecorator(botConfig, handleReaction),
+        'im.message.reaction.deleted_v1': createWebSocketVoidDecorator(botConfig, handleReaction),
+        'im.chat.access_event.bot_p2p_chat_entered_v1': createWebSocketVoidDecorator(botConfig, handlerEnterChat),
+        'im.chat.updated_v1': createWebSocketVoidDecorator(botConfig, handleGroupChange),
+    });
+}
+
+// Create card action handler for a specific bot (HTTP mode)
 function createCardActionHandler(botConfig: BotConfig) {
     return new Lark.CardActionHandler(
         {
@@ -82,17 +103,17 @@ export function startMultiBotWebSocket() {
     const websocketBots = multiBotManager.getBotsByInitType('websocket');
 
     for (const botConfig of websocketBots) {
-        const eventDispatcher = createEventDispatcher(botConfig);
+        const eventDispatcher = createWebSocketEventDispatcher(botConfig);
         const wsClient = new Lark.WSClient({
             appId: botConfig.app_id,
             appSecret: botConfig.app_secret,
             loggerLevel: Lark.LoggerLevel.info,
         });
 
-        // Register card action handler for WebSocket mode
-        eventDispatcher.handles.set('card.action.trigger', createVoidDecorator(handleCardAction));
+        // Register card action handler for WebSocket mode with context injection
+        eventDispatcher.handles.set('card.action.trigger', createWebSocketVoidDecorator(botConfig, handleCardAction));
 
         wsClient.start({ eventDispatcher });
-        console.info(`Started WebSocket for bot: ${botConfig.bot_name} (${botConfig.app_id})`);
+        console.info(`Started WebSocket for bot: ${botConfig.bot_name} (${botConfig.app_id}) with context injection`);
     }
 }
