@@ -39,9 +39,7 @@ async function initializeServer() {
     const allBots = multiBotManager.getAllBotConfigs();
     console.info(`Loaded ${allBots.length} bot configurations:`);
     allBots.forEach((bot) => {
-        console.info(
-            `  - ${bot.bot_name} (${bot.app_id}) [${bot.init_type}]${bot.is_default ? ' [DEFAULT]' : ''}`,
-        );
+        console.info(`  - ${bot.bot_name} (${bot.app_id}) [${bot.init_type}]`);
     });
 }
 
@@ -64,13 +62,6 @@ async function startHttpServer() {
         router.post(`/webhook/${botRouter.botName}/event`, botRouter.eventRouter);
         router.post(`/webhook/${botRouter.botName}/card`, botRouter.cardActionRouter);
 
-        // 如果是默认机器人，也注册到原有路由以保持向后兼容
-        if (botRouter.isDefault) {
-            router.post('/webhook/event', botRouter.eventRouter);
-            router.post('/webhook/card', botRouter.cardActionRouter);
-            console.info(`Default bot ${botRouter.botName} registered to legacy routes`);
-        }
-
         console.info(`Bot ${botRouter.botName} routes registered: /webhook/${botRouter.botName}/*`);
     }
 
@@ -86,7 +77,6 @@ async function startHttpServer() {
                     name: bot.bot_name,
                     app_id: bot.app_id,
                     init_type: bot.init_type,
-                    is_default: bot.is_default,
                     is_active: bot.is_active,
                 })),
             };
@@ -134,13 +124,11 @@ process.on('SIGINT', async function () {
     try {
         await initializeServer();
 
-        if (process.env.USE_WEBSOCKET === 'true') {
-            // 启动多机器人WebSocket模式
-            startMultiBotWebSocket();
-        } else {
-            // 启动多机器人HTTP模式
-            await startHttpServer();
-        }
+        // 启动多机器人WebSocket模式
+        startMultiBotWebSocket();
+
+        // 启动多机器人HTTP模式
+        await startHttpServer();
     } catch (error) {
         console.error('Error during initialization:', error);
         process.exit(1);

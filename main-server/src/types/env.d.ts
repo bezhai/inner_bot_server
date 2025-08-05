@@ -26,12 +26,12 @@ declare namespace NodeJS {
         PROXY_HOST: string;
         MEME_HOST: string;
         MEME_PORT: string;
-        USE_WEBSOCKET: string; // true or false
         ENABLE_FILE_LOGGING: string; // true or false
         LOG_LEVEL: string; // info, warn, error, debug
         LOG_DIR: string; // /var/log/main-server
         SYNCHRONIZE_DB: string; // true or false
         MEMORY_BASE_URL: string;
         AI_PROVIDER_ADMIN_KEY: string;
+        IS_DEV: string; // true or false
     }
 }

@@ -4,7 +4,6 @@ import { botConfigRepository } from '../../dal/repositories/bot-config-repositor
 export class MultiBotManager {
     private static instance: MultiBotManager;
     private botConfigs: Map<string, BotConfig> = new Map();
-    private defaultBot: BotConfig | null = null;
     private initialized = false;
 
     private constructor() {}
@@ -20,14 +19,11 @@ export class MultiBotManager {
     async initialize(): Promise<void> {
         if (this.initialized) return;
 
-        const allBots = await botConfigRepository.getAllActiveBots();
+        const allBots = await botConfigRepository.getAllActiveBots(process.env.IS_DEV === 'true');
         this.botConfigs.clear();
         
         for (const bot of allBots) {
             this.botConfigs.set(bot.bot_name, bot);
-            if (bot.is_default) {
-                this.defaultBot = bot;
-            }
         }
 
         this.initialized = true;
@@ -37,11 +33,6 @@ export class MultiBotManager {
     // 根据机器人名称获取配置
     getBotConfig(botName: string): BotConfig | null {
         return this.botConfigs.get(botName) || null;
-    }
-
-    // 获取默认机器人配置
-    getDefaultBotConfig(): BotConfig | null {
-        return this.defaultBot;
     }
 
     // 根据app_id获取机器人配置
@@ -68,23 +59,6 @@ export class MultiBotManager {
     async reload(): Promise<void> {
         this.initialized = false;
         await this.initialize();
-    }
-
-    // 添加或更新机器人配置
-    async addOrUpdateBot(botConfig: BotConfig): Promise<void> {
-        this.botConfigs.set(botConfig.bot_name, botConfig);
-        if (botConfig.is_default) {
-            this.defaultBot = botConfig;
-        }
-    }
-
-    // 移除机器人配置
-    removeBot(botName: string): void {
-        const bot = this.botConfigs.get(botName);
-        if (bot && bot.is_default) {
-            this.defaultBot = null;
-        }
-        this.botConfigs.delete(botName);
     }
 }
 

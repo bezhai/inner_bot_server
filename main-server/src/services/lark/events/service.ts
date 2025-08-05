@@ -59,7 +59,7 @@ function createCardActionHandler(botConfig: BotConfig) {
 // Initialize HTTP mode for multiple bots
 export function initializeMultiBotHttpMode() {
     const httpBots = multiBotManager.getBotsByInitType('http');
-    const routers: Array<{ botName: string; eventRouter: any; cardActionRouter: any; isDefault: boolean }> = [];
+    const routers: Array<{ botName: string; eventRouter: any; cardActionRouter: any }> = [];
 
     for (const botConfig of httpBots) {
         const eventDispatcher = createEventDispatcher(botConfig);
@@ -69,7 +69,6 @@ export function initializeMultiBotHttpMode() {
             botName: botConfig.bot_name,
             eventRouter: Lark.adaptKoaRouter(eventDispatcher, { autoChallenge: true }),
             cardActionRouter: Lark.adaptKoaRouter(cardActionHandler, { autoChallenge: true }),
-            isDefault: botConfig.is_default,
         });
 
         console.info(`Initialized HTTP router for bot: ${botConfig.bot_name} (${botConfig.app_id})`);

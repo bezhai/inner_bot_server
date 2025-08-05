@@ -11,23 +11,12 @@ export const botContextMiddleware = async (ctx: Context, next: Next) => {
         botName = pathMatch[1];
         console.info(`Extracted bot_name from path: ${botName}`);
     }
-
-    // 2. 使用默认机器人
-    if (!botName) {
-        const defaultBot = multiBotManager.getDefaultBotConfig();
-        botName = defaultBot?.bot_name;
-        if (botName) {
-            console.info(`Using default bot: ${botName}`);
-        }
-    }
     
     // 4. 验证机器人配置是否存在
     if (botName) {
         const botConfig = multiBotManager.getBotConfig(botName);
         if (!botConfig) {
-            console.warn(`Bot configuration not found for: ${botName}, using default bot`);
-            const defaultBot = multiBotManager.getDefaultBotConfig();
-            botName = defaultBot?.bot_name;
+            console.warn(`Bot configuration not found for: ${botName}`);
         }
     }
     

@@ -10,10 +10,10 @@ export class BotConfigRepository {
     }
 
     // 获取所有启用的机器人配置
-    async getAllActiveBots(): Promise<BotConfig[]> {
+    async getAllActiveBots(isDev: boolean): Promise<BotConfig[]> {
         return this.repository.find({
-            where: { is_active: true },
-            order: { is_default: 'DESC', bot_name: 'ASC' }
+            where: { is_active: true, is_dev: isDev },
+            order: { bot_name: 'ASC' }
         });
     }
 
@@ -21,13 +21,6 @@ export class BotConfigRepository {
     async getBotByName(botName: string): Promise<BotConfig | null> {
         return this.repository.findOne({
             where: { bot_name: botName, is_active: true }
-        });
-    }
-
-    // 获取默认机器人配置
-    async getDefaultBot(): Promise<BotConfig | null> {
-        return this.repository.findOne({
-            where: { is_default: true, is_active: true }
         });
     }
 
@@ -42,7 +35,7 @@ export class BotConfigRepository {
     async getBotsByInitType(initType: 'http' | 'websocket'): Promise<BotConfig[]> {
         return this.repository.find({
             where: { init_type: initType, is_active: true },
-            order: { is_default: 'DESC', bot_name: 'ASC' }
+            order: { bot_name: 'ASC' }
         });
     }
 

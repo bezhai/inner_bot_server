@@ -26,11 +26,11 @@ export class BotConfig {
     @Column({ type: 'boolean', default: true })
     is_active!: boolean; // 是否启用
 
-    @Column({ type: 'boolean', default: false })
-    is_default!: boolean; // 是否为默认机器人（用于兼容原有路由）
-
     @Column({ type: 'text', nullable: true })
     description?: string; // 机器人描述
+
+    @Column({ type: 'boolean', default: false })
+    is_dev!: boolean; // 是否为开发环境机器人
 
     @CreateDateColumn({ name: 'created_at' })
     createdAt!: Date;
