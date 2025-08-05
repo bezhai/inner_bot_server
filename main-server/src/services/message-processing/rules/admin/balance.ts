@@ -32,7 +32,6 @@ export async function sendBalance(message: Message) {
                     ),
             );
 
-
         await replyCard(message.messageId, balanceCard);
     } catch (error) {
         console.error('send balance error:', {

@@ -1,6 +1,6 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import http from 'utils/http';
+import http from '../../services/http';
 
 /**
  * 检查一个词是否有意义

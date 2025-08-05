@@ -36,7 +36,12 @@
 
 ```
 main-server/src/
-├── dal/                    # 数据访问层
+├── startup/               # 启动模块
+│   ├── application.ts     # 应用程序管理器
+│   ├── database.ts        # 数据库初始化管理
+│   ├── server.ts          # HTTP 服务器管理
+│   └── README.md          # 启动模块文档
+├── dal/                   # 数据访问层
 │   ├── entities/          # 数据库实体定义
 │   │   ├── lark-base-chat-info.ts      # 基础聊天信息
 │   │   ├── lark-group-chat-info.ts     # 群聊信息
@@ -52,31 +57,26 @@ main-server/src/
 │   │   ├── repositories.ts  # 仓库汇总
 │   │   └── user-group-binding-repository.ts
 │   └── redis.ts           # Redis客户端
-├── events/                # 事件系统
-│   ├── event-system.ts    # 事件系统核心
-│   ├── index.ts           # 事件系统初始化
-│   └── subscription.ts    # 事件订阅管理
-├── models/                # 数据模型
-│   ├── message.ts         # 消息模型
-│   ├── message-builder.ts # 消息构建器
-│   ├── message-content.ts # 消息内容
-│   └── message-metadata.ts # 消息元数据
 ├── services/              # 核心服务层
-│   ├── ai/                # AI服务集成
-│   │   ├── chat.ts        # AI聊天集成
-│   │   ├── reply.ts       # AI回复处理
-│   │   └── chat-state-machine.ts # 聊天状态机
 │   ├── lark/              # 飞书平台集成
+│   │   ├── router.ts      # HTTP 路由管理
+│   │   ├── websocket.ts   # WebSocket 连接管理
+│   │   ├── startup-strategy.ts # 启动策略管理
 │   │   ├── basic/         # 基础飞书操作
 │   │   │   ├── card-manager.ts  # 卡片管理
 │   │   │   ├── group.ts         # 群组管理
 │   │   │   └── message.ts       # 消息发送
-│   │   └── events/        # 飞书事件处理
-│   │       ├── receive.ts       # 消息接收
-│   │       ├── group.ts         # 群组事件
-│   │       ├── card.ts          # 卡片事件
-│   │       ├── reaction.ts      # 表情回应
-│   │       └── service.ts       # 事件服务入口
+│   │   ├── events/        # 飞书事件处理
+│   │   │   ├── service.ts       # 事件服务入口（兼容层）
+│   │   │   ├── receive.ts       # 消息接收
+│   │   │   ├── group.ts         # 群组事件
+│   │   │   ├── card.ts          # 卡片事件
+│   │   │   └── reaction.ts      # 表情回应
+│   │   └── README.md      # Lark 服务模块文档
+│   ├── ai/                # AI服务集成
+│   │   ├── chat.ts        # AI聊天集成
+│   │   ├── reply.ts       # AI回复处理
+│   │   └── chat-state-machine.ts # 聊天状态机
 │   ├── message-processing/ # 消息处理
 │   │   ├── rule-engine.ts  # 规则引擎核心
 │   │   ├── rules/          # 消息处理规则
@@ -86,51 +86,45 @@ main-server/src/
 │   │   └── README.md       # 消息处理文档
 │   ├── media/             # 媒体处理
 │   │   ├── photo/         # 图片处理
-│   │   │   ├── photo-card.ts   # 图片卡片
-│   │   │   └── send-photo.ts   # 图片发送
 │   │   └── meme/          # 表情包生成
-│   │       └── meme.ts    # 表情包处理
 │   ├── message-store/     # 消息存储
-│   │   ├── service.ts     # 存储服务
-│   │   ├── basic.ts       # 基础存储
-│   │   └── user.ts        # 用户消息
 │   ├── integrations/      # 外部服务集成
-│   │   ├── lark-client.ts # 飞书客户端
-│   │   ├── memory.ts      # 记忆服务
-│   │   └── provider-admin.ts # 服务商管理
 │   └── initialize/        # 初始化服务
-│       ├── main.ts        # 主初始化
-│       └── group.ts       # 群组初始化
-├── types/                 # TypeScript类型定义
-│   ├── lark.ts           # 飞书相关类型
-│   ├── chat.ts           # 聊天相关类型
-│   ├── content-types.ts  # 内容类型
-│   ├── ai.ts             # AI相关类型
-│   └── env.d.ts          # 环境变量类型
 ├── utils/                 # 工具函数
+│   ├── decorator-factory.ts # 装饰器工厂
+│   ├── logger-factory.ts  # 日志工厂
+│   ├── logger.ts          # 日志模块
+│   ├── context.ts         # 上下文管理
+│   ├── websocket-context.ts # WebSocket 上下文
 │   ├── bot/              # 机器人工具
-│   │   └── bot-var.ts    # 机器人变量
 │   ├── text/             # 文本处理
-│   │   ├── text-utils.ts # 文本工具
-│   │   ├── jieba.ts      # 中文分词
-│   │   └── word-utils.ts # 词语处理
 │   ├── cache/            # 缓存工具
-│   │   └── cache-decorator.ts # 缓存装饰器
 │   ├── rate-limiting/    # 限流工具
-│   │   └── rate-limiter.ts # 限流器
 │   ├── state-machine/    # 状态机工具
-│   │   └── state-machine.ts # 状态机实现
 │   └── sse/              # SSE工具
-│       └── client.ts     # SSE客户端
+├── models/                # 数据模型
+├── types/                 # TypeScript类型定义
 ├── middleware/           # 中间件
-│   └── trace.ts          # 追踪中间件
+├── handlers/             # 请求处理器
 ├── index.ts              # 应用入口
 └── ormconfig.ts          # 数据库配置
 ```
 
 ## 核心模块说明
 
+### 启动模块 (startup/)
+
+- `application.ts`: 应用程序主管理器，统一管理启动和关闭流程
+- `database.ts`: 数据库连接管理器，支持 PostgreSQL、MongoDB、Redis
+- `server.ts`: HTTP 服务器管理器，提供可配置的路由和中间件管理
+- `README.md`: 详细的启动模块文档
+
 ### 飞书集成 (services/lark/)
+
+- `router.ts`: HTTP 路由管理器，负责创建和管理 HTTP 模式下的事件路由
+- `websocket.ts`: WebSocket 客户端管理器，负责 WebSocket 模式下的事件处理
+- `startup-strategy.ts`: 启动策略管理器，使用策略模式管理不同初始化类型
+- `README.md`: 详细的 Lark 服务模块文档
 
 **基础操作 (basic/)**
 
@@ -144,7 +138,14 @@ main-server/src/
 - `group.ts`: 群组事件处理（加入、离开、权限变更）
 - `card.ts`: 卡片交互事件
 - `reaction.ts`: 表情回应事件
-- `service.ts`: 事件服务入口，支持WebSocket和HTTP模式
+- `service.ts`: 事件服务入口
+
+### 工具模块 (utils/)
+
+- `decorator-factory.ts`: 事件处理装饰器工厂，统一 HTTP 和 WebSocket 模式的装饰器逻辑
+- `logger-factory.ts`: 日志工厂，提供可注入的日志配置，支持单元测试
+- `context.ts`: 上下文管理，提供 AsyncLocalStorage 支持
+- `websocket-context.ts`: WebSocket 上下文装饰器
 
 ### 消息处理 (services/message-processing/)
 
@@ -332,6 +333,44 @@ curl http://localhost:3000/api/health
 
 ## 开发指南
 
+### 使用新的模块化 API
+
+**启动应用程序**
+
+```typescript
+import { ApplicationManager, createDefaultConfig } from './startup/application';
+
+const config = createDefaultConfig();
+const app = new ApplicationManager(config);
+
+await app.initialize();
+await app.start();
+```
+
+**创建 HTTP 路由**
+
+```typescript
+import { HttpRouterManager } from './services/lark/router';
+
+const routerConfigs = HttpRouterManager.createMultipleRouterConfigs(botConfigs);
+```
+
+**启动 WebSocket 连接**
+
+```typescript
+import { WebSocketManager } from './services/lark/websocket';
+
+WebSocketManager.startMultipleWebSockets(botConfigs);
+```
+
+**使用策略模式**
+
+```typescript
+import { StartupStrategyManager } from './services/lark/startup-strategy';
+
+const result = await StartupStrategyManager.executeStrategy('http', botConfigs);
+```
+
 ### 添加新规则
 
 ```typescript
@@ -350,6 +389,9 @@ curl http://localhost:3000/api/health
 export async function handleYourEvent(params: YourEventType) {
     // 处理你的事件逻辑
 }
+
+// 在 EventDecoratorFactory.getEventHandlerMap() 中添加映射
+'your.event.type': 'handleYourEvent'
 ```
 
 ### 集成外部服务
@@ -361,6 +403,38 @@ export class YourServiceClient {
         // 调用外部服务
     }
 }
+```
+
+### 自定义启动策略
+
+```typescript
+import { StartupStrategy, StartupStrategyManager } from './services/lark/startup-strategy';
+
+class CustomStartupStrategy implements StartupStrategy {
+    initialize(botConfigs: BotConfig[]): any {
+        // 自定义初始化逻辑
+    }
+}
+
+StartupStrategyManager.registerStrategy('custom', new CustomStartupStrategy());
+```
+
+### 自定义日志配置
+
+```typescript
+import { LoggerFactory, LoggerConfig } from './utils/logger-factory';
+
+const customConfig: LoggerConfig = {
+    level: 'debug',
+    enableFileLogging: true,
+    logDir: './logs',
+    logFileName: 'custom.log',
+    maxFileSize: 10485760, // 10MB
+    maxFiles: 10,
+    enableConsoleOverride: true,
+};
+
+const logger = LoggerFactory.createLogger(customConfig);
 ```
 
 ## 性能优化
@@ -401,7 +475,23 @@ NEED_INIT=true
 
 ### 故障排查
 
-1. 检查日志文件：`/var/log/main-server/`
-2. 验证数据库连接
-3. 检查飞书API调用状态
-4. 确认外部服务可用性
+1. **启动问题**: 检查 `startup/` 模块的初始化日志
+2. **路由问题**: 验证 `HttpRouterManager` 的路由配置
+3. **WebSocket 问题**: 检查 `WebSocketManager` 的连接状态
+4. **装饰器问题**: 确认 `EventDecoratorFactory` 的配置正确
+
+#### 调试工具
+
+```typescript
+// 获取应用实例进行调试
+const app = new ApplicationManager(config);
+const httpServer = app.getHttpServer();
+const koaApp = httpServer?.getApp();
+
+// 获取日志配置
+const loggerConfig = LoggerFactory.getConfig();
+
+// 查看可用的启动策略
+const strategies = StartupStrategyManager.getAvailableStrategies();
+```
+

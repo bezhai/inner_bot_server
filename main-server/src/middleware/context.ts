@@ -42,5 +42,5 @@ export const context = {
             traceId: traceId || uuidv4(),
             botName,
         };
-    }
+    },
 };

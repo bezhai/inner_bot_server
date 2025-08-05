@@ -21,7 +21,7 @@ export class MultiBotManager {
 
         const allBots = await botConfigRepository.getAllActiveBots(process.env.IS_DEV === 'true');
         this.botConfigs.clear();
-        
+
         for (const bot of allBots) {
             this.botConfigs.set(bot.bot_name, bot);
         }
@@ -52,7 +52,7 @@ export class MultiBotManager {
 
     // 获取指定初始化类型的机器人
     getBotsByInitType(initType: 'http' | 'websocket'): BotConfig[] {
-        return Array.from(this.botConfigs.values()).filter(bot => bot.init_type === initType);
+        return Array.from(this.botConfigs.values()).filter((bot) => bot.init_type === initType);
     }
 
     // 重新加载配置

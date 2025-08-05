@@ -3,7 +3,7 @@ import { LarkMessageMetaInfo, LarkUserMessageMetaInfo } from 'types/mongo';
 import { LarkHistoryMessage } from 'types/lark';
 import { MessageMetadata } from './message-metadata';
 import { MessageContent, ContentType, ContentItem } from './message-content';
-import { MentionUtils } from 'utils/mention-utils';
+import { MentionUtils } from '../services/lark/utils/mention-utils';
 import {
     BaseChatInfoRepository,
     GroupChatInfoRepository,

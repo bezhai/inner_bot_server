@@ -1,6 +1,6 @@
-import http from "utils/http";
-import { ChatMessage } from "types/chat";
-import { AxiosError } from "axios";
+import http from '../../services/http';
+import { ChatMessage } from 'types/chat';
+import { AxiosError } from 'axios';
 
 const BASE_URL = `${process.env.MEMORY_BASE_URL}/api/v1/memory`;
 
@@ -13,9 +13,6 @@ export async function storeMessage(message: ChatMessage): Promise<void> {
         });
     } catch (error: unknown) {
         const axiosError = error as AxiosError;
-        console.error(
-            'Failed to store message:',
-            axiosError.response?.data || axiosError.message,
-        );
+        console.error('Failed to store message:', axiosError.response?.data || axiosError.message);
     }
 }

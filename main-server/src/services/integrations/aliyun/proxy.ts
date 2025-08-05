@@ -13,7 +13,7 @@ import {
     LarkFileTransferRequest,
     LarkFileTransferResponse,
 } from 'types/aliyun';
-import http from 'utils/http';
+import http from '../../../services/http';
 
 // 生成盐
 const generateSalt = (length: number): string => {

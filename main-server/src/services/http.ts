@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { context } from './context';
+import { context } from '../middleware/context';
 
 const http = axios.create();
 

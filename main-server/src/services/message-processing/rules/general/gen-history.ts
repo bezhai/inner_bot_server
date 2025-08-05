@@ -59,7 +59,6 @@ export async function genHistoryCard(message: Message) {
     // 这里取T-6到T-0的消息
     const messagesGroupByDate = messageGroupByDate(messageTimeFilter(allMessages, 6, 0));
 
-
     // 生成最近7天的日期列表
     const dateKeys = Array.from({ length: 7 }, (_, i) =>
         dayjs()
@@ -158,7 +157,6 @@ export async function genHistoryCard(message: Message) {
     personTable.addColumn(TableColumn.markdown('atUser').setDisplayName('龙王').setWidth('35%'));
     personTable.addColumn(TableColumn.markdown('score').setDisplayName('活跃分'));
     personTable.addColumn(TableColumn.text('rankChange').setDisplayName('排名变化'));
-
 
     sortedRankMap.forEach((item) => {
         let rankChange = '';
@@ -346,4 +344,3 @@ function messageByPersonCount(messages: Message[]) {
 
     return messageByPersonMap;
 }
-

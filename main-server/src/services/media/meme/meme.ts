@@ -7,7 +7,7 @@ import FormData from 'form-data';
 import { replyImage, replyMessage } from '@lark-basic/message';
 import { GroupChatInfoRepository } from 'dal/repositories/repositories';
 import { cache } from 'utils/cache/cache-decorator';
-import http from 'utils/http';
+import http from '../../../services/http';
 
 // 缓存过期时间（10分钟）
 const MEME_CACHE_EXPIRY = 10 * 60;

@@ -1,4 +1,4 @@
-import { context } from 'utils/context';
+import { context } from '../../middleware/context';
 import { multiBotManager } from './multi-bot-manager';
 
 function getBotConfigInternal() {

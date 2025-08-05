@@ -50,12 +50,11 @@ export class ActionContentAdapter {
         return async (action: StreamAction) => {
             const transformedAction = {
                 ...action,
-                content: this.transformContent(action.content)
+                content: this.transformContent(action.content),
             };
             return originalHandler(transformedAction);
         };
     }
-
 }
 
 /**

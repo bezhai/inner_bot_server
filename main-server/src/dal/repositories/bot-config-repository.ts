@@ -13,21 +13,21 @@ export class BotConfigRepository {
     async getAllActiveBots(isDev: boolean): Promise<BotConfig[]> {
         return this.repository.find({
             where: { is_active: true, is_dev: isDev },
-            order: { bot_name: 'ASC' }
+            order: { bot_name: 'ASC' },
         });
     }
 
     // 根据机器人名称获取配置
     async getBotByName(botName: string): Promise<BotConfig | null> {
         return this.repository.findOne({
-            where: { bot_name: botName, is_active: true }
+            where: { bot_name: botName, is_active: true },
         });
     }
 
     // 根据app_id获取机器人配置
     async getBotByAppId(appId: string): Promise<BotConfig | null> {
         return this.repository.findOne({
-            where: { app_id: appId, is_active: true }
+            where: { app_id: appId, is_active: true },
         });
     }
 
@@ -35,7 +35,7 @@ export class BotConfigRepository {
     async getBotsByInitType(initType: 'http' | 'websocket'): Promise<BotConfig[]> {
         return this.repository.find({
             where: { init_type: initType, is_active: true },
-            order: { bot_name: 'ASC' }
+            order: { bot_name: 'ASC' },
         });
     }
 

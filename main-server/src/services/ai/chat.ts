@@ -2,7 +2,7 @@ import { StreamAction } from 'types/ai';
 import { ChatMessage, ChatRequest, ChatResponse, Step } from 'types/chat';
 import { SSEClient } from 'utils/sse/client';
 import { ChatStateMachineManager } from './chat-state-machine';
-import { context } from 'utils/context';
+import { context } from '../../middleware/context';
 import { storeMessage } from 'services/integrations/memory';
 
 const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;

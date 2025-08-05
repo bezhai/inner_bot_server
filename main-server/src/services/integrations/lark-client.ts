@@ -1,6 +1,6 @@
 import * as lark from '@larksuiteoapi/node-sdk';
 import { multiBotManager } from '../../utils/bot/multi-bot-manager';
-import { context } from '../../utils/context';
+import { context } from '../../middleware/context';
 import { Readable } from 'node:stream';
 import { ReadStream } from 'node:fs';
 
