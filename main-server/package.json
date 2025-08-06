@@ -9,11 +9,7 @@
         "build": "tsc && tsc-alias",
         "format": "prettier --write \"src/**/*.ts\"",
         "lint": "eslint src --ext .ts",
-        "lint:fix": "eslint src --ext .ts --fix",
-        "prepare": "simple-git-hooks"
-    },
-    "simple-git-hooks": {
-        "pre-commit": "npx lint-staged"
+        "lint:fix": "eslint src --ext .ts --fix"
     },
     "lint-staged": {
         "src/**/*.ts": [
@@ -33,7 +29,6 @@
         "eslint": "^9.32.0",
         "lint-staged": "^15.4.3",
         "prettier": "^3.4.2",
-        "simple-git-hooks": "^2.11.1",
         "ts-node": "^10.0.0",
         "tsc-alias": "^1.8.16",
         "tsconfig-paths": "^4.2.0",
