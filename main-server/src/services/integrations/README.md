@@ -1,26 +1,15 @@
-# Integrations
+# Integrations (外部服务集成)
 
-This directory contains integrations with external services:
+本模块负责与所有第三方服务进行集成。
 
-## Directory Structure
+## 目前集成的服务
 
-```
-integrations/
-└── aliyun/        # Aliyun (阿里云) integration
-    └── proxy.ts   # Aliyun proxy implementation
-```
+-   **Aliyun (阿里云)**: 代理阿里云的 API 调用。
+-   **AI Service**: 与后端的 AI 服务进行通信。
+-   **Memory Service**: 与记忆服务进行通信。
 
-## Services
+## 如何添加新的集成
 
-### Aliyun Integration
-
-- Proxy service for Aliyun API interactions
-- Handles authentication and requests to Aliyun services
-
-## Adding New Integrations
-
-When adding new external service integrations:
-
-1. Create a new directory for the service
-2. Implement service-specific clients/adapters
-3. Document the integration in this README
+1.  在 `integrations` 目录下创建一个新的子目录, 以服务名称命名。
+2.  在子目录中实现服务的客户端或代理。
+3.  在 `services` 目录下的相应服务中调用该集成。

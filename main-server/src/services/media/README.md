@@ -1,20 +1,16 @@
-# Media Service
+# Media (媒体服务)
 
-This directory handles all media-related functionality:
+负责图片与表情包等媒体相关能力。
 
-- `photo/`: Photo handling and management
-    - Photo sending
-    - Photo card generation
-    - Photo utilities
-- `meme/`: Meme generation and handling
-    - Meme detection
-    - Meme generation
-    - Meme templates
-
-## Directory Structure
+## 目录结构
 
 ```
 media/
-├── photo/      # Photo-related functionality
-└── meme/       # Meme generation and handling
+├── photo/      # 图片处理
+└── meme/       # 表情包生成
 ```
+
+## 功能
+
+- 图片：搜索、发送与管理（含卡片构建）
+- 表情包：基于模板与文本的生成、检测与发送
