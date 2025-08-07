@@ -135,8 +135,8 @@ class ChatService:
 
             # 定义模型配置
             model_configs = [
-                {"id": "gpt-4.1", "name": "主模型"},
-                {"id": "kimi-k2", "name": "备用模型"},
+                {"id": "302.ai/gpt-4.1", "name": "主模型"},
+                {"id": "Moonshot/kimi-k2", "name": "备用模型"},
             ]
 
             accumulated_content = ChatStreamChunk(content="", reason_content="")

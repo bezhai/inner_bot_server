@@ -22,7 +22,7 @@ class AIChatService:
     @staticmethod
     async def stream_ai_reply(
         messages: list[dict],
-        model_id: str = "gpt-4o-mini",
+        model_id: str = "302.ai/gpt-4o-mini",
         temperature: float = 0.7,
         enable_tools: bool = False,
         max_tool_iterations: int = 10,

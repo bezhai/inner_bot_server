@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 from sqlalchemy.future import select
 
 from app.orm.base import AsyncSessionLocal
-from app.orm.models import AIModel, ModelProvider
+from app.orm.models import ModelProvider
 
 from .exceptions import ModelBuilderError, ModelConfigError, UnsupportedModelError
 
@@ -30,39 +30,45 @@ class ModelBuilder:
     @staticmethod
     async def _get_model_and_provider_info(model_id: str) -> dict[str, Any] | None:
         """
-        从数据库获取模型和供应商信息
+        从数据库获取供应商信息
+
+        解析model_id格式："{供应商名称}/模型原名"
+        如果找不到供应商名称，则使用默认的302.ai
 
         Args:
-            model_id: 模型ID
+            model_id: 格式为"供应商名称/模型原名"的字符串
 
         Returns:
             Dict: 包含模型和供应商信息的字典，如果未找到返回None
         """
         try:
-            async with AsyncSessionLocal() as session:
-                # 查询模型信息
-                result = await session.execute(
-                    select(AIModel).where(AIModel.model_id == model_id)
-                )
-                model = result.scalar_one_or_none()
-                if not model:
-                    return None
+            from app.orm.crud import parse_model_id
 
-                # 查询供应商信息
+            provider_name, actual_model_name = parse_model_id(model_id)
+
+            async with AsyncSessionLocal() as session:
+                # 直接查询供应商信息
                 provider_result = await session.execute(
-                    select(ModelProvider).where(
-                        ModelProvider.provider_id == model.provider_id
-                    )
+                    select(ModelProvider).where(ModelProvider.name == provider_name)
                 )
                 provider = provider_result.scalar_one_or_none()
+
+                # 如果找不到指定供应商，尝试使用默认的302.ai
+                if not provider:
+                    provider_result = await session.execute(
+                        select(ModelProvider).where(ModelProvider.name == "302.ai")
+                    )
+                    provider = provider_result.scalar_one_or_none()
+
                 if not provider:
                     return None
 
                 return {
-                    "model_name": model.model_name or model.name,
+                    "model_name": actual_model_name,
                     "api_key": provider.api_key,
                     "base_url": provider.base_url,
-                    "default_params": model.default_params,
+                    "default_params": {},  # 不再从ai_model获取默认参数
+                    "is_active": provider.is_active,
                 }
         except Exception as e:
             logger.error(f"数据库查询错误: {e}")
@@ -203,21 +209,23 @@ class ModelBuilder:
         """
         try:
             async with AsyncSessionLocal() as session:
+                # 查询所有可用的供应商
                 result = await session.execute(
-                    select(AIModel).where(AIModel.is_active == True)
+                    select(ModelProvider).where(ModelProvider.is_active == True)
                 )
-                models = result.scalars().all()
+                providers = result.scalars().all()
 
                 model_list = []
-                for model in models:
+                for provider in providers:
+                    # 为每个供应商生成一个模型配置
                     model_list.append(
                         {
-                            "model_id": model.model_id,
-                            "name": model.name,
-                            "description": model.description,
-                            "is_multimodal": model.is_multimodal,
-                            "is_thinking": model.is_thinking,
-                            "is_default": model.is_default,
+                            "model_id": f"{provider.name}/default",
+                            "name": f"{provider.name} 默认模型",
+                            "description": f"{provider.name} 提供的AI模型",
+                            "is_multimodal": False,
+                            "is_thinking": False,
+                            "is_default": provider.name == "302.ai",
                         }
                     )
 
