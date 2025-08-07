@@ -168,7 +168,8 @@ class ModelBuilder:
             chat_params.update(filtered_kwargs)
 
             logger.info(
-                f"为模型 {model_id} 构建ChatOpenAI实例，参数: {list(chat_params.keys())}"
+                f"为模型 {model_id} 构建ChatOpenAI实例，"
+                f"参数: {list(chat_params.keys())}"
             )
 
             # 创建ChatOpenAI实例
@@ -180,7 +181,7 @@ class ModelBuilder:
 
             # 其他未知异常
             logger.error(f"构建模型 {model_id} 时发生未知错误: {e}")
-            raise ModelBuilderError(f"构建模型失败: {str(e)}")
+            raise ModelBuilderError(f"构建模型失败: {str(e)}") from e
 
     @staticmethod
     async def validate_model_id(model_id: str) -> bool:
@@ -211,7 +212,7 @@ class ModelBuilder:
             async with AsyncSessionLocal() as session:
                 # 查询所有可用的供应商
                 result = await session.execute(
-                    select(ModelProvider).where(ModelProvider.is_active == True)
+                    select(ModelProvider).where(ModelProvider.is_active)
                 )
                 providers = result.scalars().all()
 
@@ -232,4 +233,4 @@ class ModelBuilder:
                 return model_list
         except Exception as e:
             logger.error(f"列出可用模型时发生错误: {e}")
-            raise ModelBuilderError(f"列出可用模型失败: {str(e)}")
+            raise ModelBuilderError(f"列出可用模型失败: {str(e)}") from e
