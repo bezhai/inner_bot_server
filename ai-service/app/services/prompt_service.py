@@ -29,10 +29,10 @@ class PromptService:
                 result = await session.execute(
                     select(Prompt).where(Prompt.id == prompt_id)
                 )
-                prompt = result.scalar_one_or_none()
+                prompt: Prompt | None = result.scalar_one_or_none()
 
-                if prompt:
-                    return prompt.content
+                if prompt is not None and getattr(prompt, "content", None) is not None:
+                    return str(prompt.content)
                 else:
                     logger.warning(f"未找到提示词: {prompt_id}")
                     return None

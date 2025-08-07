@@ -12,7 +12,7 @@ class ModelBuilderError(Exception):
 class UnsupportedModelError(ModelBuilderError):
     """不支持的模型类型异常"""
 
-    def __init__(self, model_id: str, message: str = None):
+    def __init__(self, model_id: str, message: "str | None" = None):
         self.model_id = model_id
         if message is None:
             message = f"不支持的模型: {model_id}"
@@ -22,7 +22,7 @@ class UnsupportedModelError(ModelBuilderError):
 class ModelConfigError(ModelBuilderError):
     """模型配置错误异常"""
 
-    def __init__(self, model_id: str, message: str = None):
+    def __init__(self, model_id: str, message: "str | None" = None):
         self.model_id = model_id
         if message is None:
             message = f"模型配置错误: {model_id}"

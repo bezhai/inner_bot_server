@@ -60,9 +60,9 @@ class AIChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 提取文本内容并直接输出
-                if chunk.delta and chunk.delta.content:
+                if chunk.delta and chunk.delta.content:  # pyright: ignore[reportAttributeAccessIssue]
                     yield ChatStreamChunk(
-                        content=chunk.delta.content,
+                        content=chunk.delta.content,  # pyright: ignore[reportAttributeAccessIssue]
                     )
 
                 # finish_reason包含四种结果, 除tool_calls外, 其他结果都表示完成

@@ -27,6 +27,7 @@ from app.agents.bangumi.models import (
     SimplePersonCharacter,
     SimplePersonSubject,
     SimpleSubject,
+    SimpleSubjectCharacter,
     SimpleSubjectPerson,
     SimpleSubjectRelation,
     Subject,
@@ -67,9 +68,9 @@ def auto_serialize_tool(func: Callable) -> Callable:
 @redis_cache(expire_seconds=86400)  # 24小时缓存
 async def send_bangumi_request(
     path: str,
-    params: dict[str, Any] = None,
+    params: dict[str, Any] | None = None,
     method: str = "GET",
-    data: dict = None,
+    data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """发送 Bangumi API 请求"""
     headers = {
@@ -83,11 +84,15 @@ async def send_bangumi_request(
     url = f"{base_url}{path}"
 
     # 准备请求数据
-    json_data = json.dumps(data) if data else None
+    json_data = json.dumps(data) if data is not None else None
 
     async with httpx.AsyncClient(timeout=15) as client:
         response = await client.request(
-            method=method, url=url, params=params, content=json_data, headers=headers
+            method=method,
+            url=url,
+            params=params or {},
+            content=json_data,
+            headers=headers,
         )
         response.raise_for_status()
         return response.json()
@@ -104,7 +109,7 @@ def append_element(array, element):
 
 
 class SearchSubjectsArgs(BaseModel):
-    types: list[str] = None
+    types: list[str] | None = None
     keyword: str | None = None
     sort: str = "match"
     limit: int = 10
@@ -117,7 +122,7 @@ class SearchSubjectsArgs(BaseModel):
 
 
 async def search_subjects(
-    types: list[str] = None,
+    types: list[str] | None = None,
     keyword: str | None = None,
     sort: str = "match",
     limit: int = 10,
@@ -127,7 +132,7 @@ async def search_subjects(
     end_date: str | None = None,
     min_rating: int | None = None,
     max_rating: int | None = None,
-) -> dict:
+) -> SubjectForAIResult:
     """
     搜索条目, 包含书籍, 动画, 音乐, 游戏, 三次元
 
@@ -148,7 +153,7 @@ async def search_subjects(
         条目搜索结果，包含总数、分页信息和条目列表
     """
     # 构建筛选条件
-    search_filter = {}
+    search_filter: dict[str, Any] = {}
     if types is not None:
         search_filter["type"] = list(
             filter(
@@ -185,12 +190,12 @@ async def search_subjects(
         )
 
     # 构建请求体
-    request_body = {"keyword": keyword, "sort": sort}
+    request_body: dict[str, Any] = {"keyword": keyword, "sort": sort}
     if search_filter:
         request_body["filter"] = search_filter
 
     # 构建查询参数
-    params = {}
+    params: dict[str, Any] = {}
     if limit != 30:
         params["limit"] = limit
     if offset != 0:
@@ -271,23 +276,28 @@ async def search_persons(
         人物搜索结果，包含总数、分页信息和人物列表
     """
     # 构建请求体
-    request_body = {"keyword": keyword}
+    request_body: dict[str, Any] = {"keyword": keyword}
     if careers is not None:
-        request_body["career"] = [
-            {
-                "制作人员": Career.PRODUCER,
-                "漫画家": Career.MANGAKA,
-                "音乐人": Career.ARTIST,
-                "声优": Career.SEIYU,
-                "作家": Career.WRITER,
-                "绘师": Career.ILLUSTRATOR,
-                "演员": Career.ACTOR,
-            }.get(career)
-            for career in careers
-        ]
+        request_body["career"] = list(
+            filter(
+                lambda x: x is not None,
+                [
+                    {
+                        "制作人员": Career.PRODUCER,
+                        "漫画家": Career.MANGAKA,
+                        "音乐人": Career.ARTIST,
+                        "声优": Career.SEIYU,
+                        "作家": Career.WRITER,
+                        "绘师": Career.ILLUSTRATOR,
+                        "演员": Career.ACTOR,
+                    }.get(career)
+                    for career in careers
+                ],
+            )
+        )
 
     # 构建查询参数
-    params = {}
+    params: dict[str, Any] = {}
     if limit != 10:
         params["limit"] = limit
     if offset != 0:
@@ -309,7 +319,7 @@ async def search_persons(
 @auto_serialize_tool
 async def get_subject_characters(
     subject_id: int,
-) -> list[SimpleCharacter]:
+) -> list[SimpleSubjectCharacter]:
     """
     获取条目关联的角色
 
@@ -322,7 +332,7 @@ async def get_subject_characters(
     response = await send_bangumi_request(
         path=f"/v0/subjects/{subject_id}/characters", method="GET"
     )
-    mid_result = [SubjectCharacter(**item).to_simple() for item in response]
+    mid_result = [SubjectCharacter(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_character_info(item.id)
     return mid_result
@@ -339,7 +349,7 @@ async def get_subject_relations(
     response = await send_bangumi_request(
         path=f"/v0/subjects/{subject_id}/relations", method="GET"
     )
-    mid_result = [SubjectRelation(**item).to_simple() for item in response]
+    mid_result = [SubjectRelation(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_subject_info(item.id)
     return mid_result
@@ -362,7 +372,7 @@ async def get_subject_persons(
     response = await send_bangumi_request(
         path=f"/v0/subjects/{subject_id}/persons", method="GET"
     )
-    mid_result = [SubjectPerson(**item).to_simple() for item in response]
+    mid_result = [SubjectPerson(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_person_info(item.id)
     return mid_result
@@ -385,7 +395,7 @@ async def get_character_subjects(
     response = await send_bangumi_request(
         path=f"/v0/characters/{character_id}/subjects", method="GET"
     )
-    mid_result = [CharacterSubject(**item).to_simple() for item in response]
+    mid_result = [CharacterSubject(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_subject_info(item.id)
     return mid_result
@@ -408,7 +418,7 @@ async def get_character_persons(
     response = await send_bangumi_request(
         path=f"/v0/characters/{character_id}/persons", method="GET"
     )
-    mid_result = [CharacterPerson(**item).to_simple() for item in response]
+    mid_result = [CharacterPerson(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_person_info(item.id)
     return mid_result
@@ -431,7 +441,7 @@ async def get_person_characters(
     response = await send_bangumi_request(
         path=f"/v0/persons/{person_id}/characters", method="GET"
     )
-    mid_result = [PersonCharacter(**item).to_simple() for item in response]
+    mid_result = [PersonCharacter(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_character_info(item.id)
     return mid_result
@@ -454,7 +464,7 @@ async def get_person_subjects(
     response = await send_bangumi_request(
         path=f"/v0/persons/{person_id}/subjects", method="GET"
     )
-    mid_result = [PersonSubject(**item).to_simple() for item in response]
+    mid_result = [PersonSubject(**item).to_simple() for item in response]  # pyright: ignore[reportCallIssue]
     for item in mid_result:
         item.detail = await _get_subject_info(item.id)
     return mid_result

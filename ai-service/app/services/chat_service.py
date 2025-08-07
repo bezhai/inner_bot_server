@@ -51,7 +51,7 @@ class ChatService:
         messages: list[dict[str, Any]],
         model_id: str,
         yield_interval: float,
-        accumulated_content: ChatStreamChunk,
+        accumulated: ChatStreamChunk,
         last_yield_time: float,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
         """
@@ -74,37 +74,33 @@ class ChatService:
         ):
             # 累积内容
             if chunk.content:
-                accumulated_content.content += chunk.content
+                accumulated.content = f"{accumulated.content or ''}{chunk.content}"
             if chunk.reason_content:
-                accumulated_content.reason_content += chunk.reason_content
+                accumulated.reason_content = (
+                    f"{accumulated.reason_content or ''}{chunk.reason_content}"
+                )
             if chunk.tool_call_feedback:
-                accumulated_content.tool_call_feedback = chunk.tool_call_feedback
+                accumulated.tool_call_feedback = chunk.tool_call_feedback
 
             # 检查是否到了输出间隔时间
             current_time = asyncio.get_event_loop().time()
             if current_time - last_yield_time >= yield_interval:
-                if (
-                    accumulated_content.content.strip()
-                    or accumulated_content.reason_content.strip()
-                ):
+                if accumulated.has_content():
                     yield_chunk = ChatStreamChunk(
-                        content=accumulated_content.content,
-                        reason_content=accumulated_content.reason_content,
-                        tool_call_feedback=accumulated_content.tool_call_feedback,
+                        content=accumulated.content,
+                        reason_content=accumulated.reason_content,
+                        tool_call_feedback=accumulated.tool_call_feedback,
                     )
                     logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")
                     yield yield_chunk
                     last_yield_time = current_time
 
         # 输出最后剩余的内容
-        if (
-            accumulated_content.content.strip()
-            or accumulated_content.reason_content.strip()
-        ):
+        if accumulated.has_content():
             final_chunk = ChatStreamChunk(
-                content=accumulated_content.content,
-                reason_content=accumulated_content.reason_content,
-                tool_call_feedback=accumulated_content.tool_call_feedback,
+                content=accumulated.content,
+                reason_content=accumulated.reason_content,
+                tool_call_feedback=accumulated.tool_call_feedback,
             )
             yield final_chunk
 
@@ -148,7 +144,7 @@ class ChatService:
                         messages=messages,
                         model_id=model_config["id"],
                         yield_interval=yield_interval,
-                        accumulated_content=accumulated_content,
+                        accumulated=accumulated_content,
                         last_yield_time=last_yield_time,
                     ):
                         yield chunk

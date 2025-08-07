@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from qdrant_client.http.models import Distance, Filter, VectorParams
+from qdrant_client.http.models import Distance, ExtendedPointId, Filter, VectorParams
 
 from app.config.config import settings
 
@@ -36,15 +36,15 @@ class QdrantService:
 
     async def upsert_vectors(
         self,
-        collection_name: str,
+        collection: str,
         vectors: list[list[float]],
-        ids: list[str],
+        ids: list[ExtendedPointId],
         payloads: list[dict[str, Any]] | None = None,
     ) -> bool:
         """插入或更新向量"""
         try:
             self.client.upsert(
-                collection_name=collection_name,
+                collection_name=collection,
                 points=models.Batch(
                     ids=ids, vectors=vectors, payloads=payloads or [{}] * len(vectors)
                 ),
@@ -117,8 +117,12 @@ class QdrantService:
                     logger.info(f"原始相似度分数低于阈值，跳过: {original_score}")
                     continue
 
-                # 获取消息时间戳，确保是浮点数类型
-                msg_timestamp = hit.payload.get("timestamp", current_time)
+                # 获取消息时间戳
+                payload_obj = getattr(hit, "payload", None)
+                if payload_obj is not None and hasattr(payload_obj, "get"):
+                    msg_timestamp = payload_obj.get("timestamp", current_time)  # type: ignore[no-any-return]
+                else:
+                    msg_timestamp = current_time
                 if isinstance(msg_timestamp, str):
                     try:
                         msg_timestamp = float(msg_timestamp)
@@ -139,7 +143,8 @@ class QdrantService:
                 sort_score = original_score + time_weight * time_boost_factor
 
                 logger.info(
-                    f"消息时间戳: {msg_timestamp}, 时间差(小时): {time_diff_hours}, 时间权重: {time_weight}, 排序分数: {sort_score}, 原始分数: {original_score}"
+                    f"消息时间戳: {msg_timestamp}, 时间差(小时): {time_diff_hours}, "
+                    f"时间权重: {time_weight}, 排序分数: {sort_score}, 原始分数: {original_score}"
                 )
 
                 weighted_results.append(
@@ -179,7 +184,7 @@ qdrant_service = QdrantService()
 
 
 async def init_qdrant_collections():
-    """初始化所有必要的QDrant集合"""
+    """初始化所有必要的 QDrant 集合"""
     try:
         # 创建消息集合，向量维度为1536（OpenAI text-embedding-3-small模型的输出维度）
         result = await qdrant_service.create_collection(

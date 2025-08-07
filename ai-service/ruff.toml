@@ -11,6 +11,9 @@ select = [
     "UP",   # pyupgrade
 ]
 
+# Global ignore rules (merged from pyproject.toml)
+ignore = ["E501"]
+
 # Allow autofix for all enabled rules when running `ruff fix`.
 fixable = ["ALL"]
 

@@ -475,6 +475,8 @@ class SimpleCharacterPerson(BaseModel):
     subject_id: int
     subject_type: str
     subject_name: str
+    subject_name_cn: str | None = None
+    staff: str | None = None
     detail: SimplePerson | None = None
 
 
@@ -513,6 +515,8 @@ class SimplePersonCharacter(BaseModel):
     subject_id: int
     subject_type: str
     subject_name: str
+    subject_name_cn: str | None = None
+    staff: str | None = None
     detail: SimpleCharacter | None = None
 
 

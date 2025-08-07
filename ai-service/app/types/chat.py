@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Union
 
 from pydantic import BaseModel
 
@@ -83,6 +82,16 @@ class ChatStreamChunk(BaseModel):
         None  # 工具调用反馈 / Tool call feedback
     )
 
+    def has_content(self) -> bool:
+        """
+        检查是否有content内容
+        Check if there is content
+        """
+        return bool(
+            (self.content and self.content.strip())
+            or (self.reason_content and self.reason_content.strip())
+        )
+
 
 class ChatProcessResponse(BaseModel):
     """
@@ -107,7 +116,7 @@ class ChatNormalResponse(BaseModel):
     step: Step  # 步骤 / Step
 
 
-ChatResponse = Union[ChatProcessResponse, ChatNormalResponse]
+ChatResponse = ChatProcessResponse | ChatNormalResponse
 
 
 class StoreRobotMessageRequest(BaseModel):

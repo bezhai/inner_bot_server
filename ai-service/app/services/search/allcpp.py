@@ -35,8 +35,8 @@ class CppSearchMidSingleResult(BaseModel):
     name: str  # 活动名称
     type: str  # 活动类型
     tag: str  # 活动标签
-    enterTime: int | str | None = None  # 活动开始时间（时间戳或字符串）
-    endTime: int | str | None = None  # 活动结束时间（时间戳或字符串）
+    enterTime: int | None = None  # 活动开始时间（毫秒）
+    endTime: int | None = None  # 活动结束时间（毫秒）
     wannaGoCount: int  # 想参加人数
     provName: str | None = ""  # 省份
     cityName: str | None = ""  # 城市
@@ -72,7 +72,7 @@ async def search_donjin_event(
     activity_status: str | None = None,
     activity_type: str | None = None,
     ticket_status: int | None = None,
-) -> list[CppSearchResult]:
+) -> CppSearchResultList:
     """
     搜索同人展活动, 返回结构化的活动列表
 
@@ -91,7 +91,7 @@ async def search_donjin_event(
     elif activity_status == "ended":
         recent_days = -2
 
-    query = {
+    payload = {
         "keyword": query,
         "is_online": is_online,
         "day": recent_days,
@@ -107,7 +107,9 @@ async def search_donjin_event(
             "官方活动": 7,
             "综合展": 8,
             "同好包场": 10,
-        }.get(activity_type, None),
+        }.get(activity_type, None)
+        if activity_type
+        else None,
     }
 
     # 构建浏览器请求头来绕过反爬检测
@@ -126,6 +128,7 @@ async def search_donjin_event(
     }
 
     # 添加重试机制
+    data = {}
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -134,7 +137,7 @@ async def search_donjin_event(
                 if attempt > 0:
                     await asyncio.sleep(random.uniform(1, 3))
 
-                response = await client.get(url, params=query)
+                response = await client.get(url, params=payload)
                 response.raise_for_status()
                 data = response.json()
                 break  # 成功则跳出重试循环
@@ -146,6 +149,16 @@ async def search_donjin_event(
 
     mid_result = CppSearchMidResult(**data["result"])
 
+    def ms_timestamp_to_ymd(ms_timestamp):
+        """
+        将毫秒级时间戳转换为'YYYY-MM-DD'格式（本地时间）。
+        :param ms_timestamp: int 或 float，毫秒级时间戳
+        :return: str，格式为'YYYY-MM-DD'的日期字符串
+        """
+        sec_timestamp = ms_timestamp / 1000
+        dt = datetime.fromtimestamp(sec_timestamp)
+        return dt.strftime("%Y-%m-%d")
+
     return CppSearchResultList(
         list=[
             CppSearchResult(
@@ -153,8 +166,10 @@ async def search_donjin_event(
                 name=item.name,
                 type=item.type,
                 tag=item.tag,
-                enter_time=item.enterTime or "",
-                end_time=item.endTime or "",
+                enter_time=ms_timestamp_to_ymd(item.enterTime)
+                if item.enterTime
+                else "",
+                end_time=ms_timestamp_to_ymd(item.endTime) if item.endTime else "",
                 wanna_go_count=item.wannaGoCount,
                 prov_name=item.provName or "",
                 city_name=item.cityName or "",

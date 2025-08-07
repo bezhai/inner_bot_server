@@ -37,8 +37,9 @@ def _python_type_to_json_schema(py_type: Any) -> dict[str, Any]:
 
     # 处理List类型
     if origin is list or py_type is list:
-        if hasattr(py_type, "__args__") and py_type.__args__:
-            item_type = _python_type_to_json_schema(py_type.__args__[0])
+        args = get_args(py_type)
+        if args:  # 如果有类型参数
+            item_type = _python_type_to_json_schema(args[0])
             return {"type": "array", "items": item_type}
         return {"type": "array"}
 
@@ -206,7 +207,7 @@ def validate_tool_function(func: Callable) -> bool:
             return False
 
         # 检查签名是否有效
-        signature = inspect.signature(func)
+        inspect.signature(func)
 
         # 生成schema测试
         generate_tool_schema(func)

@@ -47,7 +47,7 @@ async def search_web(query: str, gl: str = "cn") -> WebSearchResult:
     """
     url = "https://api.302.ai/searchapi/search"
 
-    query = {
+    params = {
         "q": query,
         "engine": "google",
         "api_key": settings.search_api_key,
@@ -56,7 +56,7 @@ async def search_web(query: str, gl: str = "cn") -> WebSearchResult:
     }
 
     async with httpx.AsyncClient(timeout=15) as client:
-        response = await client.get(url, params=query)
+        response = await client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
 

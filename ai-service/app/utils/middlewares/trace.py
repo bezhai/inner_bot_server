@@ -10,7 +10,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 # 创建context变量来存储traceId
-trace_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "trace_id", default=None
 )
 
@@ -46,7 +46,7 @@ class TraceIdMiddleware(BaseHTTPMiddleware):
         return response
 
 
-def get_trace_id() -> str:
+def get_trace_id() -> str | None:
     """
     获取当前请求的traceId
 

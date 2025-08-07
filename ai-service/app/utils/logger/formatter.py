@@ -1,3 +1,4 @@
+# pyright: reportPrivateImportUsage=false
 """
 自定义日志格式化器
 """

@@ -84,7 +84,10 @@ async def bangumi_search(query: str) -> str:
         # 找到最后一条AI消息
         for message in reversed(messages):
             if isinstance(message, AIMessage) and message.content:
-                return message.content
+                content = message.content
+                if isinstance(content, str):
+                    return content
+                raise ValueError("AI消息内容不是字符串")
 
         return "抱歉，我无法处理您的请求。"
 

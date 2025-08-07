@@ -99,9 +99,9 @@ class ModelService:
             if chunk.id:
                 tc["id"] += chunk.id
             if chunk.function.name:
-                tc["function"]["name"] += chunk.function.name
+                tc["function"]["name"] += chunk.function.name  # type: ignore
             if chunk.function.arguments:
-                tc["function"]["arguments"] += chunk.function.arguments
+                tc["function"]["arguments"] += chunk.function.arguments  # type: ignore
 
         return list(tool_calls_dict.values())
 
@@ -173,7 +173,7 @@ class ModelService:
                     if delta and delta.content:
                         current_content += delta.content
                         # 流式输出内容
-                        yield choice
+                        yield choice  # pyright: ignore[reportReturnType]
 
                     # 处理工具调用
                     if delta and delta.tool_calls:
@@ -182,7 +182,7 @@ class ModelService:
 
                     # 检查是否完成
                     if choice.finish_reason:
-                        yield choice  # 需要输出终止信号给上层判断
+                        yield choice  # pyright: ignore[reportReturnType] # 需要输出终止信号给上层判断
                         break
 
             # 如果没有工具调用，直接结束
