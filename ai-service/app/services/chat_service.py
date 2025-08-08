@@ -131,7 +131,7 @@ class ChatService:
 
             # 定义模型配置
             model_configs = [
-                {"id": "302.ai/gpt-4.1", "name": "主模型"},
+                {"id": "302.ai/gemini-2.5-flash", "name": "主模型"},
                 {"id": "Moonshot/kimi-k2", "name": "备用模型"},
             ]
 
