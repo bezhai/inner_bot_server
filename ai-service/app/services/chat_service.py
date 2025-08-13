@@ -9,8 +9,7 @@ import traceback
 from collections.abc import AsyncGenerator
 from typing import Any
 
-from app.services.chat.message import AIChatService, ContentFilterError
-from app.services.chat.prompt import PromptGeneratorParam
+from app.services.chat.agent import ChatAgent
 from app.types.chat import (
     ChatNormalResponse,
     ChatProcessResponse,
@@ -27,84 +26,6 @@ class ChatService:
     """聊天服务类"""
 
     @staticmethod
-    async def _handle_partial_response(
-        messages: list[dict[str, Any]], accumulated_content: ChatStreamChunk
-    ) -> None:
-        """
-        处理部分响应，将已生成的内容添加到消息列表中
-
-        Args:
-            messages: 消息列表
-            accumulated_content: 累积的内容
-        """
-        if accumulated_content.content:
-            messages.append(
-                {
-                    "role": "assistant",
-                    "content": accumulated_content.content,
-                    "partial": True,
-                }
-            )
-
-    @staticmethod
-    async def _stream_with_model(
-        messages: list[dict[str, Any]],
-        model_id: str,
-        yield_interval: float,
-        accumulated: ChatStreamChunk,
-        last_yield_time: float,
-    ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """
-        使用指定模型进行流式回复生成
-
-        Args:
-            messages: 消息列表
-            model_id: 模型ID
-            yield_interval: 输出间隔时间
-            accumulated_content: 累积的内容
-            last_yield_time: 上次输出时间
-
-        Yields:
-            ChatStreamChunk: 生成的回复内容片段
-        """
-        async for chunk in AIChatService.stream_ai_reply(
-            messages=messages,
-            model_id=model_id,
-            enable_tools=True,
-        ):
-            # 累积内容
-            if chunk.content:
-                accumulated.content = f"{accumulated.content or ''}{chunk.content}"
-            if chunk.reason_content:
-                accumulated.reason_content = (
-                    f"{accumulated.reason_content or ''}{chunk.reason_content}"
-                )
-            if chunk.tool_call_feedback:
-                accumulated.tool_call_feedback = chunk.tool_call_feedback
-
-            # 检查是否到了输出间隔时间
-            current_time = asyncio.get_event_loop().time()
-            if current_time - last_yield_time >= yield_interval:
-                if accumulated.has_content():
-                    yield_chunk = ChatStreamChunk(
-                        content=accumulated.content,
-                        reason_content=accumulated.reason_content,
-                        tool_call_feedback=accumulated.tool_call_feedback,
-                    )
-                    logger.info(f"yield_chunk: {yield_chunk.model_dump_json()}")
-                    yield yield_chunk
-                    last_yield_time = current_time
-
-        # 输出最后剩余的内容
-        if accumulated.has_content():
-            final_chunk = ChatStreamChunk(
-                content=accumulated.content,
-                reason_content=accumulated.reason_content,
-                tool_call_feedback=accumulated.tool_call_feedback,
-            )
-            yield final_chunk
-
-    @staticmethod
     async def generate_ai_reply(
         message_id: str,
         yield_interval: float = 0.5,
@@ -119,71 +40,18 @@ class ChatService:
         Yields:
             ChatStreamChunk: AI 生成的回复内容片段，包含当前chunk和累积的完整内容
         """
-        from app.services.chat.context import MessageContext
-        from app.services.chat.prompt import ChatPromptService
-
         try:
-            # 获取上下文消息
-            prompt = await ChatPromptService.get_prompt({})
-            message_context = MessageContext(message_id, lambda param: prompt)
-            await message_context.init_context_messages()
-            messages = message_context.build(PromptGeneratorParam())
-
-            # 定义模型配置
-            model_configs = [
-                # {"id": "302.ai/gemini-2.5-flash", "name": "主模型"},
-                {"id": "302.ai/gpt-4.1", "name": "主模型"},
-                {"id": "Moonshot/kimi-k2", "name": "备用模型"},
-            ]
-
-            accumulated_content = ChatStreamChunk(content="", reason_content="")
-            last_yield_time = asyncio.get_event_loop().time()
-
-            for i, model_config in enumerate(model_configs):
-                try:
-                    async for chunk in ChatService._stream_with_model(
-                        messages=messages,
-                        model_id=model_config["id"],
-                        yield_interval=yield_interval,
-                        accumulated=accumulated_content,
-                        last_yield_time=last_yield_time,
-                    ):
-                        yield chunk
-                        last_yield_time = asyncio.get_event_loop().time()
-
-                    # 成功完成，直接返回
-                    return
-
-                except ContentFilterError as e:
-                    if i < len(model_configs) - 1:
-                        logger.warning(
-                            f"{model_config['name']}内容过滤，切换模型: {str(e)}"
-                        )
-                        await ChatService._handle_partial_response(
-                            messages, accumulated_content
-                        )
-                        last_yield_time = asyncio.get_event_loop().time()
-                    else:
-                        logger.error(f"所有模型都因内容过滤失败: {str(e)}")
-                        yield ChatStreamChunk(content="赤尾有点不想讨论这个话题呢~")
-                        return
-
-                except Exception as e:
-                    if i < len(model_configs) - 1:
-                        logger.warning(
-                            f"{model_config['name']}失败，切换模型: {str(e)}"
-                        )
-                        await ChatService._handle_partial_response(
-                            messages, accumulated_content
-                        )
-                        last_yield_time = asyncio.get_event_loop().time()
-                    else:
-                        logger.error(f"所有模型都失败: {str(e)}")
-                        raise
+            # 使用ChatAgent生成回复
+            chat_agent = await ChatAgent.create_with_default_prompt(message_id)
+            
+            async for chunk in chat_agent.generate_stream_response(
+                yield_interval=yield_interval
+            ):
+                yield chunk
 
         except Exception as e:
             logger.error(f"生成AI回复时出错: {str(e)}\n{traceback.format_exc()}")
-            yield ChatStreamChunk(content="赤尾好像遇到了一些问题呢QAQ")
+            yield ChatStreamChunk(content="抱歉，遇到了一些问题")
 
     @staticmethod
     @auto_json_serialize
