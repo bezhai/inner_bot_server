@@ -18,7 +18,6 @@ import { sendReq, reply, send } from '@lark-client';
 import { AddElementType, LarkCardRetry, LarkCardThumbsDown, LarkCardThumbsUp } from 'types/lark';
 import { v4 as uuidv4 } from 'uuid';
 import { CardContextRepository } from 'dal/repositories/repositories';
-import { updateRobotMessageText } from 'services/message-store/basic';
 import dayjs from 'dayjs';
 
 /**
@@ -548,15 +547,12 @@ export class CardManager {
      */
     private async handleSuccess(fullText: string): Promise<void> {
         const removeThinkText = fullText.replace(/<think>[\s\S]*?<\/think>/g, '');
-        await Promise.all([
-            this.updateCardConfig({
-                streaming_mode: false,
-                summary: {
-                    content: this.truncate(removeThinkText, 20),
-                },
-            }),
-            updateRobotMessageText(this.messageId!, removeThinkText),
-        ]);
+        await this.updateCardConfig({
+            streaming_mode: false,
+            summary: {
+                content: this.truncate(removeThinkText, 20),
+            },
+        });
     }
 
     /**

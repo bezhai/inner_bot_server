@@ -1,13 +1,9 @@
-import { MongoClient } from 'mongodb';
-import { MongoCollection } from './collection';
-import { LarkMessageMetaInfo } from 'types/mongo';
-import { LarkOperateReactionInfo } from 'types/lark';
+import { Collection, MongoClient, Document } from 'mongodb';
 
 class MongoService {
     private static instance: MongoService;
     private client: MongoClient | null = null;
-    private messageCollection: MongoCollection<LarkMessageMetaInfo> | null = null;
-    private reactionCollection: MongoCollection<LarkOperateReactionInfo> | null = null;
+    private larkEventCollection: Collection | null = null;
 
     private constructor() {}
 
@@ -36,14 +32,7 @@ class MongoService {
 
             const database = this.client.db('chiwei');
 
-            // 初始化各个集合
-            this.messageCollection = new MongoCollection<LarkMessageMetaInfo>(
-                database.collection('lark_message'),
-            );
-
-            this.reactionCollection = new MongoCollection<LarkOperateReactionInfo>(
-                database.collection('lark_reaction'),
-            );
+            this.larkEventCollection = database.collection('lark_event');
 
             console.info('MongoDB initialization completed.');
         } catch (err) {
@@ -52,29 +41,22 @@ class MongoService {
         }
     }
 
-    public getMessageCollection(): MongoCollection<LarkMessageMetaInfo> {
-        if (!this.messageCollection) {
+    public async insertLarkEvent(event: Document) {
+        if (!this.larkEventCollection) {
             throw new Error('MongoDB not initialized');
         }
-        return this.messageCollection;
-    }
-
-    public getReactionCollection(): MongoCollection<LarkOperateReactionInfo> {
-        if (!this.reactionCollection) {
-            throw new Error('MongoDB not initialized');
-        }
-        return this.reactionCollection;
+        return this.larkEventCollection.insertOne(event);
     }
 }
 
 // 导出单例实例
-export const mongoService = MongoService.getInstance();
+const mongoService = MongoService.getInstance();
 
 // 导出初始化函数
 export const mongoInitPromise = async () => {
     await mongoService.initialize();
 };
 
-// 导出集合访问器
-export const getMessageCollection = () => mongoService.getMessageCollection();
-export const getReactionCollection = () => mongoService.getReactionCollection();
+export const insertEvent = async (event: Document) => {
+    await mongoService.insertLarkEvent(event);
+};

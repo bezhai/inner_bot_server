@@ -6,7 +6,6 @@ import {
 } from 'types/lark';
 import { EventHandler } from './event-registry';
 import { runRules } from 'services/message-processing/rule-engine';
-import { saveLarkMessage } from 'services/message-store/service';
 import { MessageTransferer } from './factory';
 import { storeMessage } from 'services/integrations/memory';
 import { getBotUnionId } from 'utils/bot/bot-var';
@@ -34,9 +33,7 @@ import {
 } from 'dal/repositories/repositories';
 import { getBotAppId } from 'utils/bot/bot-var';
 import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark-basic/group';
-import { LarkRecalledMessage, LarkOperateReactionInfo, LarkEnterChatEvent } from 'types/lark';
-import { recallMessage } from 'services/message-store/basic';
-import { getReactionCollection } from 'dal/mongo/client';
+import { LarkEnterChatEvent } from 'types/lark';
 import { LarkBaseChatInfo, UserChatMapping } from 'dal/entities';
 import AppDataSource from 'ormconfig';
 
@@ -51,16 +48,10 @@ export class LarkEventHandlers {
     @EventHandler('im.message.receive_v1')
     async handleMessageReceive(params: LarkReceiveMessage): Promise<void> {
         try {
-            const [_, message] = await Promise.all([
-                saveLarkMessage(params), // 保存消息
-                (async () => {
-                    const builtMessage = await MessageTransferer.transfer(params);
-                    if (!builtMessage) {
-                        throw new Error('Failed to build message');
-                    }
-                    return builtMessage;
-                })(),
-            ]);
+            const message = await MessageTransferer.transfer(params);
+            if (!message) {
+                throw new Error('Failed to build message');
+            }
 
             await storeMessage({
                 user_id: message.sender,
@@ -91,10 +82,8 @@ export class LarkEventHandlers {
      * 处理消息撤回事件
      */
     @EventHandler('im.message.recalled_v1')
-    async handleMessageRecalled(params: LarkRecalledMessage): Promise<void> {
-        if (params.message_id) {
-            await recallMessage(params.message_id);
-        }
+    async handleMessageRecalled(): Promise<void> {
+        // pass 占位
     }
 
     /**
@@ -236,8 +225,8 @@ export class LarkEventHandlers {
      * 处理消息反应事件
      */
     @EventHandler(['im.message.reaction.created_v1', 'im.message.reaction.deleted_v1'])
-    async handleReaction(params: LarkOperateReactionInfo): Promise<void> {
-        await getReactionCollection().insertOne(params);
+    async handleReaction(): Promise<void> {
+        // pass 占位
     }
 
     /**

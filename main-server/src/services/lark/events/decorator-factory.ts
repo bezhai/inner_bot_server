@@ -1,3 +1,4 @@
+import { insertEvent } from 'dal/mongo/client';
 import { BotConfig } from '../../../dal/entities/bot-config';
 import { context } from '../../../middleware/context';
 
@@ -37,6 +38,10 @@ export class EventDecoratorFactory {
                     'receive event_type: ' + (params as { event_type: string })['event_type'],
                 );
 
+                insertEvent(params).catch((err) => {
+                    console.error('Error in insert event:', err);
+                });
+
                 asyncFn(params).catch((err) => {
                     console.error('Error in async operation:', err);
                 });
@@ -56,22 +61,20 @@ export class EventDecoratorFactory {
                     `[${botName}] receive event_type: ${(params as { event_type: string })['event_type']}`,
                 );
 
+                // 启动事件记录，不等待完成
+                insertEvent(params).catch((err) => {
+                    console.error(`[${botName}] Error in insert event:`, err);
+                });
+
                 // 创建包含botName和traceId的上下文
                 const contextData = context.createContext(botName);
 
-                // 在AsyncLocalStorage上下文中执行处理函数
-                context
-                    .run(contextData, async () => {
-                        try {
-                            await asyncFn(params);
-                        } catch (error) {
-                            console.error(`Error in WebSocket handler for bot ${botName}:`, error);
-                            throw error;
-                        }
-                    })
-                    .catch((err: Error) => {
+                // 在AsyncLocalStorage上下文中执行处理函数，不等待完成
+                context.run(contextData, async () => {
+                    asyncFn(params).catch((err) => {
                         console.error(`[${botName}] Error in async operation:`, err);
                     });
+                });
             };
         };
     }
