@@ -1,11 +1,11 @@
 import { Message } from 'models/message';
 import { sseChat } from './chat';
-import { CardManager } from '@lark-basic/card-manager';
+import { CardLifecycleManager } from '@lark-basic/card-lifecycle-manager';
 import { getBotUnionId } from 'utils/bot/bot-var';
 import dayjs from 'dayjs';
 
 export async function makeCardReply(message: Message): Promise<void> {
-    const cardManager = CardManager.init();
+    const cardManager = CardLifecycleManager.init();
 
     cardManager.appendCardContext({
         parent_message_id: message.messageId, // 这里的parent_message_id后面用来换重新请求的msgId, 卡片是bot发的, 所以这里叫parent_message_id
@@ -51,7 +51,7 @@ export async function reCreateCard(
     rootId: string,
     isP2P: boolean,
 ): Promise<void> {
-    const cardManager = await CardManager.loadFromMessage(messageId);
+    const cardManager = await CardLifecycleManager.loadFromMessage(messageId);
 
     if (!cardManager) {
         return;
