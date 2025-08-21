@@ -91,13 +91,17 @@ export class SSEClient<T = unknown> {
                 this.retryCount = 0;
                 await this.readStream(response.body, onMessage);
             } catch (err) {
-                if (onError) onError(err);
+                this.isConnected = false;
 
                 if (this.options.autoReconnect && this.retryCount < this.options.retries) {
                     this.retryCount++;
+                    console.warn(`SSE连接失败，${this.options.retryDelay}ms后进行第${this.retryCount}次重试:`, err);
                     setTimeout(() => {
-                        if (this.isConnected) connect();
+                        if (!this.abortController?.signal.aborted) connect();
                     }, this.options.retryDelay);
+                } else {
+                    // 所有重试都失败了，调用错误回调
+                    if (onError) onError(err);
                 }
             }
         };

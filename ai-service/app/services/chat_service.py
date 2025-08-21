@@ -15,6 +15,7 @@ from app.types.chat import (
     ChatNormalResponse,
     ChatProcessResponse,
     ChatRequest,
+    ChatStatusResponse,
     ChatStreamChunk,
     Step,
 )
@@ -133,7 +134,7 @@ class ChatService:
             model_configs = [
                 # {"id": "302.ai/gemini-2.5-flash", "name": "主模型"},
                 {"id": "302.ai/gpt-4.1", "name": "主模型"},
-                {"id": "Moonshot/kimi-k2", "name": "备用模型"},
+                {"id": "Moonshot/kimi-k2-0711-preview", "name": "备用模型"},
             ]
 
             accumulated_content = ChatStreamChunk(content="", reason_content="")
@@ -190,7 +191,7 @@ class ChatService:
     async def process_chat_sse(
         request: ChatRequest,
         yield_interval: float = 0.5,
-    ) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse, None]:
+    ) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse | ChatStatusResponse, None]:
         """
         处理 SSE 聊天流程
 
@@ -221,6 +222,13 @@ class ChatService:
 
             # 3. 开始生成回复
             yield ChatNormalResponse(step=Step.START_REPLY)
+            
+            # 发送初始状态消息
+            from app.services.chat.tool_status import ToolStatusService
+            yield ChatStatusResponse(
+                step=Step.SEND,
+                status_message=ToolStatusService.get_default_status_message("thinking")
+            )
 
             # 4. 生成并发送回复
             last_content = ""  # 用于跟踪最后的内容

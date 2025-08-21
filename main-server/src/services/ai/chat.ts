@@ -34,8 +34,8 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
             'X-Trace-Id': context.getTraceId(),
         },
         body: options.req,
-        retries: 3,
-        retryDelay: 1000,
+        retries: 5, // 增加重试次数以处理504等网络错误
+        retryDelay: 2000, // 增加重试延迟
         autoReconnect: true,
     });
 
@@ -64,6 +64,8 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
                 step: message.step,
                 content: 'content' in message ? message.content : undefined,
                 reason_content: 'reason_content' in message ? message.reason_content : undefined,
+                tool_call_feedback: 'tool_call_feedback' in message ? message.tool_call_feedback : undefined,
+                status_message: 'status_message' in message ? message.status_message : undefined,
             };
 
             const success = await stateMachine.handleResponse(stateData);
@@ -83,6 +85,8 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
 
     const onError = async (error: unknown) => {
         console.error('SSE 连接错误:', error);
+        // 确保在失败时也会触发失败回调
+        await stateMachine.handleResponse({ step: Step.FAILED });
         await stateMachine.forceEnd(error instanceof Error ? error : new Error(String(error)));
     };
 
