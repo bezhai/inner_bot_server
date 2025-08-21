@@ -5,7 +5,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class MessageType(str, Enum):
@@ -80,3 +80,20 @@ class MemoryMetrics(BaseModel):
     fallback_rate: float
     total_contexts_built: int
     unique_chats_served: int
+
+
+class ChatRecord(BaseModel):
+    """聊天记录模型"""
+
+    user_name: str = Field(..., description="用户名")
+    content: str = Field(..., description="聊天内容")
+    create_time: str = Field(..., description="创建时间")
+    message_id: str = Field(..., description="消息ID")
+    reply_message_id: str | None = Field(None, description="回复消息ID")
+
+
+class HistoryMessagesResponse(BaseModel):
+    """历史消息列表响应模型"""
+
+    messages: list[ChatRecord] = Field(..., description="按顺序排列的消息内容列表")
+    total_count: int = Field(..., description="消息总数")

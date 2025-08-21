@@ -8,6 +8,7 @@ from typing import Any
 import httpx
 
 from app.config.memory_service import memory_config
+from app.types.memory import HistoryMessagesResponse
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +68,11 @@ class MemoryClient:
             logger.error(f"Memory服务调用失败: {str(e)}")
             return []
 
-    async def topic_summary(
+    async def history_messages(
         self, message_id: str, start_time: int, end_time: int
-    ) -> str:
+    ) -> HistoryMessagesResponse | None:
         """
-        话题总结
+        获取历史消息列表
 
         Args:
             message_id: 消息ID
@@ -79,7 +80,7 @@ class MemoryClient:
             end_time: 结束时间（秒时间戳）
 
         Returns:
-            str: 经过LLM总结的话题文字
+            HistoryMessagesResponse: 历史消息列表，如果失败返回None
         """
         try:
             request_data = {
@@ -90,26 +91,28 @@ class MemoryClient:
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/v1/memory/topic_summary", json=request_data
+                    f"{self.base_url}/api/v1/memory/history_messages", json=request_data
                 )
 
                 response.raise_for_status()
                 data = response.json()
 
-                logger.info("Memory topic_summary成功")
-                return data.get("summary", "")
+                logger.info(
+                    f"Memory history_messages成功，获取到 {data.get('total_count', 0)} 条消息"
+                )
+                return HistoryMessagesResponse(**data)
 
         except httpx.TimeoutException:
             logger.warning(f"Memory服务超时: {self.timeout}秒")
-            return "话题总结请求超时，请稍后重试"
+            return None
         except httpx.HTTPStatusError as e:
             logger.error(
                 f"Memory服务HTTP错误: {e.response.status_code} - {e.response.text}"
             )
-            return f"话题总结失败，服务器错误: {e.response.status_code}"
+            return None
         except Exception as e:
             logger.error(f"Memory服务调用失败: {str(e)}")
-            return f"话题总结失败: {str(e)}"
+            return None
 
 
 # 全局单例
