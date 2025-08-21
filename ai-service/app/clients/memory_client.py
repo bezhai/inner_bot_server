@@ -90,7 +90,7 @@ class MemoryClient:
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/topic_summary", json=request_data
+                    f"{self.base_url}/api/v1/memory/topic_summary", json=request_data
                 )
 
                 response.raise_for_status()
