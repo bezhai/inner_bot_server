@@ -319,8 +319,7 @@ export class CardLifecycleManager {
 
     private async handleErrorOnly(): Promise<void> {
         if (!this.cardId) {
-            // 如果还没有创建卡片，先创建一个
-            await this.registerReply();
+            return; // 如果还没有创建卡片，说明连接在很早期就失败了，无需显示错误卡片
         }
         await this.removeLoadingElements();
         await this.handleError();

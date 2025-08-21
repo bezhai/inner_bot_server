@@ -95,6 +95,7 @@ export class SSEClient<T = unknown> {
 
                 if (this.options.autoReconnect && this.retryCount < this.options.retries) {
                     this.retryCount++;
+                    console.warn(`SSE连接失败，${this.options.retryDelay}ms后进行第${this.retryCount}次重试:`, err);
                     setTimeout(() => {
                         if (!this.abortController?.signal.aborted) connect();
                     }, this.options.retryDelay);

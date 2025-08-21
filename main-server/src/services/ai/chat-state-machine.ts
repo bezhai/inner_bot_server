@@ -78,7 +78,6 @@ export function createChatStateMachine(
                     type: 'status',
                     content: data.status_message,
                 });
-                return; // 状态消息单独处理，不与其他内容混合
             }
 
             // 处理工具调用反馈的状态消息
@@ -87,7 +86,6 @@ export function createChatStateMachine(
                     type: 'status',
                     content: data.tool_call_feedback.status_message,
                 });
-                return; // 工具状态消息单独处理
             }
 
             // 处理思维链内容

@@ -54,6 +54,7 @@ class AIChatService:
 
             # 获取流式响应并直接传递
             first_content_chunk = True
+            tool_status_sent = False  # 防止重复发送工具状态消息
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
                 messages=messages,
@@ -62,7 +63,8 @@ class AIChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 检查是否有工具调用
-                if chunk.delta and chunk.delta.tool_calls:  # pyright: ignore[reportAttributeAccessIssue]
+                if chunk.delta and chunk.delta.tool_calls and not tool_status_sent:  # pyright: ignore[reportAttributeAccessIssue]
+                    tool_status_sent = True
                     # 获取第一个工具调用的名称
                     first_tool_call = chunk.delta.tool_calls[0]  # pyright: ignore[reportAttributeAccessIssue]
                     if hasattr(first_tool_call, 'function') and hasattr(first_tool_call.function, 'name') and first_tool_call.function.name:
@@ -107,6 +109,7 @@ class AIChatService:
                     else:
                         # 重置标志，为下一轮做准备
                         first_content_chunk = True
+                        tool_status_sent = False
 
         except ContentFilterError:
             # 内容过滤错误需要重新抛出，让上层处理模型切换
