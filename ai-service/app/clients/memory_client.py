@@ -67,6 +67,50 @@ class MemoryClient:
             logger.error(f"Memory服务调用失败: {str(e)}")
             return []
 
+    async def topic_summary(
+        self, message_id: str, start_time: int, end_time: int
+    ) -> str:
+        """
+        话题总结
+
+        Args:
+            message_id: 消息ID
+            start_time: 起始时间（秒时间戳）
+            end_time: 结束时间（秒时间戳）
+
+        Returns:
+            str: 经过LLM总结的话题文字
+        """
+        try:
+            request_data = {
+                "message_id": message_id,
+                "start_time": start_time,
+                "end_time": end_time,
+            }
+
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/topic_summary", json=request_data
+                )
+
+                response.raise_for_status()
+                data = response.json()
+
+                logger.info("Memory topic_summary成功")
+                return data.get("summary", "")
+
+        except httpx.TimeoutException:
+            logger.warning(f"Memory服务超时: {self.timeout}秒")
+            return "话题总结请求超时，请稍后重试"
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"Memory服务HTTP错误: {e.response.status_code} - {e.response.text}"
+            )
+            return f"话题总结失败，服务器错误: {e.response.status_code}"
+        except Exception as e:
+            logger.error(f"Memory服务调用失败: {str(e)}")
+            return f"话题总结失败: {str(e)}"
+
 
 # 全局单例
 memory_client = MemoryClient()

@@ -8,6 +8,8 @@ AI工具系统
 - Pydantic模型集成
 """
 
+# 导入工具模块以触发装饰器注册
+from . import topic_summary  # noqa: F401
 from .decorators import ToolProvider, tool
 from .manager import get_tool_manager, init_tool_manager
 from .registry import clear_tools, init_tools

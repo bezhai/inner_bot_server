@@ -14,6 +14,11 @@ trace_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "trace_id", default=None
 )
 
+# 创建context变量来存储message_id
+message_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "message_id", default=None
+)
+
 
 class TraceIdMiddleware(BaseHTTPMiddleware):
     """
@@ -54,3 +59,23 @@ def get_trace_id() -> str | None:
         str: 当前请求的traceId，如果不存在则返回None
     """
     return trace_id_var.get()
+
+
+def set_message_id(message_id: str) -> None:
+    """
+    设置当前请求的message_id到上下文变量中
+
+    Args:
+        message_id: 要设置的message_id
+    """
+    message_id_var.set(message_id)
+
+
+def get_message_id() -> str | None:
+    """
+    获取当前请求的message_id
+
+    Returns:
+        str: 当前请求的message_id，如果不存在则返回None
+    """
+    return message_id_var.get()
