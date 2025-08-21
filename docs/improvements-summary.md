@@ -142,13 +142,20 @@ export type ChatResponse = ChatProcessResponse | ChatNormalResponse | ChatStatus
 
 ```python
 class ToolStatusService:
-    # 工具状态消息映射，考虑到赤尾是人类美少女的设定
+    # 工具状态消息映射，基于实际注册的工具，考虑到赤尾是人类美少女的设定
     TOOL_STATUS_MESSAGES: Dict[str, str] = {
+        # 搜索相关工具
         "search_web": "赤尾正在努力上网搜索~",
-        "web_search": "赤尾正在努力上网搜索~",
+        "search_donjin_event": "赤尾正在查找同人活动信息...",
+        
+        # 话题总结工具
         "topic_summary": "赤尾正在整理话题总结呢...",
-        "get_weather": "赤尾正在查看天气预报~",
-        # ... 更多工具状态消息
+        
+        # Bangumi相关工具
+        "bangumi_search": "赤尾正在查询ACG信息~",
+        "search_characters": "赤尾正在搜索角色信息...",
+        "search_persons": "赤尾正在查找人物资料...",
+        # ... 更多Bangumi工具
     }
     
     # 默认状态消息

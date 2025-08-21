@@ -9,22 +9,26 @@ from typing import Dict
 class ToolStatusService:
     """工具状态消息服务"""
     
-    # 工具状态消息映射，考虑到赤尾是人类美少女的设定
+    # 工具状态消息映射，基于实际注册的工具，考虑到赤尾是人类美少女的设定
     TOOL_STATUS_MESSAGES: Dict[str, str] = {
+        # 搜索相关工具
         "search_web": "赤尾正在努力上网搜索~",
-        "web_search": "赤尾正在努力上网搜索~",
+        "search_donjin_event": "赤尾正在查找同人活动信息...",
+        
+        # 话题总结工具
         "topic_summary": "赤尾正在整理话题总结呢...",
-        "get_weather": "赤尾正在查看天气预报~",
-        "get_time": "赤尾正在确认时间...",
-        "calculator": "赤尾正在认真计算中...",
-        "image_generation": "赤尾正在画画呢，请稍等~",
-        "file_upload": "赤尾正在处理文件...",
-        "database_query": "赤尾正在查询数据库...",
-        "email_send": "赤尾正在发送邮件...",
-        "translation": "赤尾正在翻译中...",
-        "code_execution": "赤尾正在运行代码...",
-        "memory_search": "赤尾正在回忆相关内容...",
-        "knowledge_base": "赤尾正在查阅知识库...",
+        
+        # Bangumi相关工具
+        "bangumi_search": "赤尾正在查询ACG信息~",
+        "search_characters": "赤尾正在搜索角色信息...",
+        "search_persons": "赤尾正在查找人物资料...",
+        "get_subject_characters": "赤尾正在获取角色列表...",
+        "get_subject_relations": "赤尾正在查找相关作品...",
+        "get_subject_persons": "赤尾正在获取制作人员信息...",
+        "get_character_subjects": "赤尾正在查找角色出演作品...",
+        "get_character_persons": "赤尾正在获取角色声优信息...",
+        "get_person_characters": "赤尾正在查找配音角色...",
+        "get_person_subjects": "赤尾正在查找参与作品...",
     }
     
     # 默认状态消息
