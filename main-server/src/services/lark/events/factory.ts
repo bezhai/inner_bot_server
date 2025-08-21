@@ -1,7 +1,7 @@
 import { Message } from 'models/message';
 import { TextContent, ImageContent, StickerContent, PostContent } from 'types/content-types';
 import { LarkReceiveMessage } from 'types/lark';
-import { ContentType, ContentItem, MessageContent } from 'models/message-content';
+import { ContentType, ContentItem } from 'models/message-content';
 import { MentionUtils } from '../../lark/utils/mention-utils';
 
 export class MessageTransferer {
