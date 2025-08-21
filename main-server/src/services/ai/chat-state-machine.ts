@@ -9,6 +9,8 @@ export interface ChatStateData {
     step: Step;
     content?: string;
     reason_content?: string;
+    tool_call_feedback?: import('../../../types/chat').ToolCallFeedbackResponse;
+    status_message?: string;
 }
 
 /**
@@ -69,6 +71,24 @@ export function createChatStateMachine(
         ) // START_REPLY 是必需等待的
         .on(Step.SEND, async (data) => {
             if (!callbacks.onSend) return;
+
+            // 处理状态消息（优先级最高）
+            if (data.status_message) {
+                await callbacks.onSend({
+                    type: 'status',
+                    content: data.status_message,
+                });
+                return; // 状态消息单独处理，不与其他内容混合
+            }
+
+            // 处理工具调用反馈的状态消息
+            if (data.tool_call_feedback?.status_message) {
+                await callbacks.onSend({
+                    type: 'status',
+                    content: data.tool_call_feedback.status_message,
+                });
+                return; // 工具状态消息单独处理
+            }
 
             // 处理思维链内容
             if (data.reason_content) {

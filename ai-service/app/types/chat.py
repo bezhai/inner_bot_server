@@ -68,6 +68,7 @@ class ToolCallFeedbackResponse(BaseModel):
 
     name: str  # 工具调用名称 / Tool call name
     nick_name: str | None = None  # 工具调用昵称 / Tool call nick name
+    status_message: str | None = None  # 状态消息，用于更新底部栏显示 / Status message for bottom bar
 
 
 class ChatStreamChunk(BaseModel):
@@ -116,7 +117,17 @@ class ChatNormalResponse(BaseModel):
     step: Step  # 步骤 / Step
 
 
-ChatResponse = ChatProcessResponse | ChatNormalResponse
+class ChatStatusResponse(BaseModel):
+    """
+    聊天状态响应（用于更新底部栏状态）
+    Chat status response (for updating bottom bar status)
+    """
+
+    step: Step = Step.SEND  # 步骤 / Step
+    status_message: str  # 状态消息 / Status message
+
+
+ChatResponse = ChatProcessResponse | ChatNormalResponse | ChatStatusResponse
 
 
 class StoreRobotMessageRequest(BaseModel):

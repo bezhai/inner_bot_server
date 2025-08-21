@@ -187,6 +187,12 @@ export class CardLifecycleManager {
         await this.apiClient.streamUpdateText(this.cardId!, ELEMENT_IDS.RESPONSE, content, this.getSequence());
     }
 
+    public async updateStatus(statusMessage: string): Promise<void> {
+        if (this.cardId) {
+            await this.apiClient.streamUpdateText(this.cardId, ELEMENT_IDS.THINKING_PLACEHOLDER, statusMessage, this.getSequence());
+        }
+    }
+
     private async removeLoadingElements(): Promise<void> {
         await this.apiClient.deleteElement(this.cardId!, ELEMENT_IDS.THINKING_PLACEHOLDER, this.getSequence());
         await this.apiClient.deleteElement(this.cardId!, ELEMENT_IDS.HR, this.getSequence());
@@ -224,6 +230,11 @@ export class CardLifecycleManager {
                     case 'text':
                         if (action.content.length > 0) {
                             await this.updateContent(action.content);
+                        }
+                        break;
+                    case 'status':
+                        if (action.content.length > 0) {
+                            await this.updateStatus(action.content);
                         }
                         break;
                 }
@@ -308,7 +319,8 @@ export class CardLifecycleManager {
 
     private async handleErrorOnly(): Promise<void> {
         if (!this.cardId) {
-            return;
+            // 如果还没有创建卡片，先创建一个
+            await this.registerReply();
         }
         await this.removeLoadingElements();
         await this.handleError();

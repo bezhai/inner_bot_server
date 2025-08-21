@@ -65,7 +65,10 @@ export interface FunctionCall {
 }
 
 // 流式响应动作类型
-export type StreamAction = { type: 'text'; content: string } | { type: 'think'; content: string };
+export type StreamAction = 
+    | { type: 'text'; content: string } 
+    | { type: 'think'; content: string }
+    | { type: 'status'; content: string };
 
 export interface Delta {
     content?: string; // 生成的部分内容
