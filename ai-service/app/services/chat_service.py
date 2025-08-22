@@ -86,7 +86,7 @@ class ChatService:
             # 检查是否到了输出间隔时间
             current_time = asyncio.get_event_loop().time()
             if current_time - last_yield_time >= yield_interval:
-                if accumulated.has_content():
+                if accumulated.has_content() or accumulated.tool_call_feedback:
                     yield_chunk = ChatStreamChunk(
                         content=accumulated.content,
                         reason_content=accumulated.reason_content,
