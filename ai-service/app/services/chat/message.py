@@ -55,6 +55,7 @@ class AIChatService:
             # 获取流式响应并直接传递
             first_content_chunk = True
             tool_status_sent = False  # 防止重复发送工具状态消息
+            accumulated_tool_calls = []  # 累积工具调用信息
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
                 messages=messages,
@@ -63,19 +64,24 @@ class AIChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 检查是否有工具调用
-                if chunk.delta and chunk.delta.tool_calls and not tool_status_sent:  # pyright: ignore[reportAttributeAccessIssue]
-                    tool_status_sent = True
-                    # 获取第一个工具调用的名称
-                    first_tool_call = chunk.delta.tool_calls[0]  # pyright: ignore[reportAttributeAccessIssue]
-                    if hasattr(first_tool_call, 'function') and hasattr(first_tool_call.function, 'name') and first_tool_call.function.name:
-                        tool_name = first_tool_call.function.name
-                        status_message = ToolStatusService.get_tool_status_message(tool_name)
-                        yield ChatStreamChunk(
-                            tool_call_feedback=ToolCallFeedbackResponse(
-                                name=tool_name,
-                                status_message=status_message
-                            )
-                        )
+                if chunk.delta and chunk.delta.tool_calls:  # pyright: ignore[reportAttributeAccessIssue]
+                    # 累积工具调用信息
+                    accumulated_tool_calls.extend(chunk.delta.tool_calls)  # pyright: ignore[reportAttributeAccessIssue]
+                    
+                    # 尝试从累积的工具调用中提取完整信息
+                    if not tool_status_sent and accumulated_tool_calls:
+                        for tool_call in accumulated_tool_calls:
+                            if hasattr(tool_call, 'function') and hasattr(tool_call.function, 'name') and tool_call.function.name:
+                                tool_name = tool_call.function.name
+                                status_message = ToolStatusService.get_tool_status_message(tool_name)
+                                yield ChatStreamChunk(
+                                    tool_call_feedback=ToolCallFeedbackResponse(
+                                        name=tool_name,
+                                        status_message=status_message
+                                    )
+                                )
+                                tool_status_sent = True
+                                break
 
                 # 提取文本内容并直接输出
                 if chunk.delta and chunk.delta.content:  # pyright: ignore[reportAttributeAccessIssue]
@@ -110,6 +116,7 @@ class AIChatService:
                         # 重置标志，为下一轮做准备
                         first_content_chunk = True
                         tool_status_sent = False
+                        accumulated_tool_calls = []  # 重置累积的工具调用信息
 
         except ContentFilterError:
             # 内容过滤错误需要重新抛出，让上层处理模型切换
