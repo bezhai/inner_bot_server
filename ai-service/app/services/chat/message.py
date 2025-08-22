@@ -63,7 +63,6 @@ class AIChatService:
             ):
                 # 检查是否有工具调用
                 if chunk.delta and chunk.delta.tool_calls:  # pyright: ignore[reportAttributeAccessIssue]
-                    logger.info(f"chunk.delta.tool_calls: {chunk.delta.tool_calls}")  # pyright: ignore[reportAttributeAccessIssue]
                     # 获取第一个工具调用的名称
                     first_tool_call = chunk.delta.tool_calls[0]  # pyright: ignore[reportAttributeAccessIssue]
                     if (
@@ -74,6 +73,9 @@ class AIChatService:
                         tool_name = first_tool_call.function.name
                         status_message = ToolStatusService.get_tool_status_message(
                             tool_name
+                        )
+                        logger.info(
+                            f"tool_name: {tool_name}, status_message: {status_message}"
                         )
                         yield ChatStreamChunk(
                             tool_call_feedback=ToolCallFeedbackResponse(
