@@ -1,5 +1,5 @@
 import { StreamAction } from 'types/ai';
-import { Step } from 'types/chat';
+import { Step, ToolCallFeedbackResponse } from 'types/chat';
 import { StateMachine, StateTransition } from 'utils/state-machine/state-machine';
 
 /**
@@ -9,7 +9,7 @@ export interface ChatStateData {
     step: Step;
     content?: string;
     reason_content?: string;
-    tool_call_feedback?: import('../../../types/chat').ToolCallFeedbackResponse;
+    tool_call_feedback?: ToolCallFeedbackResponse;
     status_message?: string;
 }
 
