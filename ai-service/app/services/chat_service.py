@@ -191,7 +191,9 @@ class ChatService:
     async def process_chat_sse(
         request: ChatRequest,
         yield_interval: float = 0.5,
-    ) -> AsyncGenerator[ChatNormalResponse | ChatProcessResponse | ChatStatusResponse, None]:
+    ) -> AsyncGenerator[
+        ChatNormalResponse | ChatProcessResponse | ChatStatusResponse, None
+    ]:
         """
         处理 SSE 聊天流程
 
@@ -222,12 +224,13 @@ class ChatService:
 
             # 3. 开始生成回复
             yield ChatNormalResponse(step=Step.START_REPLY)
-            
+
             # 发送初始状态消息
             from app.services.chat.tool_status import ToolStatusService
+
             yield ChatStatusResponse(
                 step=Step.SEND,
-                status_message=ToolStatusService.get_default_status_message("thinking")
+                status_message=ToolStatusService.get_default_status_message("thinking"),
             )
 
             # 4. 生成并发送回复

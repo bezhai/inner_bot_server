@@ -5,9 +5,9 @@ from collections.abc import AsyncGenerator
 # 使用新的工具系统
 from app.tools import get_tool_manager
 from app.types.chat import ChatStreamChunk, ToolCallFeedbackResponse
-from .tool_status import ToolStatusService
 
 from .model import ModelService
+from .tool_status import ToolStatusService
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ class AIChatService:
 
             # 获取流式响应并直接传递
             first_content_chunk = True
-            tool_status_sent = False  # 防止重复发送工具状态消息
             async for chunk in ModelService.chat_completion_stream(
                 model_id=model_id,
                 messages=messages,
@@ -63,17 +62,22 @@ class AIChatService:
                 max_tool_iterations=max_tool_iterations,
             ):
                 # 检查是否有工具调用
-                if chunk.delta and chunk.delta.tool_calls and not tool_status_sent:  # pyright: ignore[reportAttributeAccessIssue]
-                    tool_status_sent = True
+                if chunk.delta and chunk.delta.tool_calls:  # pyright: ignore[reportAttributeAccessIssue]
+                    logger.info(f"chunk.delta.tool_calls: {chunk.delta.tool_calls}")  # pyright: ignore[reportAttributeAccessIssue]
                     # 获取第一个工具调用的名称
                     first_tool_call = chunk.delta.tool_calls[0]  # pyright: ignore[reportAttributeAccessIssue]
-                    if hasattr(first_tool_call, 'function') and hasattr(first_tool_call.function, 'name') and first_tool_call.function.name:
+                    if (
+                        hasattr(first_tool_call, "function")
+                        and hasattr(first_tool_call.function, "name")
+                        and first_tool_call.function.name
+                    ):
                         tool_name = first_tool_call.function.name
-                        status_message = ToolStatusService.get_tool_status_message(tool_name)
+                        status_message = ToolStatusService.get_tool_status_message(
+                            tool_name
+                        )
                         yield ChatStreamChunk(
                             tool_call_feedback=ToolCallFeedbackResponse(
-                                name=tool_name,
-                                status_message=status_message
+                                name=tool_name, status_message=status_message
                             )
                         )
 
@@ -85,7 +89,9 @@ class AIChatService:
                         yield ChatStreamChunk(
                             tool_call_feedback=ToolCallFeedbackResponse(
                                 name="text_generation",
-                                status_message=ToolStatusService.get_default_status_message("replying")
+                                status_message=ToolStatusService.get_default_status_message(
+                                    "replying"
+                                ),
                             )
                         )
                     yield ChatStreamChunk(
@@ -109,7 +115,6 @@ class AIChatService:
                     else:
                         # 重置标志，为下一轮做准备
                         first_content_chunk = True
-                        tool_status_sent = False
 
         except ContentFilterError:
             # 内容过滤错误需要重新抛出，让上层处理模型切换
