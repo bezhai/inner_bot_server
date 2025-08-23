@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from ..adapters.model import ModelAdapter, ModelConfig, StreamChunk, get_model_adapter
 from ..adapters.tool import ToolAdapter, ToolFilter, get_tool_adapter
-from ..adapters.memory import MemoryAdapter, MemoryType, get_memory_adapter
+from ..adapters.memory import MemoryAdapter, get_memory_adapter
 from app.types.chat import ChatStreamChunk, ToolCallFeedbackResponse
 from app.services.chat.tool_status import ToolStatusService
 
@@ -30,7 +30,6 @@ class AgentConfig(BaseModel):
     max_iterations: int = 10
     temperature: float = 0.7
     enable_memory: bool = True
-    memory_types: List[MemoryType] = [MemoryType.SHORT_TERM, MemoryType.WORKING]
 
 
 class AgentState(BaseModel):
@@ -86,12 +85,15 @@ class BaseAgent(ABC):
         # 从内存中获取上下文
         if self.config.enable_memory and context and context.get("message_id"):
             try:
-                # 这里需要一个 prompt_generator，暂时用简单的实现
+                # 使用现有的 MessageContext 实现
                 memory_messages = await self.memory_adapter.get_conversation_context(
                     context["message_id"],
                     lambda param: self.config.description
                 )
-                messages.extend(memory_messages)
+                # 只取非系统消息，避免重复系统提示词
+                for msg in memory_messages:
+                    if msg.get("role") != "system":
+                        messages.append(msg)
             except Exception as e:
                 logger.warning(f"Failed to load memory context: {e}")
         

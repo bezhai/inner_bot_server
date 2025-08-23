@@ -4,12 +4,12 @@
 """
 
 import logging
-from typing import Any, Optional, Set
+from typing import Any, Optional, Set, List
 from enum import Enum
 
 from pydantic import BaseModel
 
-from app.tools import get_tool_manager
+from app.tools import get_tool_manager, tool
 from app.tools.manager import ToolManager
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,46 @@ class ToolTag(str, Enum):
     MEMORY = "memory"
     SYSTEM = "system"
     DEBUG = "debug"
+
+
+def tagged_tool(
+    tags: List[ToolTag], 
+    name: str | None = None, 
+    description: str | None = None, 
+    enabled: bool = True
+):
+    """
+    带标签的工具装饰器，扩展现有的 @tool 装饰器
+    
+    Args:
+        tags: 工具标签列表
+        name: 工具名称，默认使用函数名
+        description: 工具描述，默认从docstring提取
+        enabled: 是否启用该工具
+    
+    用法:
+        @tagged_tool([ToolTag.BANGUMI, ToolTag.SEARCH])
+        def search_anime(query: str) -> str:
+            '''搜索动漫信息'''
+            return f"搜索结果: {query}"
+    """
+    def decorator(func):
+        # 先使用原有的 @tool 装饰器
+        wrapped_func = tool(name=name, description=description, enabled=enabled)(func)
+        
+        # 添加标签信息到装饰器属性
+        if hasattr(wrapped_func, '__tool_schema__'):
+            # 在工具的 metadata 中添加标签信息
+            if 'metadata' not in wrapped_func.__tool_schema__:
+                wrapped_func.__tool_schema__['metadata'] = {}
+            wrapped_func.__tool_schema__['metadata']['tags'] = [tag.value for tag in tags]
+        
+        # 为了向后兼容，也保存到函数属性
+        wrapped_func.__tool_tags__ = tags
+        
+        return wrapped_func
+    
+    return decorator
 
 
 class ToolInfo(BaseModel):
@@ -86,7 +126,7 @@ class MCPAdapter:
 
 
 class ToolAdapter:
-    """增强的工具适配器"""
+    """增强的工具适配器 - 基于现有工具系统"""
     
     def __init__(self, tool_manager: Optional[ToolManager] = None):
         self._tool_manager = tool_manager or get_tool_manager()
@@ -111,13 +151,19 @@ class ToolAdapter:
             # 获取工具元数据
             metadata = self._tool_manager.get_tool_metadata(tool_name)
             
-            # 从元数据中提取标签
+            # 从 schema 的 metadata 中提取标签（优先）
             tags = set()
-            if "tags" in metadata:
-                tags = {ToolTag(tag) for tag in metadata["tags"] if tag in ToolTag.__members__.values()}
+            schema_metadata = schema.get("metadata", {})
+            if "tags" in schema_metadata:
+                tags = {ToolTag(tag) for tag in schema_metadata["tags"] if tag in [t.value for t in ToolTag]}
             
-            # 根据工具名称自动推断标签
-            tags.update(self._infer_tags_from_name(tool_name))
+            # 从工具管理器的 metadata 中提取标签（备选）
+            if not tags and "tags" in metadata:
+                tags = {ToolTag(tag) for tag in metadata["tags"] if tag in [t.value for t in ToolTag]}
+            
+            # 根据工具名称自动推断标签（最后选择）
+            if not tags:
+                tags.update(self._infer_tags_from_name(tool_name))
             
             tool_info = ToolInfo(
                 name=tool_name,

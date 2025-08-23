@@ -44,11 +44,18 @@ async for chunk in adapter.chat_completion_stream(messages, config):
 
 ### 2. 工具适配层 (ToolAdapter)
 - **标签系统**: 基于标签的工具分类和过滤
-- **MCP 支持**: 预留 MCP 协议集成
+- **装饰器扩展**: 扩展现有 `@tool` 装饰器，支持 `@tagged_tool`
 - **智能推断**: 自动推断工具标签
+- **MCP 支持**: 预留 MCP 协议集成
 
 ```python
-from app.agents.framework.adapters.tool import ToolAdapter, ToolFilter, ToolTag
+from app.agents.framework.adapters.tool import tagged_tool, ToolTag, ToolFilter
+
+# 使用新的标签装饰器
+@tagged_tool([ToolTag.BANGUMI, ToolTag.SEARCH])
+async def search_anime(query: str) -> str:
+    """搜索动漫信息"""
+    return f"搜索结果: {query}"
 
 # 创建工具过滤器
 tool_filter = ToolFilter(
@@ -62,21 +69,19 @@ tools = adapter.get_tools_schema(tool_filter)
 ```
 
 ### 3. 内存适配层 (MemoryAdapter)
-- **多类型内存**: 短期记忆、长期记忆、工作记忆
-- **统一接口**: 兼容现有的 MessageContext 和 Qdrant 服务
-- **智能检索**: 支持相关性搜索
+- **直接复用**: 完全复用现有的 `MessageContext` 实现
+- **简单包装**: 提供统一的接口调用现有服务
+- **Memory 服务**: 直接调用 `memory_client.quick_search`
 
 ```python
-from app.agents.framework.adapters.memory import MemoryAdapter, MemoryQuery, MemoryType
+from app.agents.framework.adapters.memory import get_memory_adapter
 
-# 搜索相关记忆
+# 获取对话上下文（直接使用现有实现）
 adapter = get_memory_adapter()
-query = MemoryQuery(
-    query="AI 相关知识",
-    memory_type=MemoryType.LONG_TERM,
-    limit=5
+messages = await adapter.get_conversation_context(
+    message_id="msg_123",
+    prompt_generator=lambda param: "系统提示词"
 )
-memories = await adapter.retrieve_memory(query)
 ```
 
 ### 4. 基础 Agent 层
