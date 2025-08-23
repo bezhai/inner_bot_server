@@ -105,7 +105,7 @@ class OllamaProvider(BaseModelProvider):
 
 
 class ModelAdapter:
-    """模型适配器"""
+    """模型适配器 - 直接复用原有的 ChatService 回退逻辑"""
     
     def __init__(self):
         self._providers: dict[ModelProvider, BaseModelProvider] = {
@@ -113,71 +113,65 @@ class ModelAdapter:
             ModelProvider.OLLAMA: OllamaProvider(),
         }
     
-    def get_provider(self, provider: ModelProvider) -> BaseModelProvider:
-        """获取模型提供商"""
-        if provider not in self._providers:
-            raise ValueError(f"Unsupported provider: {provider}")
-        return self._providers[provider]
-    
-    async def chat_completion_stream(
-        self,
-        messages: list[dict[str, Any]],
-        config: ModelConfig,
-        tools: Optional[list[dict[str, Any]]] = None,
-        **kwargs
-    ) -> AsyncGenerator[StreamChunk, None]:
-        """统一的流式聊天完成接口"""
-        provider = self.get_provider(config.provider)
-        async for chunk in provider.chat_completion_stream(
-            messages=messages,
-            config=config,
-            tools=tools,
-            **kwargs
-        ):
-            yield chunk
-    
     async def chat_completion_stream_with_fallback(
         self,
         messages: list[dict[str, Any]],
         configs: list[ModelConfig],
         tools: Optional[list[dict[str, Any]]] = None,
+        yield_interval: float = 0.5,
         **kwargs
-    ) -> AsyncGenerator[StreamChunk, None]:
-        """支持回退的流式聊天完成"""
+    ) -> AsyncGenerator[ChatStreamChunk, None]:
+        """
+        支持回退的流式聊天完成 - 复用原有的多模型回退逻辑
+        """
+        from app.services.chat.message import AIChatService, ContentFilterError
+        from app.services.chat_service import ChatService
+        
         if not configs:
             raise ValueError("At least one model config is required")
         
-        accumulated_content = ""
+        # 转换为原有的模型配置格式
+        model_configs = [
+            {"id": config.model_id, "name": f"模型{i+1}"}
+            for i, config in enumerate(configs)
+        ]
         
-        for i, config in enumerate(configs):
+        accumulated_content = ChatStreamChunk(content="", reason_content="")
+        last_yield_time = asyncio.get_event_loop().time()
+        
+        for i, model_config in enumerate(model_configs):
             try:
-                logger.info(f"Trying model {config.model_id} ({config.provider})")
-                
-                async for chunk in self.chat_completion_stream(
+                # 使用原有的 _stream_with_model 逻辑
+                async for chunk in ChatService._stream_with_model(
                     messages=messages,
-                    config=config,
-                    tools=tools,
-                    **kwargs
+                    model_id=model_config["id"],
+                    yield_interval=yield_interval,
+                    accumulated=accumulated_content,
+                    last_yield_time=last_yield_time,
                 ):
-                    if chunk.content:
-                        accumulated_content += chunk.content
                     yield chunk
+                    last_yield_time = asyncio.get_event_loop().time()
                 
                 # 成功完成，直接返回
                 return
                 
-            except Exception as e:
-                if i < len(configs) - 1:
-                    logger.warning(f"Model {config.model_id} failed, trying next: {e}")
-                    # 如果有累积内容，将其添加到消息历史中
-                    if accumulated_content:
-                        messages.append({
-                            "role": "assistant", 
-                            "content": accumulated_content,
-                            "partial": True
-                        })
+            except ContentFilterError as e:
+                if i < len(model_configs) - 1:
+                    logger.warning(f"{model_config['name']}内容过滤，切换模型: {str(e)}")
+                    await ChatService._handle_partial_response(messages, accumulated_content)
+                    last_yield_time = asyncio.get_event_loop().time()
                 else:
-                    logger.error(f"All models failed, last error: {e}")
+                    logger.error(f"所有模型都因内容过滤失败: {str(e)}")
+                    yield ChatStreamChunk(content="赤尾有点不想讨论这个话题呢~")
+                    return
+                    
+            except Exception as e:
+                if i < len(model_configs) - 1:
+                    logger.warning(f"{model_config['name']}失败，切换模型: {str(e)}")
+                    await ChatService._handle_partial_response(messages, accumulated_content)
+                    last_yield_time = asyncio.get_event_loop().time()
+                else:
+                    logger.error(f"所有模型都失败: {str(e)}")
                     raise
 
 

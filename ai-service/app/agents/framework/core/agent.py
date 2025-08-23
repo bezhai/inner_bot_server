@@ -120,20 +120,17 @@ class BaseAgent(ABC):
 
 
 class SimpleAgent(BaseAgent):
-    """简单 Agent - 基本的 LLM 流式输出"""
+    """简单 Agent - 基本的 LLM 流式输出（不启用工具）"""
     
     async def process_stream(
         self,
         input_message: str,
         context: Optional[Dict[str, Any]] = None
     ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """简单的流式处理"""
+        """简单的流式处理 - 使用原有的 AIChatService 但禁用工具"""
         try:
             # 准备消息
             messages = await self._prepare_messages(input_message, context)
-            
-            # 获取工具（如果配置了）
-            tools = await self._get_available_tools()
             
             # 发送状态消息
             yield ChatStreamChunk(
@@ -143,17 +140,21 @@ class SimpleAgent(BaseAgent):
                 )
             )
             
-            # 使用模型适配器进行流式生成
-            async for chunk in self.model_adapter.chat_completion_stream_with_fallback(
+            # 使用原有的 AIChatService，但禁用工具
+            from app.services.chat.message import AIChatService
+            
+            # 使用第一个模型配置
+            model_id = self.config.model_configs[0].model_id
+            temperature = self.config.model_configs[0].temperature
+            
+            async for chunk in AIChatService.stream_ai_reply(
                 messages=messages,
-                configs=self.config.model_configs,
-                tools=tools
+                model_id=model_id,
+                temperature=temperature,
+                enable_tools=False,  # 简单 Agent 不启用工具
+                max_tool_iterations=1,
             ):
-                if chunk.content:
-                    yield ChatStreamChunk(content=chunk.content)
-                
-                if chunk.finish_reason and chunk.finish_reason != "tool_calls":
-                    break
+                yield chunk
             
             self.state.finished = True
             
@@ -164,20 +165,17 @@ class SimpleAgent(BaseAgent):
 
 
 class ReactAgent(BaseAgent):
-    """React Agent - 支持工具调用的推理-行动循环"""
+    """React Agent - 复用原有的 AIChatService 实现"""
     
     async def process_stream(
         self,
         input_message: str,
         context: Optional[Dict[str, Any]] = None
     ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """React 模式的流式处理"""
+        """直接使用原有的 AIChatService.stream_ai_reply"""
         try:
             # 准备消息
             messages = await self._prepare_messages(input_message, context)
-            
-            # 获取工具
-            tools = await self._get_available_tools()
             
             # 发送初始状态
             yield ChatStreamChunk(
@@ -187,122 +185,28 @@ class ReactAgent(BaseAgent):
                 )
             )
             
-            # React 循环
-            for iteration in range(self.config.max_iterations):
-                self.state.current_iteration = iteration
-                
-                logger.info(f"React iteration {iteration + 1}")
-                
-                # 使用模型生成响应
-                tool_calls = []
-                content_parts = []
-                
-                async for chunk in self.model_adapter.chat_completion_stream_with_fallback(
-                    messages=messages,
-                    configs=self.config.model_configs,
-                    tools=tools
-                ):
-                    # 处理内容
-                    if chunk.content:
-                        content_parts.append(chunk.content)
-                        yield ChatStreamChunk(content=chunk.content)
-                    
-                    # 处理工具调用
-                    if chunk.tool_calls:
-                        tool_calls.extend(chunk.tool_calls)
-                    
-                    # 检查是否完成
-                    if chunk.finish_reason:
-                        if chunk.finish_reason == "tool_calls":
-                            break
-                        elif chunk.finish_reason in ["stop", "length"]:
-                            self.state.finished = True
-                            return
-                
-                # 如果没有工具调用，结束循环
-                if not tool_calls:
-                    self.state.finished = True
-                    return
-                
-                # 添加助手消息到历史
-                if content_parts:
-                    messages.append({
-                        "role": "assistant",
-                        "content": "".join(content_parts),
-                        "tool_calls": tool_calls
-                    })
-                
-                # 执行工具调用
-                await self._execute_tool_calls(tool_calls, messages)
+            # 使用原有的 AIChatService，完全保持原有逻辑
+            from app.services.chat.message import AIChatService
             
-            # 如果达到最大迭代次数
-            logger.warning(f"Reached max iterations ({self.config.max_iterations})")
-            yield ChatStreamChunk(content="\n\n(已达到最大推理步数)")
+            # 使用第一个模型配置
+            model_id = self.config.model_configs[0].model_id
+            temperature = self.config.model_configs[0].temperature
+            
+            async for chunk in AIChatService.stream_ai_reply(
+                messages=messages,
+                model_id=model_id,
+                temperature=temperature,
+                enable_tools=self.config.tool_filter is not None,
+                max_tool_iterations=self.config.max_iterations,
+            ):
+                yield chunk
+            
+            self.state.finished = True
             
         except Exception as e:
             logger.error(f"ReactAgent error: {e}")
             self.state.error = str(e)
             yield ChatStreamChunk(content=f"处理请求时出现错误: {str(e)}")
-    
-    async def _execute_tool_calls(
-        self,
-        tool_calls: List[Dict[str, Any]],
-        messages: List[Dict[str, Any]]
-    ) -> None:
-        """执行工具调用"""
-        for tool_call in tool_calls:
-            try:
-                # 提取工具调用信息
-                if isinstance(tool_call, dict):
-                    tool_name = tool_call.get("function", {}).get("name")
-                    arguments_str = tool_call.get("function", {}).get("arguments", "{}")
-                    tool_call_id = tool_call.get("id", "")
-                else:
-                    # 处理其他格式的工具调用
-                    tool_name = getattr(tool_call, "function", {}).get("name")
-                    arguments_str = getattr(tool_call, "function", {}).get("arguments", "{}")
-                    tool_call_id = getattr(tool_call, "id", "")
-                
-                if not tool_name:
-                    continue
-                
-                # 发送工具调用状态
-                yield ChatStreamChunk(
-                    tool_call_feedback=ToolCallFeedbackResponse(
-                        name=tool_name,
-                        status_message=ToolStatusService.get_tool_status_message(tool_name)
-                    )
-                )
-                
-                # 解析参数
-                try:
-                    arguments = json.loads(arguments_str)
-                except json.JSONDecodeError:
-                    arguments = {}
-                
-                # 执行工具
-                result = await self.tool_adapter.execute_tool(tool_name, arguments)
-                
-                # 添加工具结果到消息历史
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call_id,
-                    "name": tool_name,
-                    "content": str(result)
-                })
-                
-                # 保存工具结果到状态
-                self.state.tool_results[tool_name] = result
-                
-            except Exception as e:
-                logger.error(f"Tool execution error for {tool_name}: {e}")
-                # 添加错误信息到消息历史
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call_id,
-                    "name": tool_name,
-                    "content": f"工具执行失败: {str(e)}"
-                })
 
 
 def create_agent(agent_type: str, config: AgentConfig) -> BaseAgent:

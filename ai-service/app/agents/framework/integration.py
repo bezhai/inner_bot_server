@@ -178,21 +178,19 @@ class FrameworkService:
     async def replace_current_chat_service(
         self,
         message_id: str,
-        agent_type: str = "react"
+        agent_type: str = "react",
+        yield_interval: float = 0.5,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """替换当前的聊天服务实现"""
+        """替换当前的聊天服务实现 - 完全复用原有逻辑"""
         try:
-            # 获取提示词（兼容现有系统）
-            prompt = await ChatPromptService.get_prompt({})
+            # 直接使用原有的 ChatService.generate_ai_reply 逻辑
+            from app.services.chat_service import ChatService
             
-            # 准备上下文
-            context = {
-                "message_id": message_id,
-                "prompt": prompt
-            }
-            
-            # 使用框架处理
-            async for chunk in self.process_with_agent(agent_type, "", context):
+            # 完全复用原有的生成逻辑，包括多模型回退、错误处理等
+            async for chunk in ChatService.generate_ai_reply(
+                message_id=message_id,
+                yield_interval=yield_interval,
+            ):
                 yield chunk
                 
         except Exception as e:
