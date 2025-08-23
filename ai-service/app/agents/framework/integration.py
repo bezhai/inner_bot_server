@@ -8,9 +8,11 @@ from typing import Any, Dict, Optional
 
 from .adapters.model import ModelConfig, ModelProvider
 from .adapters.tool import ToolFilter, ToolTag
-from .core.agent import AgentConfig, ReactAgent, SimpleAgent, create_agent
+from .core.react_agent import ReactAgent, SimpleAgent
+from .core.multi_model_agent import MultiModelAgent
 from .core.node import NodeConfig, AgentNode
 from .core.orchestrator import WorkflowConfig, NodeOrchestrator
+from .core.agent import AgentConfig
 
 from app.types.chat import ChatStreamChunk
 from app.services.chat.prompt import ChatPromptService
@@ -48,7 +50,7 @@ class FrameworkService:
             model_configs=default_models,
             enable_memory=True
         )
-        self._agents["simple"] = create_agent("simple", simple_config)
+        self._agents["simple"] = SimpleAgent(simple_config)
         
         # 创建智能助手（带工具）
         react_config = AgentConfig(
@@ -59,7 +61,18 @@ class FrameworkService:
             max_iterations=5,
             enable_memory=True
         )
-        self._agents["react"] = create_agent("react", react_config)
+        self._agents["react"] = ReactAgent(react_config)
+        
+        # 创建多模型回退助手
+        multi_model_config = AgentConfig(
+            name="多模型助手",
+            description="我是赤尾，一个支持多模型回退的AI助手。",
+            model_configs=default_models,
+            tool_filter=ToolFilter(enabled_only=True),
+            max_iterations=5,
+            enable_memory=True
+        )
+        self._agents["multi_model"] = MultiModelAgent(multi_model_config)
         
         # 创建 Bangumi 专用助手
         bangumi_config = AgentConfig(
@@ -70,7 +83,7 @@ class FrameworkService:
             max_iterations=3,
             enable_memory=True
         )
-        self._agents["bangumi"] = create_agent("react", bangumi_config)
+        self._agents["bangumi"] = ReactAgent(bangumi_config)
         
         logger.info("Created default agents: simple, react, bangumi")
     
@@ -178,19 +191,17 @@ class FrameworkService:
     async def replace_current_chat_service(
         self,
         message_id: str,
-        agent_type: str = "react",
+        agent_type: str = "multi_model",
         yield_interval: float = 0.5,
     ) -> AsyncGenerator[ChatStreamChunk, None]:
-        """替换当前的聊天服务实现 - 完全复用原有逻辑"""
+        """替换当前的聊天服务实现 - 使用 Agent 层"""
         try:
-            # 直接使用原有的 ChatService.generate_ai_reply 逻辑
-            from app.services.chat_service import ChatService
+            # 使用多模型回退 Agent，它包含了原有的所有逻辑
+            agent = self.get_agent(agent_type) or self.get_agent("multi_model")
             
-            # 完全复用原有的生成逻辑，包括多模型回退、错误处理等
-            async for chunk in ChatService.generate_ai_reply(
-                message_id=message_id,
-                yield_interval=yield_interval,
-            ):
+            context = {"message_id": message_id}
+            
+            async for chunk in agent.process_stream("", context):
                 yield chunk
                 
         except Exception as e:
