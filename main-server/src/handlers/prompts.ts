@@ -1,5 +1,5 @@
 import Router from '@koa/router';
-import { listPrompts, upsertPrompt } from '../services/prompts/prompt';
+import { getPromptById, listPrompts, upsertPrompt } from '../services/prompts/prompt';
 import { Prompt } from '../dal/entities';
 
 const router = new Router({ prefix: '/api/prompts' });
@@ -22,6 +22,34 @@ router.get('/', async (ctx) => {
         ctx.status = 500;
     }
 });
+// 获取指定ID的提示词模板
+router.get('/:id', async (ctx) => {
+    try {
+        const { id } = ctx.params;
+        const prompt = await getPromptById(id);
+        if (!prompt) {
+            ctx.body = {
+                success: false,
+                message: 'Prompt not found',
+            };
+            ctx.status = 404;
+            return;
+        }
+        ctx.body = {
+            success: true,
+            data: prompt,
+            message: 'Prompt retrieved successfully',
+        };
+        ctx.status = 200;
+    } catch (error) {
+        ctx.body = {
+            success: false,
+            message: error instanceof Error ? error.message : 'Failed to retrieve prompt',
+        };
+        ctx.status = 500;
+    }
+});
+
 
 // 创建或更新提示词模板
 router.post('/', async (ctx) => {
