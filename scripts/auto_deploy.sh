@@ -18,12 +18,6 @@ log() {
 
 # 发送飞书通知
 send_feishu_notification() {
-  # 加载.env文件中的环境变量
-  if [ -f "$PROJECT_DIR/.env" ]; then
-    log "加载环境变量文件"
-    source "$PROJECT_DIR/.env"
-  fi
-  
   # 检查webhook URL是否存在
   if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
     log "警告: DEPLOY_WEBHOOK_URL 环境变量未设置，无法发送通知"
@@ -71,6 +65,12 @@ PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 # 进入项目目录
 cd $PROJECT_DIR
 log "进入项目目录: $PROJECT_DIR"
+
+# 加载环境变量文件
+if [ -f "$PROJECT_DIR/.env" ]; then
+  log "加载环境变量文件"
+  source "$PROJECT_DIR/.env"
+fi
 
 # 记录开始检查
 log "开始检查代码更新"
