@@ -75,6 +75,14 @@ log "进入项目目录: $PROJECT_DIR"
 # 记录开始检查
 log "开始检查代码更新"
 
+# 检查并执行Proxy on命令（如果存在）
+if command -v Proxy >/dev/null 2>&1 && Proxy on >/dev/null 2>&1; then
+    log "检测到Proxy命令，执行Proxy on"
+    Proxy on
+else
+    log "未检测到Proxy命令，跳过代理设置"
+fi
+
 # 拉取最新的远程分支信息但不合并
 git fetch
 if [ $? -ne 0 ]; then
@@ -136,6 +144,14 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   fi
 else
   log "没有检测到代码更新，跳过部署"
+fi
+
+# 检查并执行Proxy off命令（如果存在）
+if command -v Proxy >/dev/null 2>&1 && Proxy off >/dev/null 2>&1; then
+    log "执行Proxy off"
+    Proxy off
+else
+    log "未检测到Proxy命令，跳过代理关闭"
 fi
 
 # 删除锁文件
