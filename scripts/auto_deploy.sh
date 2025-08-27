@@ -75,13 +75,32 @@ log "进入项目目录: $PROJECT_DIR"
 # 记录开始检查
 log "开始检查代码更新"
 
-# 检查并执行Proxy on命令（如果存在）
-if command -v Proxy >/dev/null 2>&1 && Proxy on >/dev/null 2>&1; then
-    log "检测到Proxy命令，执行Proxy on"
-    Proxy on
-else
-    log "未检测到Proxy命令，跳过代理设置"
-fi
+# 设置代理环境变量
+set_proxy() {
+    # 从环境变量读取代理配置
+    if [ -n "$PROXY_HOST" ] && [ -n "$PROXY_PORT" ]; then
+        export https_proxy="http://$PROXY_HOST:$PROXY_PORT"
+        export http_proxy="http://$PROXY_HOST:$PROXY_PORT"
+        log "已设置代理: http://$PROXY_HOST:$PROXY_PORT"
+    elif [ -n "$HTTP_PROXY" ] || [ -n "$HTTPS_PROXY" ]; then
+        # 如果已存在代理环境变量，直接使用
+        export http_proxy="$HTTP_PROXY"
+        export https_proxy="$HTTPS_PROXY"
+        log "使用现有代理配置"
+    else
+        log "未配置代理，跳过代理设置"
+    fi
+}
+
+# 清除代理环境变量
+unset_proxy() {
+    unset https_proxy
+    unset http_proxy
+    log "已清除代理设置"
+}
+
+# 设置代理
+set_proxy
 
 # 拉取最新的远程分支信息但不合并
 git fetch
@@ -146,13 +165,8 @@ else
   log "没有检测到代码更新，跳过部署"
 fi
 
-# 检查并执行Proxy off命令（如果存在）
-if command -v Proxy >/dev/null 2>&1 && Proxy off >/dev/null 2>&1; then
-    log "执行Proxy off"
-    Proxy off
-else
-    log "未检测到Proxy命令，跳过代理关闭"
-fi
+# 清除代理设置
+unset_proxy
 
 # 删除锁文件
 rm -f $LOCK_FILE
