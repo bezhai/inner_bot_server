@@ -2,6 +2,7 @@ import asyncio
 import random
 from datetime import datetime
 
+import arrow
 import httpx
 from pydantic import BaseModel, field_validator
 
@@ -149,15 +150,13 @@ async def search_donjin_event(
 
     mid_result = CppSearchMidResult(**data["result"])
 
-    def ms_timestamp_to_ymd(ms_timestamp):
+    def transform_time(input):
         """
-        将毫秒级时间戳转换为'YYYY-MM-DD'格式（本地时间）。
-        :param ms_timestamp: int 或 float，毫秒级时间戳
+        将时间转换为'YYYY-MM-DD'格式（本地时间）。
+        :param input: 时间
         :return: str，格式为'YYYY-MM-DD'的日期字符串
         """
-        sec_timestamp = ms_timestamp / 1000
-        dt = datetime.fromtimestamp(sec_timestamp)
-        return dt.strftime("%Y-%m-%d")
+        return arrow.get(input).format("YYYY-MM-DD")
 
     return CppSearchResultList(
         list=[
@@ -166,10 +165,8 @@ async def search_donjin_event(
                 name=item.name,
                 type=item.type,
                 tag=item.tag,
-                enter_time=ms_timestamp_to_ymd(item.enterTime)
-                if item.enterTime
-                else "",
-                end_time=ms_timestamp_to_ymd(item.endTime) if item.endTime else "",
+                enter_time=transform_time(item.enterTime) if item.enterTime else "",
+                end_time=transform_time(item.endTime) if item.endTime else "",
                 wanna_go_count=item.wannaGoCount,
                 prov_name=item.provName or "",
                 city_name=item.cityName or "",
