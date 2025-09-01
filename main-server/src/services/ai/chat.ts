@@ -1,11 +1,7 @@
 import { StreamAction } from 'types/ai';
 import { ChatMessage, ChatRequest, ChatResponse, Step } from 'types/chat';
-import { SSEClient } from 'utils/sse/client';
 import { ChatStateMachineManager } from './chat-state-machine';
-import { context } from '../../middleware/context';
 import { storeMessage } from 'services/integrations/memory';
-
-const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
 
 /**
  * 扩展版本：支持更多回调和状态监控
@@ -24,21 +20,9 @@ export interface SSEChatOptions {
 }
 
 /**
- * 向ai-service发送sse请求
+ * 直接调用本地AI服务进行聊天处理
  */
 export async function sseChat(options: SSEChatOptions): Promise<() => void> {
-    const client = new SSEClient<ChatResponse>(`${BASE_URL}/chat/sse`, {
-        method: 'POST' as const,
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Trace-Id': context.getTraceId(),
-        },
-        body: options.req,
-        retries: 5, // 增加重试次数以处理504等网络错误
-        retryDelay: 2000, // 增加重试延迟
-        autoReconnect: true,
-    });
-
     const stateMachine = new ChatStateMachineManager({
         onAccept: options.onAccept,
         onStartReply: options.onStartReply,
@@ -56,39 +40,52 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
         onEnd: options.onEnd,
     });
 
-    const onMessage = async (message: ChatResponse) => {
+    const processChat = async () => {
         try {
-            const previousState = stateMachine.getCurrentState();
+            // 直接调用本地AI聊天服务
+            const { AiChatService } = await import('./chat-service');
+            const chatStream = AiChatService.processChatSse(options.req);
 
-            const stateData = {
-                step: message.step,
-                content: 'content' in message ? message.content : undefined,
-                reason_content: 'reason_content' in message ? message.reason_content : undefined,
-                tool_call_feedback: 'tool_call_feedback' in message ? message.tool_call_feedback : undefined,
-                status_message: 'status_message' in message ? message.status_message : undefined,
-            };
+            for await (const message of chatStream) {
+                try {
+                    const previousState = stateMachine.getCurrentState();
 
-            const success = await stateMachine.handleResponse(stateData);
+                    const stateData = {
+                        step: message.step,
+                        content: 'content' in message ? message.content : undefined,
+                        reason_content: 'reason_content' in message ? message.reason_content : undefined,
+                        tool_call_feedback: 'tool_call_feedback' in message ? message.tool_call_feedback : undefined,
+                        status_message: 'status_message' in message ? message.status_message : undefined,
+                    };
 
-            if (success && options.onStateChange) {
-                options.onStateChange(previousState, message.step);
-            }
+                    const success = await stateMachine.handleResponse(stateData);
 
-            if (!success) {
-                console.warn('状态转换失败，忽略响应:', message);
+                    if (success && options.onStateChange) {
+                        options.onStateChange(previousState, message.step);
+                    }
+
+                    if (!success) {
+                        console.warn('状态转换失败，忽略响应:', message);
+                    }
+                } catch (error) {
+                    console.error('处理聊天响应时出错:', error);
+                    await stateMachine.forceEnd(error instanceof Error ? error : new Error(String(error)));
+                    break;
+                }
             }
         } catch (error) {
-            console.error('处理聊天响应时出错:', error);
+            console.error('AI聊天服务调用失败:', error);
+            // 确保在失败时也会触发失败回调
+            await stateMachine.handleResponse({ step: Step.FAILED });
             await stateMachine.forceEnd(error instanceof Error ? error : new Error(String(error)));
         }
     };
 
-    const onError = async (error: unknown) => {
-        console.error('SSE 连接错误:', error);
-        // 确保在失败时也会触发失败回调
-        await stateMachine.handleResponse({ step: Step.FAILED });
-        await stateMachine.forceEnd(error instanceof Error ? error : new Error(String(error)));
-    };
+    // 异步执行聊天处理
+    processChat();
 
-    return client.connect((message) => onMessage(message.data), onError);
+    // 返回一个空的取消函数（保持接口兼容）
+    return () => {
+        // 目前没有取消机制，可以后续实现
+    };
 }
