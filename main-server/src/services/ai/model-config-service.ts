@@ -4,7 +4,7 @@
  */
 
 import { DataSource } from 'typeorm';
-import { ModelProvider, AiModel } from '../../dal/entities';
+import { ModelProvider } from '../../dal/entities';
 import logger from '../logger';
 
 /**
@@ -84,61 +84,5 @@ export class ModelConfigService {
         }
     }
 
-    /**
-     * 获取所有可用的模型列表
-     */
-    static async getAvailableModels(): Promise<AiModel[]> {
-        try {
-            const AppDataSource = (global as any).AppDataSource as DataSource;
-            if (!AppDataSource) {
-                throw new Error('数据库连接未初始化');
-            }
 
-            const aiModelRepo = AppDataSource.getRepository(AiModel);
-            
-            const models = await aiModelRepo.find({
-                where: { isActive: true },
-                relations: ['provider'],
-                order: { isDefault: 'DESC', createdAt: 'ASC' }
-            });
-
-            return models;
-
-        } catch (error) {
-            logger.error('获取可用模型列表失败', { error });
-            return [];
-        }
-    }
-
-    /**
-     * 获取默认模型配置
-     */
-    static async getDefaultModelConfigs(): Promise<{ id: string; name: string }[]> {
-        try {
-            const models = await this.getAvailableModels();
-            
-            // 如果没有配置，返回硬编码的默认配置
-            if (models.length === 0) {
-                logger.warn('数据库中没有可用模型，使用硬编码配置');
-                return [
-                    { id: '302.ai/gpt-4.1', name: '主模型' },
-                    { id: 'Moonshot/kimi-k2-0711-preview', name: '备用模型' },
-                ];
-            }
-
-            // 转换为配置格式
-            return models.map(model => ({
-                id: `${model.provider.name}/${model.modelName || model.modelId}`,
-                name: model.name,
-            }));
-
-        } catch (error) {
-            logger.error('获取默认模型配置失败', { error });
-            // 返回硬编码配置作为后备
-            return [
-                { id: '302.ai/gpt-4.1', name: '主模型' },
-                { id: 'Moonshot/kimi-k2-0711-preview', name: '备用模型' },
-            ];
-        }
-    }
 }

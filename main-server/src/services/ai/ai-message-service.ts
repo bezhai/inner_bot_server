@@ -7,7 +7,6 @@ import { ChatStreamChunk, ContentFilterError, ModelConfig, PromptGeneratorParam 
 import { StreamProcessor } from '../../core/ai/stream-processor';
 import { MessageContext } from './context-service';
 import { ChatPromptService } from './prompt-service';
-import { ModelConfigService } from './model-config-service';
 import logger from '../logger';
 
 /**
@@ -26,8 +25,11 @@ export class AiMessageService {
     ): AsyncGenerator<ChatStreamChunk, void, unknown> {
         const { yieldInterval = 0.5 } = options;
         
-        // 获取模型配置（从数据库或使用默认配置）
-        const modelConfigs = options.modelConfigs || await ModelConfigService.getDefaultModelConfigs();
+        // 使用写死的模型配置（与ai-service保持一致）
+        const modelConfigs = options.modelConfigs || [
+            { id: '302.ai/gpt-4.1', name: '主模型' },
+            { id: 'Moonshot/kimi-k2-0711-preview', name: '备用模型' },
+        ];
 
         try {
             // 获取系统提示词

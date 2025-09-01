@@ -10,4 +10,3 @@ export * from './response-feedback';
 export * from './prompt';
 export * from './bot-config';
 export * from './model-provider';
-export * from './ai-model';
