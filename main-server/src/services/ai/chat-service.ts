@@ -5,6 +5,7 @@
 
 import { ChatRequest, ChatResponse, Step } from '../../types/chat';
 import { AiMessageService } from './ai-message-service';
+import { ToolStatusService } from './tool-status-service';
 import logger from '../logger';
 import Redis from 'ioredis';
 
@@ -60,7 +61,7 @@ export class AiChatService {
             // 发送初始状态消息
             yield {
                 step: Step.SEND,
-                status_message: this.getDefaultStatusMessage('thinking'),
+                status_message: ToolStatusService.getDefaultStatusMessage('thinking'),
             };
 
             // 3. 生成并发送回复
@@ -107,15 +108,6 @@ export class AiChatService {
         }
     }
 
-    /**
-     * 获取默认状态消息
-     */
-    private static getDefaultStatusMessage(status: string): string {
-        const statusMessages: Record<string, string> = {
-            thinking: '思考中...',
-            replying: '回复中...',
-        };
-        return statusMessages[status] || '处理中...';
-    }
+
 }
 

@@ -5,6 +5,8 @@
 
 import { ChatStreamChunk, ContentFilterError, hasContent } from '../../types/ai-chat';
 import { ModelClient } from './model-client';
+import { ToolStatusService } from '../../services/ai/tool-status-service';
+import { getToolManager } from '../../services/ai/tool-manager';
 import logger from '../../services/logger';
 
 /**
@@ -29,8 +31,17 @@ export class StreamProcessor {
         let lastYieldTime = Date.now();
 
         try {
-            // 获取工具配置 (简化版，实际应该从工具管理器获取)
-            const tools = enableTools ? [] : undefined; // TODO: 集成工具管理器
+            // 获取工具配置
+            let tools: any[] | undefined;
+            if (enableTools) {
+                try {
+                    const toolManager = getToolManager();
+                    tools = toolManager.getToolsSchema();
+                } catch (error) {
+                    logger.warn('工具管理器未初始化，禁用工具调用', { error });
+                    tools = undefined;
+                }
+            }
 
             const stream = ModelClient.chatCompletionStream(modelId, messages, {
                 temperature,
@@ -43,8 +54,9 @@ export class StreamProcessor {
                     const firstToolCall = chunk.delta.tool_calls[0];
                     if (firstToolCall?.function?.name) {
                         const toolName = firstToolCall.function.name;
-                        // TODO: 集成工具状态服务
-                        const statusMessage = `正在使用 ${toolName}...`;
+                        const statusMessage = ToolStatusService.getToolStatusMessage(toolName);
+                        
+                        logger.info(`工具调用: ${toolName}, 状态消息: ${statusMessage}`);
                         
                         yield {
                             tool_call_feedback: {

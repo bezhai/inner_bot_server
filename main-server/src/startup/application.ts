@@ -4,6 +4,7 @@ import { multiBotManager } from '../utils/bot/multi-bot-manager';
 import { botInitialization } from '../services/initialize/main';
 import { initializeLarkClients } from '../services/integrations/lark-client';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
+import { initToolManager } from '../services/ai/tool-manager';
 
 /**
  * 应用程序配置
@@ -41,11 +42,15 @@ export class ApplicationManager {
         await initializeLarkClients();
         console.info('Lark client pool initialized!');
 
-        // 4. 初始化机器人
+        // 4. 初始化AI工具管理器
+        initToolManager();
+        console.info('Tool manager initialized!');
+
+        // 5. 初始化机器人
         await botInitialization();
         console.info('Bot initialized successfully!');
 
-        // 5. 显示当前加载的机器人配置
+        // 6. 显示当前加载的机器人配置
         this.logBotConfigurations();
 
         console.info('Application initialization completed!');

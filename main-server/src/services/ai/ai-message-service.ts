@@ -6,6 +6,8 @@
 import { ChatStreamChunk, ContentFilterError, ModelConfig, PromptGeneratorParam } from '../../types/ai-chat';
 import { StreamProcessor } from '../../core/ai/stream-processor';
 import { MessageContext } from './context-service';
+import { ChatPromptService } from './prompt-service';
+import { ModelConfigService } from './model-config-service';
 import logger from '../logger';
 
 /**
@@ -24,17 +26,18 @@ export class AiMessageService {
     ): AsyncGenerator<ChatStreamChunk, void, unknown> {
         const { yieldInterval = 0.5 } = options;
         
-        // 默认模型配置
-        const modelConfigs = options.modelConfigs || [
-            { id: '302.ai/gpt-4.1', name: '主模型' },
-            { id: 'Moonshot/kimi-k2-0711-preview', name: '备用模型' },
-        ];
+        // 获取模型配置（从数据库或使用默认配置）
+        const modelConfigs = options.modelConfigs || await ModelConfigService.getDefaultModelConfigs();
 
         try {
-            // 获取上下文消息
-            const prompt = await AiMessageService.getPrompt({});
-            const messageContext = new MessageContext(messageId, () => prompt);
+            // 获取系统提示词
+            const prompt = await ChatPromptService.getPrompt({});
+            
+            // 创建消息上下文并初始化
+            const messageContext = new MessageContext(messageId, (param) => prompt);
             await messageContext.initContextMessages();
+            
+            // 构建完整消息列表
             const messages = messageContext.build({});
 
             let accumulated: ChatStreamChunk = { content: '', reason_content: '' };
@@ -121,13 +124,7 @@ export class AiMessageService {
         }
     }
 
-    /**
-     * 获取提示词 (简化实现)
-     */
-    private static async getPrompt(_param: PromptGeneratorParam): Promise<string> {
-        // TODO: 集成提示词服务
-        return '你是赤尾，一个可爱的AI助手。';
-    }
+
 
     /**
      * 处理部分响应

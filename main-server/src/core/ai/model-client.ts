@@ -5,18 +5,10 @@
 
 import OpenAI from 'openai';
 import { ContentFilterError } from '../../types/ai-chat';
+import { ModelConfigService, ModelConfigInfo } from '../../services/ai/model-config-service';
 import logger from '../../services/logger';
 
-/**
- * 模型信息接口
- */
-interface ModelInfo {
-    model_id: string;
-    provider_name: string;
-    api_key: string;
-    base_url: string;
-    model_name: string;
-}
+
 
 /**
  * 聊天完成流响应
@@ -39,37 +31,19 @@ interface ChatCompletionStreamResponse {
  */
 export class ModelClient {
     private static clientCache: Map<string, OpenAI> = new Map();
-    private static modelInfoCache: Map<string, ModelInfo> = new Map();
+    private static modelInfoCache: Map<string, ModelConfigInfo> = new Map();
 
     /**
-     * 获取模型信息 (简化版，实际应该从数据库获取)
+     * 获取模型信息（从数据库获取）
      */
-    private static async getModelInfo(modelId: string): Promise<ModelInfo> {
+    private static async getModelInfo(modelId: string): Promise<ModelConfigInfo> {
         if (this.modelInfoCache.has(modelId)) {
             return this.modelInfoCache.get(modelId)!;
         }
 
-        // TODO: 从数据库获取模型信息，这里先用硬编码
-        const modelConfigs: Record<string, ModelInfo> = {
-            '302.ai/gpt-4.1': {
-                model_id: '302.ai/gpt-4.1',
-                provider_name: '302.ai',
-                api_key: process.env.AI_302_API_KEY || '',
-                base_url: 'https://api.302.ai/v1',
-                model_name: 'gpt-4.1'
-            },
-            'Moonshot/kimi-k2-0711-preview': {
-                model_id: 'Moonshot/kimi-k2-0711-preview',
-                provider_name: 'Moonshot',
-                api_key: process.env.AI_MOONSHOT_API_KEY || '',
-                base_url: 'https://api.moonshot.cn/v1',
-                model_name: 'kimi-k2-0711-preview'
-            }
-        };
-
-        const modelInfo = modelConfigs[modelId];
+        const modelInfo = await ModelConfigService.getModelAndProviderInfo(modelId);
         if (!modelInfo) {
-            throw new Error(`Model ${modelId} not found`);
+            throw new Error(`Model ${modelId} not found in database`);
         }
 
         this.modelInfoCache.set(modelId, modelInfo);

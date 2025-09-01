@@ -1,9 +1,10 @@
 /**
  * @file context-service.ts
- * @description 消息上下文服务，负责获取和管理聊天上下文
+ * @description 消息上下文服务，负责获取和管理聊天上下文，完整迁移自ai-service
  */
 
 import { ChatSimpleMessage, PromptGeneratorParam } from '../../types/ai-chat';
+import { memoryClient } from '../integrations/memory-client';
 import logger from '../logger';
 import Redis from 'ioredis';
 
@@ -25,15 +26,11 @@ export class MessageContext {
     }
 
     /**
-     * 初始化上下文消息
+     * 使用Memory服务构建上下文消息
      */
     async initContextMessages(): Promise<void> {
         try {
             logger.info(`使用Memory服务构建上下文: message_id=${this.messageId}`);
-
-            // TODO: 集成memory服务，这里先用简化实现
-            // 实际应该调用memory服务的quick_search接口
-            const results = await this.getMemoryResults();
 
             // 获取Redis实例用于检查锁状态
             const redis = new Redis({
@@ -42,6 +39,14 @@ export class MessageContext {
                 password: process.env.REDIS_PASSWORD,
             });
 
+            // 调用Memory服务的quick_search接口
+            const results = await memoryClient.quickSearch(
+                this.messageId,
+                undefined, // query参数为空
+                20 // max_results
+            );
+
+            // 将Memory返回的结果转换为ChatSimpleMessage
             this.contextMessages = [];
 
             for (const result of results) {
@@ -89,19 +94,7 @@ export class MessageContext {
         }
     }
 
-    /**
-     * 获取Memory服务结果 (简化实现)
-     */
-    private async getMemoryResults(): Promise<Array<{
-        message_id: string;
-        user_name: string;
-        role: string;
-        content: string;
-    }>> {
-        // TODO: 实际应该调用memory服务的API
-        // 这里返回空数组作为占位符
-        return [];
-    }
+
 
     /**
      * 添加临时消息
