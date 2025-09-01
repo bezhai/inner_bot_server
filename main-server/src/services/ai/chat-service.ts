@@ -6,28 +6,13 @@
 import { ChatRequest, ChatResponse, Step } from '../../types/chat';
 import { AiMessageService } from './ai-message-service';
 import { ToolStatusService } from './tool-status-service';
+import { setWithExpire, del } from '../../dal/redis';
 import logger from '../logger';
-import Redis from 'ioredis';
 
 /**
  * AI聊天服务类 (重命名避免与现有ChatService冲突)
  */
 export class AiChatService {
-    private static redis: Redis;
-
-    /**
-     * 获取Redis实例
-     */
-    private static getRedis(): Redis {
-        if (!this.redis) {
-            this.redis = new Redis({
-                host: process.env.REDIS_HOST || 'localhost',
-                port: parseInt(process.env.REDIS_PORT || '6379'),
-                password: process.env.REDIS_PASSWORD,
-            });
-        }
-        return this.redis;
-    }
 
     /**
      * 处理SSE聊天流程
@@ -39,13 +24,12 @@ export class AiChatService {
         } = {}
     ): AsyncGenerator<ChatResponse, void, unknown> {
         const { yieldInterval = 0.5 } = options;
-        const redis = this.getRedis();
         const lockKey = `msg_lock:${request.message_id}`;
 
         try {
             // 加锁，过期时间60秒
             try {
-                await redis.set(lockKey, '1', 'EX', 60, 'NX');
+                await setWithExpire(lockKey, '1', 60);
                 logger.info(`消息锁定成功: ${request.message_id}`);
             } catch (error) {
                 logger.warn(`消息加锁失败: ${request.message_id}`, { error });
@@ -97,7 +81,7 @@ export class AiChatService {
         } finally {
             // 解锁
             try {
-                await redis.del(lockKey);
+                await del(lockKey);
                 logger.info(`消息解锁成功: ${request.message_id}`);
             } catch (error) {
                 logger.warn(`消息解锁失败: ${request.message_id}`, { error });

@@ -5,8 +5,8 @@
 
 import { ChatSimpleMessage, PromptGeneratorParam } from '../../types/ai-chat';
 import { memoryClient } from '../integrations/memory-client';
+import { exists } from '../../dal/redis';
 import logger from '../logger';
-import Redis from 'ioredis';
 
 /**
  * 消息上下文管理类
@@ -32,13 +32,6 @@ export class MessageContext {
         try {
             logger.info(`使用Memory服务构建上下文: message_id=${this.messageId}`);
 
-            // 获取Redis实例用于检查锁状态
-            const redis = new Redis({
-                host: process.env.REDIS_HOST || 'localhost',
-                port: parseInt(process.env.REDIS_PORT || '6379'),
-                password: process.env.REDIS_PASSWORD,
-            });
-
             // 调用Memory服务的quick_search接口
             const results = await memoryClient.quickSearch(
                 this.messageId,
@@ -57,7 +50,7 @@ export class MessageContext {
                     // 检查其他消息是否被锁定，如果被锁定则跳过
                     try {
                         const lockKey = `msg_lock:${resultMessageId}`;
-                        const isLocked = await redis.exists(lockKey);
+                        const isLocked = await exists(lockKey);
                         if (isLocked) {
                             logger.info(`跳过被锁定的消息: ${resultMessageId}`);
                             continue;
@@ -77,7 +70,6 @@ export class MessageContext {
                 this.contextMessages.push(simpleMessage);
             }
 
-            await redis.quit();
             logger.info(`Memory上下文构建完成，包含 ${this.contextMessages.length} 条消息`);
 
         } catch (error) {

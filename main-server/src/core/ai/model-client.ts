@@ -5,7 +5,8 @@
 
 import OpenAI from 'openai';
 import { ContentFilterError } from '../../types/ai-chat';
-import { ModelConfigService, ModelConfigInfo } from '../../services/ai/model-config-service';
+import { DataSource } from 'typeorm';
+import { ModelProvider } from '../../dal/entities';
 import logger from '../../services/logger';
 
 
@@ -27,6 +28,17 @@ interface ChatCompletionStreamResponse {
 }
 
 /**
+ * 模型配置信息接口
+ */
+interface ModelConfigInfo {
+    model_id: string;
+    provider_name: string;
+    api_key: string;
+    base_url: string;
+    model_name: string;
+}
+
+/**
  * AI模型客户端类
  */
 export class ModelClient {
@@ -34,20 +46,68 @@ export class ModelClient {
     private static modelInfoCache: Map<string, ModelConfigInfo> = new Map();
 
     /**
-     * 获取模型信息（从数据库获取）
+     * 解析model_id格式："{供应商名称}/模型原名"
+     */
+    private static parseModelId(modelId: string): [string, string] {
+        if (modelId.includes('/')) {
+            const [providerName, modelName] = modelId.split('/', 2);
+            return [providerName.trim(), modelName.trim()];
+        } else {
+            // 如果没有/，使用默认供应商302.ai
+            return ['302.ai', modelId.trim()];
+        }
+    }
+
+    /**
+     * 获取模型信息（从数据库获取供应商配置）
      */
     private static async getModelInfo(modelId: string): Promise<ModelConfigInfo> {
         if (this.modelInfoCache.has(modelId)) {
             return this.modelInfoCache.get(modelId)!;
         }
 
-        const modelInfo = await ModelConfigService.getModelAndProviderInfo(modelId);
-        if (!modelInfo) {
-            throw new Error(`Model ${modelId} not found in database`);
-        }
+        try {
+            const [providerName, actualModelName] = this.parseModelId(modelId);
 
-        this.modelInfoCache.set(modelId, modelInfo);
-        return modelInfo;
+            // 获取数据库连接
+            const AppDataSource = (global as any).AppDataSource as DataSource;
+            if (!AppDataSource) {
+                throw new Error('数据库连接未初始化');
+            }
+
+            const modelProviderRepo = AppDataSource.getRepository(ModelProvider);
+
+            // 直接查询供应商信息
+            let provider = await modelProviderRepo.findOne({
+                where: { name: providerName }
+            });
+
+            // 如果找不到指定供应商，尝试使用默认的302.ai
+            if (!provider) {
+                provider = await modelProviderRepo.findOne({
+                    where: { name: '302.ai' }
+                });
+            }
+
+            if (!provider) {
+                throw new Error(`未找到供应商配置: ${providerName}`);
+            }
+
+            const modelInfo: ModelConfigInfo = {
+                model_id: modelId,
+                provider_name: provider.name,
+                api_key: provider.apiKey,
+                base_url: provider.baseUrl,
+                model_name: actualModelName,
+            };
+
+            this.modelInfoCache.set(modelId, modelInfo);
+            return modelInfo;
+
+        } catch (error) {
+            logger.error(`获取模型配置失败: ${modelId}`, { error });
+            throw error;
+        }
     }
 
     /**
