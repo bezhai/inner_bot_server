@@ -61,6 +61,7 @@
         "reflect-metadata": "^0.2.1",
         "saslprep": "^1.0.3",
         "typeorm": "^0.3.17",
-        "winston": "^3.11.0"
+        "winston": "^3.11.0",
+        "zod": "^3.25.76"
     }
 }
