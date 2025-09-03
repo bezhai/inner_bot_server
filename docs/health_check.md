@@ -23,7 +23,6 @@
 | 服务名称 | 检查方式 | 检查点 | 健康状态判断 |
 |---------|---------|-------|------------|
 | main-server | HTTP | <http://localhost:3000/api/health> | 返回状态码200 |
-| ai-service | HTTP | <http://localhost:8000/health> | 返回状态码200 |
 | redis | 专用检查 | localhost:6379 | 端口可连接 |
 | mongo | 专用检查 | localhost:27017 | 端口可连接 |
 | postgres | 专用检查 | localhost:5432 | 端口可连接 |
@@ -34,7 +33,6 @@
 
 1. **Docker容器状态**：检查所有必要的容器是否在运行
    - app (main-server)
-   - ai-app (ai-service)
    - redis
    - mongo
    - postgres

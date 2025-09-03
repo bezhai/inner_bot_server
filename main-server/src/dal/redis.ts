@@ -67,6 +67,14 @@ export async function get(key: string): Promise<string | null> {
     return redis.get(key);
 }
 
+export async function del(key: string): Promise<number> {
+    return redis.del(key);
+}
+
+export async function exists(key: string): Promise<number> {
+    return redis.exists(key);
+}
+
 /**
  * 发布消息到Redis频道
  * @param channel 频道名

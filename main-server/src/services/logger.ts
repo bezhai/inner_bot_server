@@ -148,7 +148,7 @@ export class LoggerFactory {
         // eslint-disable-next-line no-console
         console.log = (...args) => {
             const traceId = context.getTraceId();
-            logger.info(
+            console.info(
                 args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
                 { traceId },
             );
@@ -156,7 +156,7 @@ export class LoggerFactory {
 
         console.error = (...args) => {
             const traceId = context.getTraceId();
-            logger.error(
+            console.error(
                 args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
                 { traceId },
             );
@@ -164,7 +164,7 @@ export class LoggerFactory {
 
         console.info = (...args) => {
             const traceId = context.getTraceId();
-            logger.info(
+            console.info(
                 args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
                 { traceId },
             );
@@ -172,7 +172,7 @@ export class LoggerFactory {
 
         console.warn = (...args) => {
             const traceId = context.getTraceId();
-            logger.warn(
+            console.warn(
                 args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
                 { traceId },
             );

@@ -1,6 +1,6 @@
 ---
 description: Inner Bot Server - Feishu Bot Microservice Architecture
-globs: **/*.{ts,js,py,tsx,jsx,yml,yaml,json,md}
+globs: **/*.{ts,js,tsx,jsx,yml,yaml,json,md}
 alwaysApply: true
 ---
 # Inner Bot Server Project Rules
@@ -10,16 +10,17 @@ alwaysApply: true
 This is an event-driven microservice architecture project for a Feishu (Lark) bot system with the following components:
 
 - main-server: Node.js + TypeScript main server (port 3000)
-- ai-service: Python + FastAPI AI service (port 8000) 
+
 - web-manager: React-based admin interface (port 3001)
 - logstash: Log processing service
 - PostgreSQL, MongoDB, Redis, Elasticsearch for data storage
 
 ## Technical Architecture
+
 - Redis as event bus for cross-service communication
-- Support for both Node.js and Python services
+- Support for Node.js services
 - Docker containerization with docker-compose.yml
-- Development in TypeScript/JavaScript and Python
+- Development in TypeScript/JavaScript
 - Event-driven architecture with Redis pub/sub
 - LangGraph integration for AI workflows
 - Prompt management system with PostgreSQL backend
@@ -27,21 +28,16 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
 ## Development Guidelines
 
 ### Configuration Management
-#### Python (ai-service)
-- Use `pydantic_settings` for configuration management
-- All configurations defined in `ai-service/app/config/config.py`
-- Config items: lowercase with underscores (e.g., `redis_host`)
-- Env vars: uppercase with underscores (e.g., `REDIS_HOST`)
-- Sensitive info must use env vars
-- Provide `.env.example` as template
 
 #### Node.js (main-server)
+
 - Use environment variables for configuration
 - Config files in `main-server/src/types/` and `main-server/src/utils/`
 - Use `.env` file for local development
 - Provide `.env.example` as template
 
 ### Command Usage Rules
+
 1. Docker Commands
    - Use `docker compose` instead of `docker-compose`
    - Example: `docker compose up` instead of `docker-compose up`
@@ -52,15 +48,7 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
      - `make restart-service` - Restart specific service
      - `make deploy` - Production deployment
 
-2. Python Package Management (ai-service)
-   - **NEVER directly edit pyproject.toml** - use uv commands only
-   - Use `uv` for package management (see `ai-service/pyproject.toml`)
-   - Example: `cd ai-service && uv add package-name` (to add)
-   - Example: `cd ai-service && uv remove package-name` (to remove)
-   - Example: `cd ai-service && uv sync` (to sync dependencies)
-   - All dependencies managed in `pyproject.toml` but modified via uv commands
-
-3. Node.js Package Management
+2. Node.js Package Management
    - Use `npm` for main-server and web-manager
    - Example: `cd main-server && npm install package-name`
    - Example: `cd web-manager && npm install package-name`
@@ -68,6 +56,7 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Never manually edit package.json - use npm commands only
 
 ### Event System Usage Guidelines
+
 1. Event Naming Convention
    - Use lowercase letters with dot separation
    - Format: `domain.action` or `domain.subdomain.action`
@@ -85,12 +74,8 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Long-running tasks need appropriate timeout settings
    - Timeout handling must return error information
 
-4. AI Service Integration
-   - LangGraph workflows in `ai-service/app/services/chat/langgraph/`
-   - Tool registry in `ai-service/app/tools/`
-   - Memory management with Qdrant vector database
-
 ### Code Standards
+
 1. TypeScript/JavaScript (main-server & web-manager)
    - Use ESLint for code linting (configured in respective directories)
    - Use Prettier for code formatting
@@ -98,23 +83,16 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Use async/await for asynchronous operations
    - Error handling with try-catch blocks
 
-2. Python (ai-service)
-   - Use Black for code formatting (configured in pyproject.toml)
-   - Use isort for import sorting
-   - Follow PEP 8 guidelines
-   - Use async/await for asynchronous operations
-   - Type hints required for all functions
-   - Use Pydantic for data validation
-
-3. React (web-manager)
+2. React (web-manager)
    - Use TypeScript with React
    - Use functional components with hooks
    - Follow React best practices
    - Use Tailwind CSS for styling
 
 ## Documentation Standards
+
 1. Code Comments
-   - All public APIs must have JSDoc/Python docstrings
+   - All public APIs must have JSDoc comments
    - Complex logic must have detailed comments
    - Use English for comments
    - Include type information in docstrings
@@ -132,6 +110,7 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Document indexes and performance considerations
 
 ## Version Control
+
 1. Commit Standards
    - Use semantic commit messages
    - Format: `type(scope): message`
@@ -153,17 +132,17 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Fixed MessageContext initialization parameter passing
 
 ## Key Directories and Files
+
 - `main-server/src/services/message-processing/rules/` - Message processing rules
-- `ai-service/app/services/chat/langgraph/` - LangGraph AI workflows
-- `ai-service/app/tools/` - AI tools and utilities
+
 - `web-manager/src/components/` - React UI components
 - `docs/` - Project documentation
 - `scripts/` - Deployment and utility scripts
 - `logstash/` - Log processing configuration
 
 ## Environment Setup
+
 1. Copy `.env.example` to `.env` and configure
 2. Run `make start-dev` for development
-3. Access web-manager at http://localhost:3001
-4. Main server API at http://localhost:3000
-5. AI service API at http://localhost:8000
+3. Access web-manager at <http://localhost:3001>
+4. Main server API at <http://localhost:3000>

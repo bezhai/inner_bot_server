@@ -9,6 +9,7 @@ import {
     UserChatMapping,
     ResponseFeedback,
     Prompt,
+    ModelProvider,
 } from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
@@ -22,3 +23,4 @@ export const UserChatMappingRepository = AppDataSource.getRepository(UserChatMap
 export const UserGroupBindingRepository = new CustomUserGroupBindingRepository(AppDataSource);
 export const ResponseFeedbackRepository = AppDataSource.getRepository(ResponseFeedback);
 export const PromptRepository = AppDataSource.getRepository(Prompt);
+export const ModelProviderRepository = AppDataSource.getRepository(ModelProvider);

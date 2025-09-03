@@ -1,16 +1,6 @@
 version: '3.8'
 
 services:
-  # AI 服务
-  ai-app:
-    build:
-      context: ./ai-service
-    ports:
-      - "8000:8000"
-    volumes:
-      - .env:/app/.env
-      - ai_service_logs:/logs/ai-service
-    restart: always
 
   # MongoDB 服务
   mongo:
@@ -110,7 +100,6 @@ services:
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
-      - ai_service_logs:/logs/ai-service
       - main_server_logs:/var/log/main-server
     depends_on:
       - elasticsearch
@@ -144,5 +133,4 @@ volumes:
   mongo_data:
   postgres_data:
   elasticsearch_data:
-  ai_service_logs:
   main_server_logs:

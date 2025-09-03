@@ -19,7 +19,7 @@ Inner Bot Server 是一个完整的飞书机器人解决方案，集成了AI对�
 
 ### 🏗️ 系统架构
 
-```
+```text
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   飞书平台       │    │   用户界面       │    │   管理后台       │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
@@ -29,14 +29,18 @@ Inner Bot Server 是一个完整的飞书机器人解决方案，集成了AI对�
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Inner Bot Server                             │
 ├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐              ┌─────────────────┐          │
-│  │   Main Server   │◄────────────►│   AI Service    │          │
-│  │                 │              │                 │          │
-│  │ • 飞书API集成    │              │ • GPT对话引擎    │          │
-│  │ • 规则引擎       │              │ • 工具调用系统   │          │
-│  │ • 媒体处理       │              │ • 记忆管理       │          │
-│  │ • 事件系统       │              │ • 提示词管理     │          │
-│  └─────────────────┘              └─────────────────┘          │
+│  ┌─────────────────┐                                        │
+│  │   Main Server   │                                        │
+│  │                 │                                        │
+│  │ • 飞书API集成    │                                        │
+│  │ • AI对话引擎     │                                        │
+│  │ • 规则引擎       │                                        │
+│  │ • 媒体处理       │                                        │
+│  │ • 事件系统       │                                        │
+│  │ • 工具调用系统   │                                        │
+│  │ • 记忆管理       │                                        │
+│  │ • 提示词管理     │                                        │
+│  └─────────────────┘                                        │
 └─────────────────────────────────────────────────────────────────┘
          │                                    │
          ▼                                    ▼
@@ -57,7 +61,7 @@ Inner Bot Server 是一个完整的飞书机器人解决方案，集成了AI对�
 
 ### 核心技术
 
-- **后端框架**：Node.js + TypeScript (Main Server)、Python + FastAPI (AI Service)
+- **后端框架**：Node.js + TypeScript
 - **数据库**：PostgreSQL、MongoDB、Redis
 - **AI模型**：OpenAI GPT系列
 - **消息队列**：Redis事件系统
@@ -68,13 +72,13 @@ Inner Bot Server 是一个完整的飞书机器人解决方案，集成了AI对�
 
 - **飞书SDK**：@larksuiteoapi/node-sdk
 - **ORM**：TypeORM (PostgreSQL)、MongoDB Driver
-- **HTTP框架**：Koa.js、FastAPI
+- **HTTP框架**：Koa.js
 - **日志系统**：Winston、Logstash、Kibana
 - **工具系统**：自研装饰器工具框架
 
 ## 📁 项目结构
 
-```
+```text
 inner_bot_server/
 ├── main-server/           # 主服务器 (Node.js + TypeScript)
 │   ├── src/
@@ -89,16 +93,7 @@ inner_bot_server/
 │   │   └── utils/         # 工具函数
 │   ├── Dockerfile
 │   └── package.json
-├── ai-service/            # AI服务 (Python + FastAPI)
-│   ├── app/
-│   │   ├── api/           # API接口
-│   │   ├── services/      # 业务服务
-│   │   │   └── chat/      # 聊天服务
-│   │   ├── tools/         # 工具系统
-│   │   ├── core/          # 核心功能
-│   │   └── config/        # 配置管理
-│   ├── Dockerfile
-│   └── requirements.txt
+
 ├── docs/                  # 项目文档
 │   ├── deployment.md      # 部署指南
 │   ├── event_system.md    # 事件系统文档
@@ -215,7 +210,7 @@ make start
 ```bash
 # 检查服务状态
 curl http://localhost:3000/api/health  # 主服务器
-curl http://localhost:8000/health      # AI服务
+
 curl http://localhost:5601            # Kibana日志面板
 ```
 
@@ -224,7 +219,7 @@ curl http://localhost:5601            # Kibana日志面板
 | 服务 | 端口 | 描述 |
 |------|------|------|
 | Main Server | 3000 | 主服务器HTTP接口 |
-| AI Service | 8000 | AI服务HTTP接口 |
+
 | PostgreSQL | 5432 | 主数据库 |
 | MongoDB | 27017 | 消息存储 |
 | Redis | 6379 | 缓存和事件队列 |
@@ -273,9 +268,6 @@ make deploy-live
 # 查看主服务器日志
 docker logs inner_bot_server-app-1 -f
 
-# 查看AI服务日志
-docker logs inner_bot_server-ai-app-1 -f
-
 # 查看所有服务日志
 docker compose logs -f
 ```
@@ -286,7 +278,7 @@ docker compose logs -f
 
 在飞书中@机器人并发送以下命令：
 
-```
+```text
 @机器人 帮助           # 查看帮助信息
 @机器人 你好           # 开始对话
 @机器人 发图 二次元     # 搜索并发送图片
@@ -297,7 +289,7 @@ docker compose logs -f
 
 ### 管理员命令
 
-```
+```text
 @机器人 余额           # 查看API余额
 @机器人 开启复读       # 开启群组复读功能
 @机器人 关闭复读       # 关闭群组复读功能
@@ -379,18 +371,16 @@ tail -f /var/log/inner_bot_server/health_check.log
 ### 代码规范
 
 - **TypeScript**：使用严格模式，遵循ESLint规范
-- **Python**：遵循PEP8规范，使用Black格式化
+
 - **提交信息**：遵循[语义化提交规范](https://www.conventionalcommits.org/)
 - **代码审查**：所有代码变更需要经过代码审查
 
 ### 扩展功能
 
 - **添加新规则**：在`main-server/src/services/message-processing/rules/`中添加
-- **扩展AI工具**：在`ai-service/app/tools/`中添加新工具
-- **集成外部服务**：在`services/integrations/`中添加新集成
 
+- **集成外部服务**：在`services/integrations/`中添加新集成
 
 ## 📄 许可证
 
 本项目采用 [MIT许可证](LICENSE)。
-

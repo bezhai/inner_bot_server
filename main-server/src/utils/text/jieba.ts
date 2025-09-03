@@ -1,6 +1,11 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import http from '../../services/http';
+import { Jieba, TfIdf } from '@node-rs/jieba';
+import { dict, idf } from '@node-rs/jieba/dict';
+
+// 初始化 jieba 和 tfidf 实例
+const jiebaInstance = Jieba.withDict(dict);
+const tfidfInstance = TfIdf.withDict(idf);
 
 /**
  * 检查一个词是否有意义
@@ -17,27 +22,36 @@ function isMeaningful(word: string): boolean {
 }
 
 /**
- * 调用分词服务，批量提取关键词和权重
+ * 本地实现批量提取关键词和权重
  * @param texts 文本数组
  * @param topN 每个文本提取的关键词数量
  * @returns 每个文本的关键词数组
  */
-async function extractBatchWithWeight(
+export async function extractBatchWithWeight(
     texts: string[],
     topN: number,
 ): Promise<{ text: string; keywords: { word: string; weight: number }[] }[]> {
     try {
-        const response = await http.post(
-            `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
-            {
-                texts,
-                top_n: topN,
-            },
-        );
-        return response.data;
+        const results = texts.map((text) => {
+            // 使用 jieba 提取关键词
+            const keywords = tfidfInstance.extractKeywords(jiebaInstance, text, topN);
+
+            // 转换为需要的格式
+            const formattedKeywords = keywords.map((item: any) => ({
+                word: item.keyword,
+                weight: item.weight,
+            }));
+
+            return {
+                text,
+                keywords: formattedKeywords,
+            };
+        });
+
+        return results;
     } catch (error) {
-        console.error('Error calling segmentation service:', error);
-        return []; // 返回空数组以防止服务调用失败
+        console.error('Error in local keyword extraction:', error);
+        return []; // 返回空数组以防止处理失败
     }
 }
 

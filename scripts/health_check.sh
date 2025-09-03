@@ -81,7 +81,6 @@ fi
 # 健康检查配置
 declare -A SERVICES=(
   ["main-server"]="http://localhost:3000/api/health"
-  ["ai-service"]="http://localhost:8000/health"
   ["redis"]="localhost:6379"
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
@@ -97,7 +96,7 @@ check_docker_services() {
   CONTAINERS=$(docker ps --format "{{.Names}}")
   
   FAILED_CONTAINERS=()
-  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme")
+  EXPECTED_CONTAINERS=("app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme")
   
   for CONTAINER in "${EXPECTED_CONTAINERS[@]}"; do
     if echo "$CONTAINERS" | grep -q "$CONTAINER"; then

@@ -9,3 +9,4 @@ export * from './lark-user-open-id';
 export * from './response-feedback';
 export * from './prompt';
 export * from './bot-config';
+export * from './model-provider';

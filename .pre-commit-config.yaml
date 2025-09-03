@@ -1,28 +1,4 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.0
-    hooks:
-      # Run the linter with auto-fixes (kept for semantic fixes like unused imports).
-      - id: ruff
-        args: [--fix]
-        files: ^ai-service/.*\.py$
-
-  - repo: local
-    hooks:
-      # 强兜底：全量格式化（覆盖原 ruff-format 的作用）
-      - id: ai-service-format-fix
-        name: Fix ai-service format (global)
-        entry: bash -c 'cd ai-service && uv run ruff format .'
-        language: system
-        files: ^ai-service/.*\.py$
-        pass_filenames: false
-      - id: ai-service-build-check
-        name: Check ai-service build
-        entry: bash -c 'cd ai-service && uv build'
-        language: system
-        files: ^ai-service/.*\.py$
-        pass_filenames: false
-
   - repo: local
     hooks:
       # 强兜底方案：仅保留全量 ESLint 与 Build 检查，移除 lint-staged 与全量 format-fix
