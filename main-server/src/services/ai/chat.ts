@@ -64,7 +64,6 @@ export async function sseChat(options: SSEChatOptions): Promise<() => void> {
                 step: message.step,
                 content: 'content' in message ? message.content : undefined,
                 reason_content: 'reason_content' in message ? message.reason_content : undefined,
-                tool_call_feedback: 'tool_call_feedback' in message ? message.tool_call_feedback : undefined,
                 status_message: 'status_message' in message ? message.status_message : undefined,
             };
 

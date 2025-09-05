@@ -1,5 +1,5 @@
 import { StreamAction } from 'types/ai';
-import { Step, ToolCallFeedbackResponse } from 'types/chat';
+import { Step } from 'types/chat';
 import { StateMachine, StateTransition } from 'utils/state-machine/state-machine';
 
 /**
@@ -9,7 +9,6 @@ export interface ChatStateData {
     step: Step;
     content?: string;
     reason_content?: string;
-    tool_call_feedback?: ToolCallFeedbackResponse;
     status_message?: string;
 }
 
@@ -72,19 +71,11 @@ export function createChatStateMachine(
         .on(Step.SEND, async (data) => {
             if (!callbacks.onSend) return;
 
-            // 处理状态消息（优先级最高）
+            // 处理工具调用反馈的名称
             if (data.status_message) {
                 await callbacks.onSend({
                     type: 'status',
                     content: data.status_message,
-                });
-            }
-
-            // 处理工具调用反馈的状态消息
-            if (data.tool_call_feedback?.status_message) {
-                await callbacks.onSend({
-                    type: 'status',
-                    content: data.tool_call_feedback.status_message,
                 });
             }
 

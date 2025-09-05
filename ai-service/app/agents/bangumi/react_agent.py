@@ -6,7 +6,6 @@ Bangumi ReAct Agent
 import logging
 
 from langchain_core.messages import AIMessage, HumanMessage
-from langgraph.prebuilt import create_react_agent
 
 from app.agents.bangumi.tools import (
     get_character_persons,
@@ -19,9 +18,7 @@ from app.agents.bangumi.tools import (
     search_persons,
     search_subjects,
 )
-from app.langgraph_infra import ModelBuilder
-from app.services.chat.prompt import ChatPromptService
-from app.tools import tool
+from app.agents.basic.agent import ChatAgent
 
 logger = logging.getLogger(__name__)
 
@@ -39,28 +36,7 @@ BANGUMI_TOOLS = [
     get_character_subjects,
 ]
 
-# 全局agent实例
-_agent = None
 
-
-async def _get_agent():
-    """获取或创建agent实例"""
-    global _agent
-    if _agent is None:
-        # 从数据库获取Bangumi提示词
-        prompt_content = await ChatPromptService.get_bangumi_prompt()
-        if not prompt_content:
-            raise ValueError("未找到Bangumi提示词(id='bangumi')")
-
-        # 构建模型
-        model = await ModelBuilder.build_chat_model("gpt-4.1-mini")
-
-        _agent = create_react_agent(model, BANGUMI_TOOLS, prompt=prompt_content)
-
-    return _agent
-
-
-@tool()
 async def bangumi_search(query: str) -> str:
     """
     通过Bangumi获取ACG相关信息
@@ -73,21 +49,17 @@ async def bangumi_search(query: str) -> str:
     """
     try:
         # 获取agent
-        agent = await _get_agent()
+        agent = ChatAgent("gpt-4.1-mini", "bangumi", BANGUMI_TOOLS)
 
         # 执行agent
-        result = await agent.ainvoke({"messages": [HumanMessage(content=query)]})
-
-        # 提取最后一条AI消息
-        messages = result.get("messages", [])
+        message = await agent.run([HumanMessage(content=query)])
 
         # 找到最后一条AI消息
-        for message in reversed(messages):
-            if isinstance(message, AIMessage) and message.content:
-                content = message.content
-                if isinstance(content, str):
-                    return content
-                raise ValueError("AI消息内容不是字符串")
+        if isinstance(message, AIMessage) and message.content:
+            content = message.content
+            if isinstance(content, str):
+                return content
+            raise ValueError("AI消息内容不是字符串")
 
         return "抱歉，我无法处理您的请求。"
 

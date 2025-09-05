@@ -14,7 +14,7 @@ class PromptService:
 
     @staticmethod
     @redis_cache(expire_seconds=10)
-    async def get_prompt(prompt_id: str) -> str | None:
+    async def _get_prompt(prompt_id: str) -> str | None:
         """
         获取指定ID的提示词
 
@@ -40,3 +40,23 @@ class PromptService:
         except Exception as e:
             logger.error(f"获取提示词失败 {prompt_id}: {str(e)}")
             return None
+
+    @staticmethod
+    async def get_prompt(prompt_id: str, **kwargs) -> str:
+        """从数据库获取指定ID的提示词"""
+        prompt_content = await PromptService._get_prompt(prompt_id)
+        if not prompt_content:
+            raise ValueError(f"未找到提示词(id='{prompt_id}')")
+
+        from datetime import datetime
+
+        from jinja2 import Template
+
+        template = Template(prompt_content)
+        return template.render(
+            {
+                "currDate": datetime.now().strftime("%Y-%m-%d"),
+                "currTime": datetime.now().strftime("%H:%M:%S"),
+                **kwargs,
+            }
+        )

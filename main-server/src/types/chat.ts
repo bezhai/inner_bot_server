@@ -115,14 +115,6 @@ export enum Step {
  * 聊天返回
  */
 
-/**
- * 工具调用反馈响应
- */
-export interface ToolCallFeedbackResponse {
-    name: string; // 工具调用名称
-    nick_name?: string; // 工具调用昵称
-    status_message?: string; // 状态消息，用于更新底部栏显示
-}
 
 interface ChatProcessResponse {
     /**
@@ -139,11 +131,6 @@ interface ChatProcessResponse {
      * 回复内容
      */
     content?: string;
-
-    /**
-     * 工具调用反馈
-     */
-    tool_call_feedback?: ToolCallFeedbackResponse;
 }
 
 interface ChatNormalResponse {

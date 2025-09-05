@@ -67,7 +67,6 @@ class ModelBuilder:
                     "model_name": actual_model_name,
                     "api_key": provider.api_key,
                     "base_url": provider.base_url,
-                    "default_params": {},  # 不再从ai_model获取默认参数
                     "is_active": provider.is_active,
                 }
         except Exception as e:
@@ -81,9 +80,6 @@ class ModelBuilder:
 
         Args:
             model_id: 内部模型ID，对应数据库中的model_id
-            temperature: 温度参数，控制随机性 (0.0-2.0)
-            max_tokens: 最大token数限制
-            **kwargs: 其他langchain ChatOpenAI支持的参数
 
         Returns:
             BaseChatModel实例，可直接用于langgraph
@@ -119,53 +115,8 @@ class ModelBuilder:
                 "api_key": model_info["api_key"],
                 "base_url": model_info["base_url"],
                 "model": model_info["model_name"],
+                **kwargs,
             }
-
-            # 处理数据库中的默认参数
-            if model_info.get("default_params") and isinstance(
-                model_info["default_params"], dict
-            ):
-                default_params = model_info["default_params"]
-                logger.debug(f"模型 {model_id} 的默认参数: {default_params}")
-                # 只合并ChatOpenAI支持的参数
-                supported_params = {
-                    "temperature",
-                    "max_tokens",
-                    "top_p",
-                    "frequency_penalty",
-                    "presence_penalty",
-                    "n",
-                    "stop",
-                    "stream",
-                    "logit_bias",
-                    "max_retries",
-                    "request_timeout",
-                    "seed",
-                    "response_format",
-                }
-                filtered_params = {
-                    k: v for k, v in default_params.items() if k in supported_params
-                }
-                chat_params.update(filtered_params)
-
-            # 合并其他kwargs参数，同样进行过滤
-            supported_params = {
-                "temperature",
-                "max_tokens",
-                "top_p",
-                "frequency_penalty",
-                "presence_penalty",
-                "n",
-                "stop",
-                "stream",
-                "logit_bias",
-                "max_retries",
-                "request_timeout",
-                "seed",
-                "response_format",
-            }
-            filtered_kwargs = {k: v for k, v in kwargs.items() if k in supported_params}
-            chat_params.update(filtered_kwargs)
 
             logger.info(
                 f"为模型 {model_id} 构建ChatOpenAI实例，"
@@ -182,55 +133,3 @@ class ModelBuilder:
             # 其他未知异常
             logger.error(f"构建模型 {model_id} 时发生未知错误: {e}")
             raise ModelBuilderError(f"构建模型失败: {str(e)}") from e
-
-    @staticmethod
-    async def validate_model_id(model_id: str) -> bool:
-        """
-        验证model_id是否有效
-
-        Args:
-            model_id: 要验证的模型ID
-
-        Returns:
-            bool: 模型ID是否有效
-        """
-        try:
-            model_info = await ModelBuilder._get_model_and_provider_info(model_id)
-            return model_info is not None and model_info.get("is_active", True)
-        except Exception:
-            return False
-
-    @staticmethod
-    async def list_available_models() -> list[dict[str, Any]]:
-        """
-        列出所有可用的模型
-
-        Returns:
-            List[Dict]: 可用模型列表
-        """
-        try:
-            async with AsyncSessionLocal() as session:
-                # 查询所有可用的供应商
-                result = await session.execute(
-                    select(ModelProvider).where(ModelProvider.is_active)
-                )
-                providers = result.scalars().all()
-
-                model_list = []
-                for provider in providers:
-                    # 为每个供应商生成一个模型配置
-                    model_list.append(
-                        {
-                            "model_id": f"{provider.name}/default",
-                            "name": f"{provider.name} 默认模型",
-                            "description": f"{provider.name} 提供的AI模型",
-                            "is_multimodal": False,
-                            "is_thinking": False,
-                            "is_default": provider.name == "302.ai",
-                        }
-                    )
-
-                return model_list
-        except Exception as e:
-            logger.error(f"列出可用模型时发生错误: {e}")
-            raise ModelBuilderError(f"列出可用模型失败: {str(e)}") from e

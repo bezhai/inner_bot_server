@@ -22,7 +22,7 @@ def redis_cache(expire_seconds: int = 86400):  # 默认24小时(86400秒)
             cache_key = _generate_cache_key(func.__name__, args, kwargs)
 
             # 动态导入并获取Redis客户端
-            from app.services.meta_info import AsyncRedisClient
+            from app.clients.redis import AsyncRedisClient
 
             redis_client = AsyncRedisClient.get_instance()
 

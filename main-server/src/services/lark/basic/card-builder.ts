@@ -1,4 +1,3 @@
-
 import {
     Config,
     StreamConfig,
@@ -59,9 +58,7 @@ export class CardBuilder {
     public buildInitialElements() {
         return [
             new HrComponent().setElementId(ELEMENT_IDS.HR),
-            new MarkdownComponent('赤尾思考中...').setElementId(
-                ELEMENT_IDS.THINKING_PLACEHOLDER,
-            ),
+            new MarkdownComponent('赤尾思考中...').setElementId(ELEMENT_IDS.THINKING_PLACEHOLDER),
         ];
     }
 
@@ -71,9 +68,7 @@ export class CardBuilder {
         )
             .setElementId(ELEMENT_IDS.COLLAPSE)
             .setBorder('grey-100')
-            .pushElement(
-                new MarkdownComponent('').setElementId(ELEMENT_IDS.REASONING),
-            );
+            .pushElement(new MarkdownComponent('').setElementId(ELEMENT_IDS.REASONING));
     }
 
     public buildResponseElement() {

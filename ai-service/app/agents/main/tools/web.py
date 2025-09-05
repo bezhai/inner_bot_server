@@ -1,9 +1,9 @@
 import httpx
+from langchain_core.tools import tool
 from pydantic import BaseModel
 
 from app.config import settings
-from app.tools import tool
-from app.utils.decorators import log_io
+from app.utils.decorators import json_serialize, log_io
 
 
 class SearchResult(BaseModel):
@@ -35,8 +35,9 @@ class WebSearchResult(BaseModel):
     knowledge_graph: KnowledgeGraph | None = None
 
 
-@tool()
+@tool
 @log_io
+@json_serialize
 async def search_web(query: str, gl: str = "cn") -> WebSearchResult:
     """
     搜索网络上的信息，并返回结构化的搜索结果

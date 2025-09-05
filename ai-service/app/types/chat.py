@@ -60,19 +60,6 @@ class ChatRequest(BaseModel):
     is_canary: bool | None = False  # 是否开启灰度
 
 
-class ToolCallFeedbackResponse(BaseModel):
-    """
-    工具调用反馈响应
-    Tool call feedback response
-    """
-
-    name: str  # 工具调用名称 / Tool call name
-    nick_name: str | None = None  # 工具调用昵称 / Tool call nick name
-    status_message: str | None = (
-        None  # 状态消息，用于更新底部栏显示 / Status message for bottom bar
-    )
-
-
 class ChatStreamChunk(BaseModel):
     """
     聊天流式响应
@@ -81,19 +68,7 @@ class ChatStreamChunk(BaseModel):
 
     reason_content: str | None = None  # 思维链内容 / Reasoning content
     content: str | None = None  # 回复内容 / Reply content
-    tool_call_feedback: ToolCallFeedbackResponse | None = (
-        None  # 工具调用反馈 / Tool call feedback
-    )
-
-    def has_content(self) -> bool:
-        """
-        检查是否有content内容
-        Check if there is content
-        """
-        return bool(
-            (self.content and self.content.strip())
-            or (self.reason_content and self.reason_content.strip())
-        )
+    status_message: str | None = None  # 状态消息 / Status message
 
 
 class ChatProcessResponse(BaseModel):
@@ -105,9 +80,6 @@ class ChatProcessResponse(BaseModel):
     step: Step = Step.SEND  # 步骤 / Step
     reason_content: str | None = None  # 思维链内容 / Reasoning content
     content: str | None = None  # 回复内容 / Reply content
-    tool_call_feedback: ToolCallFeedbackResponse | None = (
-        None  # 工具调用反馈 / Tool call feedback
-    )
 
 
 class ChatNormalResponse(BaseModel):
@@ -130,22 +102,3 @@ class ChatStatusResponse(BaseModel):
 
 
 ChatResponse = ChatProcessResponse | ChatNormalResponse | ChatStatusResponse
-
-
-class StoreRobotMessageRequest(BaseModel):
-    """
-    存储机器人消息请求
-    Store robot message request
-    """
-
-    message: ChatMessage  # 消息 / Message
-
-
-class StoreRobotMessageResponse(BaseModel):
-    """
-    存储机器人消息响应
-    Store robot message response
-    """
-
-    code: int = 0  # 状态码 / Status code
-    message: str = "success"  # 消息 / Message

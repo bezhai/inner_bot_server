@@ -4,10 +4,11 @@ from datetime import datetime
 
 import arrow
 import httpx
+from langchain_core.tools import tool
 from pydantic import BaseModel, field_validator
 
-from app.tools.decorators import tool
 from app.utils.decorators.log_decorator import log_io
+from app.utils.decorators.serializer import json_serialize
 
 
 class CppSearchResult(BaseModel):
@@ -64,8 +65,9 @@ class CppSearchMidResult(BaseModel):
     list: list[CppSearchMidSingleResult]  # 活动列表
 
 
-@tool()
+@tool
 @log_io
+@json_serialize
 async def search_donjin_event(
     query: str | None = None,
     is_online: bool | None = None,
