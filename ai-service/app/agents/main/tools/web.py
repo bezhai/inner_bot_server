@@ -3,7 +3,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel
 
 from app.config import settings
-from app.utils.decorators import json_serialize, log_io
+from app.utils.decorators import dict_serialize, log_io
 
 
 class SearchResult(BaseModel):
@@ -37,7 +37,7 @@ class WebSearchResult(BaseModel):
 
 @tool
 @log_io
-@json_serialize
+@dict_serialize
 async def search_web(query: str, gl: str = "cn") -> WebSearchResult:
     """
     搜索网络上的信息，并返回结构化的搜索结果

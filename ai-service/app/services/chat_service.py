@@ -15,7 +15,7 @@ from app.types.chat import (
     ChatStatusResponse,
     Step,
 )
-from app.utils.decorators import json_serialize
+from app.utils.decorators import auto_json_serialize
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class ChatService:
     """聊天服务类"""
 
     @staticmethod
-    @json_serialize
+    @auto_json_serialize
     async def process_chat_sse(
         request: ChatRequest,
     ) -> AsyncGenerator[

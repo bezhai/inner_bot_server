@@ -8,7 +8,7 @@ from langchain_core.tools import tool
 from pydantic import BaseModel, field_validator
 
 from app.utils.decorators.log_decorator import log_io
-from app.utils.decorators.serializer import json_serialize
+from app.utils.decorators.serializer import dict_serialize
 
 
 class CppSearchResult(BaseModel):
@@ -67,7 +67,7 @@ class CppSearchMidResult(BaseModel):
 
 @tool
 @log_io
-@json_serialize
+@dict_serialize
 async def search_donjin_event(
     query: str | None = None,
     is_online: bool | None = None,
