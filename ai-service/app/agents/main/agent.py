@@ -49,7 +49,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                     yield ChatStreamChunk(status_message=status_message)
 
                 accumulate_chunk.content += token.content or ""
-                accumulate_chunk.reason_content += token.reason_content or ""
+                # accumulate_chunk.reason_content += token.reason_content or ""
 
                 if interval_checker.check():
                     # 发送消息最低间隔为0.5秒
