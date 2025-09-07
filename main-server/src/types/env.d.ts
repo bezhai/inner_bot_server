@@ -25,5 +25,9 @@ declare namespace NodeJS {
         IS_DEV: string; // true or false
         IMAGE_HOST_TOKEN: string;
         INNER_HTTP_SECRET: string;
+        OSS_ACCESS_KEY_ID: string;
+        OSS_ACCESS_KEY_SECRET: string;
+        OSS_BUCKET: string;
+        END_POINT: string;
     }
 }

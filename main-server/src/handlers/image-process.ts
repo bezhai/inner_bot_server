@@ -1,10 +1,10 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
 import { downloadResource } from '../services/integrations/lark-client';
-import { uploadImages } from '../services/integrations/image-host';
 import { bearerAuthMiddleware } from '../middleware/auth';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
+import { getOss } from 'services/integrations/aliyun/oss';
 
 const router = new Router({ prefix: '/api/image' });
 
@@ -30,13 +30,15 @@ router.post('/process', async (ctx: Context) => {
         // 下载图片
         const downloadResponse = await downloadResource(message_id, file_key, 'image');
         const imageStream = downloadResponse.getReadableStream();
-        
+
+        console.debug('Downloaded image stream for file_key:', file_key);
+
         // 上传图片
-        const uploadResult = await uploadImages(imageStream);
-        
+        const uploadResult = await getOss().uploadFile(`temp/${file_key}.jpg`, imageStream);
+
         ctx.body = {
             success: true,
-            data: { url: uploadResult.links.url },
+            data: { url: uploadResult.url },
             message: 'Image processed successfully',
         };
     } catch (error) {
