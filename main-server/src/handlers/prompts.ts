@@ -82,7 +82,7 @@ router.post('/', async (ctx) => {
 });
 
 // 删除提示词模板
-// 在没搞定鉴权之前先不删除
+// 在没搞定鉴权之前先不支持删除
 // router.delete('/:id', async (ctx) => {
 //     try {
 //         const { id } = ctx.params;

@@ -12,7 +12,6 @@ from app.types.chat import (
     ChatRequest,
 )
 from app.utils.decorators import handle_errors
-from app.utils.middlewares.trace import set_message_id
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +30,6 @@ async def chat_sse(request: ChatRequest):
     Returns:
         EventSourceResponse: SSE 响应流
     """
-    # 将message_id注入到上下文中
-    set_message_id(request.message_id)
 
     return EventSourceResponse(
         chat_service.process_chat_sse(request), media_type="text/event-stream"
