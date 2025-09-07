@@ -8,6 +8,10 @@ http.interceptors.request.use((config) => {
     if (traceId) {
         config.headers['X-Trace-Id'] = traceId;
     }
+    const appName = context.getBotName();
+    if (appName) {
+        config.headers['X-App-Name'] = appName;
+    }
     return config;
 });
 

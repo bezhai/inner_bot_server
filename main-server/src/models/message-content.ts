@@ -24,17 +24,20 @@ export interface MessageContent {
 }
 
 export class MessageContentUtils {
-    static toMarkdown(content: MessageContent): string {
+    static toMarkdown(content: MessageContent, allowDownload: boolean): string {
         let markdown = content.items
             .map((item) => {
                 if (item.type === ContentType.Text) {
                     return item.value;
                 }
                 if (item.type === ContentType.Image) {
-                    return `![${item.value}](${item.value})`;
+                    if (!allowDownload) {
+                        return '[Non-downloadable Image]';
+                    }
+                    return `![image](${item.value})`;
                 }
                 if (item.type === ContentType.Sticker) {
-                    return `[${item.value}](${item.value})`;
+                    return `[Unparsable Sticker]`;
                 }
             })
             .join('');

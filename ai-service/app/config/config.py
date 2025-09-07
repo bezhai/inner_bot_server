@@ -22,6 +22,12 @@ class Settings(BaseSettings):
 
     bangumi_access_token: str | None = None
 
+    inner_http_secret: str | None = None
+
+    # Main-server配置
+    main_server_base_url: str | None = None  # Main-server服务基础URL
+    main_server_timeout: int = 10  # 超时时间，默认10秒
+
     class Config:
         env_file = ".env"
         extra = "ignore"

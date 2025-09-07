@@ -148,6 +148,12 @@ export class Message {
     }
 
     toMarkdown(): string {
-        return MessageContentUtils.toMarkdown(this.content);
+        return MessageContentUtils.toMarkdown(this.content, this.allowDownloadResource());
+    }
+
+    allowDownloadResource(): boolean {
+        return this.metadata.groupChatInfo
+            ? this.metadata.groupChatInfo.download_has_permission_setting === 'all_members'
+            : true;
     }
 }

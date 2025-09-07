@@ -36,6 +36,7 @@ import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark-b
 import { LarkEnterChatEvent } from 'types/lark';
 import { LarkBaseChatInfo, UserChatMapping } from 'dal/entities';
 import AppDataSource from 'ormconfig';
+import { ImageProcessorService } from '@media/image-processor';
 
 /**
  * Lark事件处理器类
@@ -51,6 +52,20 @@ export class LarkEventHandlers {
             const message = await MessageTransferer.transfer(params);
             if (!message) {
                 throw new Error('Failed to build message');
+            }
+
+            if (message.allowDownloadResource()) {
+                const uploadPhotoService = ImageProcessorService.getInstance();
+                for (const imageKey of message.imageKeys()) {
+                    uploadPhotoService
+                        .processImage({
+                            message_id: message.messageId,
+                            file_key: imageKey,
+                        })
+                        .catch((err) => {
+                            console.error('Error in upload image:', err);
+                        });
+                }
             }
 
             await storeMessage({
