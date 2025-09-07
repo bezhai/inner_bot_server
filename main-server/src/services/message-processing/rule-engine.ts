@@ -20,7 +20,6 @@ import {
 import { sendPhoto } from 'services/media/photo/send-photo';
 import { checkDuplicate } from './rules/general/check-duplicate';
 import { makeCardReply } from 'services/ai/reply';
-import { getBotUnionId } from 'utils/bot/bot-var';
 import { sendBalance } from './rules/admin/balance';
 
 // 工具函数：执行规则链
@@ -122,7 +121,7 @@ const chatRules: RuleConfig[] = [
         comment: 'Meme',
     },
     {
-        rules: [TextMessageLimit, NeedRobotMention], // 暂时只支持文本消息
+        rules: [NeedRobotMention],
         handler: makeCardReply,
         comment: '聊天',
     },
