@@ -35,7 +35,7 @@ export class OssService {
     fileName: string,
     isForDownload: boolean = false,
   ): Promise<string> {
-    const options: OSS.SignatureUrlOptions = { expires: 8 * 60 * 60 };
+    const options: OSS.SignatureUrlOptions = { expires: 1.5 * 60 * 60 }; // 1.5小时
     const pixivAddr = fileName.split('/').pop();
     if (!pixivAddr) {
       return '';

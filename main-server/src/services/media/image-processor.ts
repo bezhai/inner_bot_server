@@ -1,6 +1,7 @@
 import { downloadResource } from '../integrations/lark-client';
 import { getOss } from '../integrations/aliyun/oss';
 import { cache } from '../../utils/cache/cache-decorator';
+import { get as redisGet, setWithExpire as redisSetWithExpire } from '../../dal/redis';
 import { Readable } from 'node:stream';
 
 /**
@@ -56,25 +57,40 @@ export class ImageProcessorService {
     /**
      * 处理图片：下载并上传到OSS
      */
-    @cache({ type: 'redis', ttl: 21600 }) // 6小时缓存
     async processImage(request: ImageProcessRequest): Promise<ImageProcessResponse> {
         const { message_id, file_key } = request;
         
         console.info(`开始处理图片: message_id=${message_id}, file_key=${file_key}`);
         
         try {
-            // 下载图片
-            const imageStream = await this.downloadImage(message_id, file_key);
+            // 第一层缓存：检查文件是否已上传（7天缓存）
+            let fileName = await this.checkFileUploaded(file_key);
             
-            // 上传到OSS
-            const uploadResult = await this.uploadToOss(file_key, imageStream);
+            if (!fileName) {
+                // 文件未上传，需要下载并上传
+                console.debug(`文件未上传，开始下载和上传: file_key=${file_key}`);
+                
+                // 下载图片
+                const imageStream = await this.downloadImage(message_id, file_key);
+                
+                // 上传到OSS
+                fileName = await this.uploadToOssOnly(file_key, imageStream);
+                
+                // 记录到第一层缓存
+                await this.recordFileUploaded(file_key, fileName);
+            } else {
+                console.debug(`文件已上传，跳过下载和上传: file_key=${file_key}, fileName=${fileName}`);
+            }
             
-            console.info(`图片处理成功: ${uploadResult.url}`);
+            // 第二层缓存：生成URL（1小时缓存）
+            const url = await this.getFileUrlWithCache(fileName);
+            
+            console.info(`图片处理成功: ${url}`);
             
             return {
                 success: true,
                 data: {
-                    url: uploadResult.url,
+                    url,
                     file_key
                 },
                 message: '图片处理成功'
@@ -83,6 +99,32 @@ export class ImageProcessorService {
             console.error(`图片处理失败: message_id=${message_id}, file_key=${file_key}`, error);
             throw this.handleError(error);
         }
+    }
+
+    /**
+     * 检查文件是否已上传（第一层缓存）
+     */
+    private async checkFileUploaded(fileKey: string): Promise<string | null> {
+        const cacheKey = `image_upload:${fileKey}`;
+        const fileName = await redisGet(cacheKey);
+        return fileName;
+    }
+
+    /**
+     * 记录文件已上传（第一层缓存，7天TTL）
+     */
+    private async recordFileUploaded(fileKey: string, fileName: string): Promise<void> {
+        const cacheKey = `image_upload:${fileKey}`;
+        const ttl = 7 * 24 * 60 * 60; // 7天
+        await redisSetWithExpire(cacheKey, fileName, ttl);
+    }
+
+    /**
+     * 获取文件URL（第二层缓存，1小时TTL）
+     */
+    @cache({ type: 'redis', ttl: 3600 }) // 1小时缓存
+    private async getFileUrlWithCache(fileName: string): Promise<string> {
+        return await getOss().getFileUrl(fileName, false);
     }
 
     /**
@@ -116,26 +158,15 @@ export class ImageProcessorService {
     }
 
     /**
-     * 上传图片到OSS
+     * 上传图片到OSS（仅上传，不获取URL）
      */
-    private async uploadToOss(fileKey: string, imageStream: Readable) {
+    private async uploadToOssOnly(fileKey: string, imageStream: Readable): Promise<string> {
         try {
             const fileName = `temp/${fileKey}.jpg`;
-            const result = await getOss().uploadFile(fileName, imageStream);
+            await getOss().uploadFile(fileName, imageStream);
             
-            // 使用getFileUrl获取链接，isForDownload为false
-            const url = await getOss().getFileUrl(fileName, false);
-            
-            if (!url) {
-                throw new ImageProcessError(
-                    'OSS上传成功但无法获取URL',
-                    'UPLOAD_NO_URL_ERROR',
-                    500
-                );
-            }
-            
-            console.debug(`成功上传到OSS: ${fileName} -> ${url}`);
-            return { ...result, url };
+            console.debug(`成功上传到OSS: ${fileName}`);
+            return fileName;
         } catch (error) {
             if (error instanceof ImageProcessError) {
                 throw error;
