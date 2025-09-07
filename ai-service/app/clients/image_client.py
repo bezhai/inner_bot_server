@@ -7,6 +7,7 @@ import logging
 import httpx
 
 from app.config.config import settings
+from app.utils.middlewares.trace import get_app_name, get_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +44,8 @@ class ImageProcessClient:
                     headers={
                         "Content-Type": "application/json",
                         "Authorization": f"Bearer {settings.inner_http_secret}",
+                        "X-Trace-Id": get_trace_id() or "",
+                        "X-App-Name": get_app_name() or "",
                     },
                 )
 
