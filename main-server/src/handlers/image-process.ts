@@ -1,10 +1,14 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
-import { downloadResource } from '../services/integrations/lark-client';
 import { bearerAuthMiddleware } from '../middleware/auth';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
-import { getOss } from 'services/integrations/aliyun/oss';
+import { validateBody, imageProcessValidationRules } from '../middleware/validation';
+import {
+    imageProcessor,
+    ImageProcessRequest,
+    ImageProcessError
+} from '../services/media/image-processor';
 
 const router = new Router({ prefix: '/api/image' });
 
@@ -13,41 +17,47 @@ router.use(traceMiddleware);
 router.use(botContextMiddleware);
 router.use(bearerAuthMiddleware);
 
-// 图片下载并上传API
-router.post('/process', async (ctx: Context) => {
-    const { message_id, file_key } = ctx.request.body as {
-        message_id: string;
-        file_key: string;
-    };
-
-    if (!message_id || !file_key) {
-        ctx.status = 400;
-        ctx.body = { success: false, message: 'message_id and file_key are required' };
-        return;
+/**
+ * 图片处理API - 下载并上传到OSS
+ * POST /api/image/process
+ * Body: { message_id: string, file_key: string }
+ */
+router.post('/process',
+    validateBody(imageProcessValidationRules),
+    async (ctx: Context) => {
+        try {
+            const request = ctx.request.body as ImageProcessRequest;
+            const result = await imageProcessor.processImage(request);
+            
+            ctx.body = result;
+        } catch (error) {
+            handleImageProcessError(ctx, error);
+        }
     }
+);
 
-    try {
-        // 下载图片
-        const downloadResponse = await downloadResource(message_id, file_key, 'image');
-        const imageStream = downloadResponse.getReadableStream();
-
-        console.debug('Downloaded image stream for file_key:', file_key);
-
-        // 上传图片
-        const uploadResult = await getOss().uploadFile(`temp/${file_key}.jpg`, imageStream);
-
-        ctx.body = {
-            success: true,
-            data: { url: uploadResult.url },
-            message: 'Image processed successfully',
-        };
-    } catch (error) {
-        ctx.status = 500;
+/**
+ * 统一错误处理函数
+ */
+function handleImageProcessError(ctx: Context, error: unknown): void {
+    if (error instanceof ImageProcessError) {
+        ctx.status = error.statusCode;
         ctx.body = {
             success: false,
-            message: error instanceof Error ? error.message : 'Unknown error',
+            message: error.message,
+            error_code: error.code
         };
+        return;
     }
-});
+    
+    // 处理其他未预期的错误
+    console.error('图片处理发生未预期错误:', error);
+    ctx.status = 500;
+    ctx.body = {
+        success: false,
+        message: '服务器内部错误，请稍后重试',
+        error_code: 'INTERNAL_SERVER_ERROR'
+    };
+}
 
 export default router;
