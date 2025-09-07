@@ -20,8 +20,8 @@ HEADER_CONFIG = {
         "default_factory": lambda: str(uuid.uuid4()),
         "required": True,
     },
-    "X-App-Id": {
-        "var_name": "app_id",
+    "X-App-Name": {
+        "var_name": "app_name",
         "default_factory": lambda: None,
         "required": False,
     },
@@ -75,7 +75,7 @@ def get_header_var(var_name: str) -> Any:
     获取指定的header变量值
 
     Args:
-        var_name: 变量名 (如 'trace_id', 'app_id')
+        var_name: 变量名 (如 'trace_id', 'app_name')
 
     Returns:
         变量值，如果不存在则返回None
@@ -89,6 +89,6 @@ def get_trace_id() -> str | None:
     return get_header_var("trace_id")
 
 
-def get_app_id() -> str | None:
+def get_app_name() -> str | None:
     """获取当前请求的appId"""
-    return get_header_var("app_id")
+    return get_header_var("app_name")

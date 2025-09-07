@@ -5,6 +5,7 @@ import cors from '@koa/cors';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
 import promptRoutes from '../handlers/prompts';
+import imageProcessRoutes from '../handlers/image-process';
 import { multiBotManager } from '../utils/bot/multi-bot-manager';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
 import { HttpRouterConfig } from '../services/lark/router';
@@ -127,6 +128,7 @@ export class HttpServerManager {
         this.registerHealthCheck();
         this.app.use(this.router.routes());
         this.app.use(promptRoutes.routes());
+        this.app.use(imageProcessRoutes.routes());
 
         // 启动服务器
         this.app.listen(this.config.port);
@@ -140,6 +142,8 @@ export class HttpServerManager {
     private logAvailableRoutes(): void {
         console.info('Available routes:');
         console.info('  - /api/health (health check)');
+        console.info('  - /api/prompts (prompt management)');
+        console.info('  - /api/image/process (image processing)');
 
         const httpBots = multiBotManager.getBotsByInitType('http');
         httpBots.forEach((bot) => {
