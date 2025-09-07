@@ -251,3 +251,49 @@ export async function xreadgroup(
 export async function xack(key: string, groupName: string, id: string): Promise<number> {
     return redis.xack(key, groupName, id) as Promise<number>;
 }
+
+/**
+ * 删除一个或多个键
+ * @param keys 要删除的键名数组
+ * @returns 删除的键数量
+ */
+export async function del(...keys: string[]): Promise<number> {
+    return redis.del(...keys);
+}
+
+/**
+ * SET IF NOT EXISTS - 只有当key不存在时才设置值
+ * @param key 键名
+ * @param value 值
+ * @param seconds 过期时间（秒）
+ * @returns 如果成功设置返回'OK'，如果键已存在返回null
+ */
+export async function setNx(key: string, value: string, seconds?: number): Promise<'OK' | null> {
+    if (seconds) {
+        // 使用 SET key value EX seconds NX 原子操作
+        const result = await redis.call('SET', key, value, 'EX', seconds, 'NX');
+        return result as 'OK' | null;
+    } else {
+        return redis.setnx(key, value).then(result => result === 1 ? 'OK' : null);
+    }
+}
+
+/**
+ * 执行 Lua 脚本
+ * @param script Lua 脚本内容
+ * @param numKeys 脚本中使用的键的数量
+ * @param keysAndArgs 键名和参数数组
+ * @returns 脚本执行结果
+ */
+export async function evalScript(script: string, numKeys: number, ...keysAndArgs: (string | number)[]): Promise<any> {
+    return redis.eval(script, numKeys, ...keysAndArgs);
+}
+
+/**
+ * 检查键是否存在
+ * @param key 键名
+ * @returns 存在返回1，不存在返回0
+ */
+export async function exists(key: string): Promise<number> {
+    return redis.exists(key);
+}

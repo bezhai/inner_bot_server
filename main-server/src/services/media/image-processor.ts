@@ -1,6 +1,7 @@
 import { downloadResource } from '../integrations/lark-client';
 import { getOss } from '../integrations/aliyun/oss';
 import { cache } from '../../utils/cache/cache-decorator';
+import { RedisLock } from '../../utils/cache/redis-lock';
 import { get as redisGet, setWithExpire as redisSetWithExpire } from '../../dal/redis';
 import { Readable } from 'node:stream';
 import sharp from 'sharp';
@@ -33,7 +34,7 @@ export class ImageProcessError extends Error {
     constructor(
         message: string,
         public code: string,
-        public statusCode: number = 500
+        public statusCode: number = 500,
     ) {
         super(message);
         this.name = 'ImageProcessError';
@@ -60,46 +61,75 @@ export class ImageProcessorService {
      */
     async processImage(request: ImageProcessRequest): Promise<ImageProcessResponse> {
         const { message_id, file_key } = request;
-        
+
         console.info(`开始处理图片: message_id=${message_id}, file_key=${file_key}`);
-        
+
         try {
             // 第一层缓存：检查文件是否已上传（7天缓存）
             let fileName = await this.checkFileUploaded(file_key);
-            
+
             if (!fileName) {
-                // 文件未上传，需要下载并上传
-                console.debug(`文件未上传，开始下载和上传: file_key=${file_key}`);
-                
-                // 下载图片
-                const imageStream = await this.downloadImage(message_id, file_key);
-                
-                // 上传到OSS
-                fileName = await this.uploadToOssOnly(file_key, imageStream);
-                
-                // 记录到第一层缓存
-                await this.recordFileUploaded(file_key, fileName);
+                // 文件未上传，使用带锁的方法处理上传
+                fileName = await this.ensureFileUploaded(request);
             } else {
-                console.debug(`文件已上传，跳过下载和上传: file_key=${file_key}, fileName=${fileName}`);
+                console.debug(
+                    `文件已上传，跳过下载和上传: file_key=${file_key}, fileName=${fileName}`,
+                );
             }
-            
+
             // 第二层缓存：生成URL（1小时缓存）
             const url = await this.getFileUrlWithCache(fileName);
-            
+
             console.info(`图片处理成功: ${url}`);
-            
+
             return {
                 success: true,
                 data: {
                     url,
-                    file_key
+                    file_key,
                 },
-                message: '图片处理成功'
+                message: '图片处理成功',
             };
         } catch (error) {
             console.error(`图片处理失败: message_id=${message_id}, file_key=${file_key}`, error);
             throw this.handleError(error);
         }
+    }
+
+    /**
+     * 确保文件已上传（带Redis锁防止并发上传）
+     */
+    @RedisLock({
+        key: (request: ImageProcessRequest) => `image_upload_lock:${request.file_key}`,
+        ttl: 60, // 60秒锁定时间
+        timeout: 30000, // 30秒超时
+        retryInterval: 200, // 200ms重试间隔
+    })
+    private async ensureFileUploaded(request: ImageProcessRequest): Promise<string> {
+        const { message_id, file_key } = request;
+
+        console.debug(`获取上传锁成功，开始处理: file_key=${file_key}`);
+
+        // 再次检查缓存，可能在等待锁的过程中已被其他请求上传
+        let fileName = await this.checkFileUploaded(file_key);
+        if (fileName) {
+            console.debug(`等待锁期间文件已上传: file_key=${file_key}, fileName=${fileName}`);
+            return fileName;
+        }
+
+        console.debug(`确认文件未上传，开始下载和上传: file_key=${file_key}`);
+
+        // 下载图片
+        const imageStream = await this.downloadImage(message_id, file_key);
+
+        // 上传到OSS
+        fileName = await this.uploadToOssOnly(file_key, imageStream);
+
+        // 记录到第一层缓存
+        await this.recordFileUploaded(file_key, fileName);
+
+        console.debug(`文件上传完成: file_key=${file_key}, fileName=${fileName}`);
+        return fileName;
     }
 
     /**
@@ -125,7 +155,7 @@ export class ImageProcessorService {
      */
     @cache({ type: 'redis', ttl: 3600 }) // 1小时缓存
     private async getFileUrlWithCache(fileName: string): Promise<string> {
-        return await getOss().getFileUrl(fileName, false);
+        return await getOss().getFileUrl(fileName);
     }
 
     /**
@@ -135,15 +165,11 @@ export class ImageProcessorService {
         try {
             const downloadResponse = await downloadResource(messageId, fileKey, 'image');
             const imageStream = downloadResponse.getReadableStream();
-            
+
             if (!imageStream) {
-                throw new ImageProcessError(
-                    '无法获取图片流',
-                    'DOWNLOAD_STREAM_ERROR',
-                    400
-                );
+                throw new ImageProcessError('无法获取图片流', 'DOWNLOAD_STREAM_ERROR', 400);
             }
-            
+
             console.debug(`成功下载图片流: file_key=${fileKey}`);
             return imageStream;
         } catch (error) {
@@ -153,7 +179,7 @@ export class ImageProcessorService {
             throw new ImageProcessError(
                 `下载图片失败: ${error instanceof Error ? error.message : '未知错误'}`,
                 'DOWNLOAD_ERROR',
-                500
+                500,
             );
         }
     }
@@ -164,12 +190,12 @@ export class ImageProcessorService {
     private async uploadToOssOnly(fileKey: string, imageStream: Readable): Promise<string> {
         try {
             const fileName = `temp/${fileKey}.jpg`;
-            
+
             // 压缩图片
             const compressedBuffer = await this.compressImage(imageStream);
-            
+
             await getOss().uploadFile(fileName, compressedBuffer);
-            
+
             console.debug(`成功上传到OSS: ${fileName}`);
             return fileName;
         } catch (error) {
@@ -179,7 +205,7 @@ export class ImageProcessorService {
             throw new ImageProcessError(
                 `上传到OSS失败: ${error instanceof Error ? error.message : '未知错误'}`,
                 'UPLOAD_ERROR',
-                500
+                500,
             );
         }
     }
@@ -200,20 +226,21 @@ export class ImageProcessorService {
             const compressedBuffer = await sharp(originalBuffer)
                 .resize(1440, 1440, {
                     fit: 'inside',
-                    withoutEnlargement: true
+                    withoutEnlargement: true,
                 })
                 .jpeg({
                     quality: 80,
-                    progressive: true
+                    progressive: true,
                 })
                 .toBuffer();
 
-            console.debug(`图片压缩完成: ${originalBuffer.length} -> ${compressedBuffer.length} bytes`);
+            console.debug(
+                `图片压缩完成: ${originalBuffer.length} -> ${compressedBuffer.length} bytes`,
+            );
             return compressedBuffer;
-
         } catch (error) {
             console.warn('图片压缩失败，使用原图:', error);
-            
+
             // 压缩失败时，将流转为Buffer返回原图
             const chunks: Buffer[] = [];
             for await (const chunk of imageStream) {
@@ -230,20 +257,12 @@ export class ImageProcessorService {
         if (error instanceof ImageProcessError) {
             return error;
         }
-        
+
         if (error instanceof Error) {
-            return new ImageProcessError(
-                `图片处理失败: ${error.message}`,
-                'PROCESSING_ERROR',
-                500
-            );
+            return new ImageProcessError(`图片处理失败: ${error.message}`, 'PROCESSING_ERROR', 500);
         }
-        
-        return new ImageProcessError(
-            '图片处理失败: 未知错误',
-            'UNKNOWN_ERROR',
-            500
-        );
+
+        return new ImageProcessError('图片处理失败: 未知错误', 'UNKNOWN_ERROR', 500);
     }
 }
 

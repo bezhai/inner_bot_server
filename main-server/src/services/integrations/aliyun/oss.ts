@@ -33,26 +33,11 @@ export class OssService {
 
   async getFileUrl(
     fileName: string,
-    isForDownload: boolean = false,
   ): Promise<string> {
     const options: OSS.SignatureUrlOptions = { expires: 1.5 * 60 * 60 }; // 1.5小时
     const pixivAddr = fileName.split('/').pop();
     if (!pixivAddr) {
       return '';
-    }
-    const headerResponse = await this.client.head(fileName);
-    const contentLength = Number(
-      (headerResponse.res.headers as { 'content-length': string })[
-        'content-length'
-      ],
-    );
-    if (isForDownload) {
-      options.response = {};
-      options.response['content-disposition'] =
-        `attachment; filename=${pixivAddr}`;
-    } else if (contentLength < 1024 * 1024 * 20) {
-      // 过大图片展示的时候无法加样式
-      options.process = 'style/sort_image';
     }
     return this.client.signatureUrl(fileName, options);
   }
