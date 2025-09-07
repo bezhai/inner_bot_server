@@ -258,7 +258,7 @@ export async function downloadResource(messageId: string, fileKey: string, type:
     });
 }
 
-export async function uploadFile(fileStream: Readable) {
+export async function uploadImage(fileStream: Readable) {
     const client = larkClientManager.getCurrentClient();
     return client.im.v1.image.create({
         data: {

@@ -2,7 +2,7 @@ import { AxiosResponse } from 'axios';
 import { Message } from 'models/message';
 import { Meme } from 'types/meme';
 import { Readable } from 'node:stream';
-import { uploadFile, downloadResource } from '@lark-client';
+import { uploadImage, downloadResource } from '@lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '@lark-basic/message';
 import { GroupChatInfoRepository } from 'dal/repositories/repositories';
@@ -121,7 +121,7 @@ async function generateMemeImage(
         readable.push(null);
 
         // 上传图片
-        const result = await uploadFile(readable);
+        const result = await uploadImage(readable);
         if (result && result.image_key) {
             return result.image_key;
         }

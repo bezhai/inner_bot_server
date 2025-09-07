@@ -23,5 +23,6 @@ declare namespace NodeJS {
         MEMORY_BASE_URL: string;
         AI_PROVIDER_ADMIN_KEY: string;
         IS_DEV: string; // true or false
+        IMAGE_HOST_TOKEN: string;
     }
 }
