@@ -32,7 +32,7 @@ class ModelBuilder:
         """
         从数据库获取供应商信息
 
-        解析model_id格式："{供应商名称}/模型原名"
+        解析model_id格式："{供应商名称}:模型原名"
         如果找不到供应商名称，则使用默认的302.ai
 
         Args:
@@ -72,6 +72,34 @@ class ModelBuilder:
         except Exception as e:
             logger.error(f"数据库查询错误: {e}")
             return None
+
+    @staticmethod
+    async def get_basic_model_params(model_id: str) -> dict[str, Any] | None:
+        """
+        获取基础模型参数
+
+        Args:
+            model_id: 内部模型ID，对应数据库中的model_id
+
+        Returns:
+            Dict: 包含基础模型参数的字典，如果未找到返回None
+        """
+        model_info = await ModelBuilder._get_model_and_provider_info(model_id)
+        if model_info is None or not model_info.get("is_active", True):
+            return None
+
+        required_fields = ["api_key", "base_url", "model_name"]
+        if any(
+            field not in model_info or not model_info[field]
+            for field in required_fields
+        ):
+            return None
+
+        return {
+            "api_key": model_info["api_key"],
+            "base_url": model_info["base_url"],
+            "model": model_info["model_name"],
+        }
 
     @staticmethod
     async def build_chat_model(model_id: str, **kwargs) -> BaseChatModel:

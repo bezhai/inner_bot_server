@@ -6,16 +6,16 @@ from .models import ModelProvider
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
     """
-    解析model_id格式："{供应商名称}/模型原名"
+    解析model_id格式："{供应商名称}:模型原名"
 
     Args:
-        model_id: 格式为"供应商名称/模型原名"的字符串
+        model_id: 格式为"供应商名称:模型原名"的字符串
 
     Returns:
         tuple: (供应商名称, 模型原名)
     """
-    if "/" in model_id:
-        provider_name, model_name = model_id.split("/", 1)
+    if ":" in model_id:
+        provider_name, model_name = model_id.split(":", 1)
         return provider_name.strip(), model_name.strip()
     else:
         # 如果没有/，使用默认供应商302.ai

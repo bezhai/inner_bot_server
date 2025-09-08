@@ -15,7 +15,9 @@ class ChatAgent:
 
     async def _init_agent(self):
         model = await ModelBuilder.build_chat_model(self.model_id)
-        prompt = await PromptService.get_prompt(self.prompt_id)
+        prompt = (
+            await PromptService.get_prompt(self.prompt_id) if self.prompt_id else None
+        )
         self.agent = create_react_agent(model, self.tools, prompt=prompt)
 
     async def stream(

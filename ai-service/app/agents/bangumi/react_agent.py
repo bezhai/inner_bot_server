@@ -6,6 +6,7 @@ Bangumi ReAct Agent
 import logging
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.tools import tool
 
 from app.agents.bangumi.tools import (
     get_character_persons,
@@ -37,6 +38,7 @@ BANGUMI_TOOLS = [
 ]
 
 
+@tool
 async def bangumi_search(query: str) -> str:
     """
     通过Bangumi获取ACG相关信息

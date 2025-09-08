@@ -48,7 +48,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 if status_message:
                     yield ChatStreamChunk(status_message=status_message)
 
-                accumulate_chunk.content += token.content or ""
+                accumulate_chunk.content += token.content or ""  # type: ignore
                 # accumulate_chunk.reason_content += token.reason_content or ""
 
                 if interval_checker.check():
