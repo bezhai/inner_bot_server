@@ -5,6 +5,7 @@ class AIMessageChunkProcessor:
             "search_donjin_event": "哇！看起来跟同人有关系！让我找找！",
             "topic_summary": "让小尾回忆一下~",
             "bangumi_search": "让小尾查查Bangumi~",
+            "generate_image": "小尾正在进行艺术创作~🖼️",
         }
 
         self.DEFAULT_STATUS_MESSAGES = {

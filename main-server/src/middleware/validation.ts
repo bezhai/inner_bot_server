@@ -148,7 +148,7 @@ function validateType(value: any, type: string): boolean {
  */
 export const imageProcessValidationRules: ValidationRules = {
     message_id: {
-        required: true,
+        required: false,
         type: 'string',
         minLength: 1,
         maxLength: 200,
@@ -158,7 +158,7 @@ export const imageProcessValidationRules: ValidationRules = {
                 return 'message_id 不能为空白字符';
             }
             return true;
-        }
+        },
     },
     file_key: {
         required: true,
@@ -171,8 +171,8 @@ export const imageProcessValidationRules: ValidationRules = {
                 return 'file_key 不能为空白字符';
             }
             return true;
-        }
-    }
+        },
+    },
 };
 
 /**
