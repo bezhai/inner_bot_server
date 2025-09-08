@@ -39,7 +39,10 @@ async def generate_image(
                     {
                         "role": "user",
                         "content": [
-                            {"type": "text", "text": query},
+                            {
+                                "type": "text",
+                                "text": "请务必按以下要求输出图片:" + query,
+                            },
                             *[
                                 {
                                     "type": "image_url",

@@ -236,9 +236,9 @@ export class ImageProcessorService {
     }
 
     /**
-     * 获取文件URL（第二层缓存，1小时TTL）
+     * 获取文件URL（第二层缓存，10分钟TTL）
      */
-    @cache({ type: 'redis', ttl: 3600 }) // 1小时缓存
+    @cache({ type: 'redis', ttl: 600 }) // 10分钟缓存
     private async getFileUrlWithCache(fileName: string): Promise<string> {
         return await getOss().getFileUrl(fileName);
     }
