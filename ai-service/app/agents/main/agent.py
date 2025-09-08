@@ -19,11 +19,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
     messages, image_urls = await load_memory(message_id)
 
-    logger.info(
-        f"Loaded {len(messages)} messages and {
-            len(image_urls or [])
-        } images for message_id {message_id}"
-    )
+    logger.info(f"Loaded {len(messages)} messages and {len(image_urls or [])} images")
 
     accumulate_chunk = ChatStreamChunk(
         content="",
