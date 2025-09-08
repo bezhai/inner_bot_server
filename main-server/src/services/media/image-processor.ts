@@ -1,4 +1,4 @@
-import { downloadResource } from '../integrations/lark-client';
+import { downloadResource, uploadImage } from '../integrations/lark-client';
 import { getOss } from '../integrations/aliyun/oss';
 import { cache } from '../../utils/cache/cache-decorator';
 import { RedisLock } from '../../utils/cache/redis-lock';
@@ -15,6 +15,13 @@ export interface ImageProcessRequest {
 }
 
 /**
+ * base64 图片上传请求接口
+ */
+export interface Base64ImageUploadRequest {
+    base64_data: string;
+}
+
+/**
  * 图片处理响应接口
  */
 export interface ImageProcessResponse {
@@ -22,6 +29,18 @@ export interface ImageProcessResponse {
     data?: {
         url: string;
         file_key: string;
+    };
+    message: string;
+    error_code?: string;
+}
+
+/**
+ * base64 图片上传响应接口
+ */
+export interface Base64ImageUploadResponse {
+    success: boolean;
+    data?: {
+        image_key: string;
     };
     message: string;
     error_code?: string;
@@ -93,6 +112,72 @@ export class ImageProcessorService {
         } catch (error) {
             console.error(`图片处理失败: message_id=${message_id}, file_key=${file_key}`, error);
             throw this.handleError(error);
+        }
+    }
+
+    /**
+     * 处理 base64 图片上传到飞书
+     */
+    async uploadBase64Image(request: Base64ImageUploadRequest): Promise<Base64ImageUploadResponse> {
+        const { base64_data } = request;
+
+        console.info(`开始处理 base64 图片上传`);
+
+        try {
+            // 将 base64 转换为 stream
+            const imageStream = this.base64ToStream(base64_data);
+
+            // 上传到飞书获取 image_key
+            const uploadResult = await uploadImage(imageStream);
+
+            if (!uploadResult || !uploadResult.image_key) {
+                throw new ImageProcessError(
+                    '飞书上传失败，未获取到 image_key',
+                    'UPLOAD_FAILED',
+                    500,
+                );
+            }
+
+            const imageKey = uploadResult.image_key;
+            console.info(`base64 图片上传成功，image_key: ${imageKey}`);
+
+            return {
+                success: true,
+                data: {
+                    image_key: imageKey,
+                },
+                message: 'base64 图片上传成功',
+            };
+        } catch (error) {
+            console.error(`base64 图片上传失败`, error);
+            throw this.handleError(error);
+        }
+    }
+
+    /**
+     * 将 base64 字符串转换为 Readable 流
+     */
+    private base64ToStream(base64Data: string): Readable {
+        try {
+            // 移除 data:image/...;base64, 前缀
+            const base64Content = base64Data.replace(/^data:image\/[a-zA-Z]+;base64,/, '');
+
+            // 将 base64 转换为 Buffer
+            const buffer = Buffer.from(base64Content, 'base64');
+
+            // 创建 Readable 流
+            const stream = new Readable();
+            stream.push(buffer);
+            stream.push(null); // 标记流结束
+
+            console.debug(`base64 转换为流成功，数据大小: ${buffer.length} bytes`);
+            return stream;
+        } catch (error) {
+            throw new ImageProcessError(
+                `base64 转换失败: ${error instanceof Error ? error.message : '未知错误'}`,
+                'BASE64_CONVERT_ERROR',
+                400,
+            );
         }
     }
 

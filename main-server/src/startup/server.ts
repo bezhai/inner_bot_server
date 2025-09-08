@@ -56,7 +56,12 @@ export class HttpServerManager {
         this.app.use(cors());
         this.app.use(traceMiddleware); // 先注入 traceId
         this.app.use(botContextMiddleware); // 再注入 botName
-        this.app.use(koaBody());
+        this.app.use(koaBody({
+            formLimit: '50mb',
+            jsonLimit: '50mb',
+            textLimit: '50mb',
+            multipart: true,
+        }));
     }
 
     /**
@@ -144,6 +149,7 @@ export class HttpServerManager {
         console.info('  - /api/health (health check)');
         console.info('  - /api/prompts (prompt management)');
         console.info('  - /api/image/process (image processing)');
+        console.info('  - /api/image/upload-base64 (base64 image upload)');
 
         const httpBots = multiBotManager.getBotsByInitType('http');
         httpBots.forEach((bot) => {

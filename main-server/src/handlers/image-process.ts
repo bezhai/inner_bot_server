@@ -3,11 +3,16 @@ import { Context } from 'koa';
 import { bearerAuthMiddleware } from '../middleware/auth';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
-import { validateBody, imageProcessValidationRules } from '../middleware/validation';
+import {
+    validateBody,
+    imageProcessValidationRules,
+    base64ImageUploadValidationRules,
+} from '../middleware/validation';
 import {
     imageProcessor,
     ImageProcessRequest,
-    ImageProcessError
+    ImageProcessError,
+    Base64ImageUploadRequest,
 } from '../services/media/image-processor';
 
 const router = new Router({ prefix: '/api/image' });
@@ -31,6 +36,26 @@ router.post('/process',
             
             ctx.body = result;
         } catch (error) {
+            handleImageProcessError(ctx, error);
+        }
+    }
+);
+
+/**
+ * base64图片上传API - 上传到飞书获取image_key
+ * POST /api/image/upload-base64
+ * Body: { base64_data: string }
+ */
+router.post('/upload-base64',
+    validateBody(base64ImageUploadValidationRules),
+    async (ctx: Context) => {
+        try {
+            const request = ctx.request.body as Base64ImageUploadRequest;
+            const result = await imageProcessor.uploadBase64Image(request);
+            
+            ctx.body = result;
+        } catch (error) {
+            console.error('Base64图片上传错误:', error);
             handleImageProcessError(ctx, error);
         }
     }
