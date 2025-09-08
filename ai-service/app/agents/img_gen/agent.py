@@ -56,6 +56,8 @@ async def generate_image(
 
             response = {"description": message.content, "images": []}
 
+            logger.info(f"生成图片响应: {response}")
+
             if hasattr(message, "images"):
                 base64_images = [img["image_url"]["url"] for img in message.images]  # type: ignore
                 image_keys = await batch_upload_images(base64_images)
