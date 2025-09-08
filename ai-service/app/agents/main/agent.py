@@ -19,6 +19,12 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
     messages, image_urls = await load_memory(message_id)
 
+    logger.info(
+        f"Loaded {len(messages)} messages and {
+            len(image_urls or [])
+        } images for message_id {message_id}"
+    )
+
     accumulate_chunk = ChatStreamChunk(
         content="",
         reason_content="",
@@ -30,7 +36,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     try:
         async for token in agent.stream(
             messages,
-            {
+            context={
                 "curr_message_id": message_id,
                 "image_url_list": image_urls,
             },
