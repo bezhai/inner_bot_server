@@ -52,6 +52,8 @@ async def generate_image(
             )
             message = completion.choices[0].message
 
+            logger.info(f"生成图片结果: {message}")
+
             response = {"description": message.content, "images": []}
 
             if hasattr(message, "images"):
