@@ -19,7 +19,7 @@ async def generate_image(
         Field(description="一个明确的生成图片提示词, 例如 '帮我生成一张猫咪的图片'"),
     ],
     image_list: Annotated[
-        list[int],
+        list[int] | None,
         Field(description="参考图片列表, 按当前上下文的图片顺序编号, 从0开始"),
     ] = None,
 ) -> str | dict[str, Any]:

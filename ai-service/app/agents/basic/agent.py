@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
+from app.agents.basic.context import ContextSchema
 from app.agents.basic.model_builder import ModelBuilder
 from app.agents.basic.prompt import PromptService
 
@@ -18,14 +19,16 @@ class ChatAgent:
         prompt = (
             await PromptService.get_prompt(self.prompt_id) if self.prompt_id else None
         )
-        self.agent = create_react_agent(model, self.tools, prompt=prompt)
+        self.agent = create_react_agent(
+            model, self.tools, prompt=prompt, context_schema=ContextSchema
+        )
 
     async def stream(
-        self, messages: list
+        self, messages: list, context: dict | None = None
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         await self._init_agent()
         async for token, _ in self.agent.astream(
-            {"messages": messages}, stream_mode="messages"
+            {"messages": messages, "context": context}, stream_mode="messages"
         ):
             yield token  # type: ignore
 

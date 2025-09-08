@@ -11,25 +11,30 @@ from app.clients.image_client import image_client
 logger = logging.getLogger(__name__)
 
 
-async def load_memory(message_id: str) -> list[AIMessage | HumanMessage]:
+async def load_memory(
+    message_id: str,
+) -> tuple[list[HumanMessage | AIMessage], list[str] | None]:
+    """加载历史消息，支持图片多模态"""
     results = await memory_client.quick_search(
         context_message_id=message_id,
         max_results=15,
     )
 
     messages = []
+    image_urls = []
     for result in results:
         # 处理消息内容，支持图片多模态
-        content = await process_message_content(result)
+        content, urls = await process_message_content(result)
+        image_urls.extend(urls)
 
         if result.get("role") == "user":
             messages.append(HumanMessage(content=content))
         else:
             messages.append(AIMessage(content=content))
-    return messages
+    return messages, image_urls
 
 
-async def process_message_content(result: dict) -> Any:
+async def process_message_content(result: dict) -> tuple[Any, list[str]]:
     """处理消息内容，支持图片多模态"""
     raw_content = result.get("content", "")
     user_name = result.get("user_name", "未知用户")
@@ -39,7 +44,7 @@ async def process_message_content(result: dict) -> Any:
     image_keys = re.findall(r"!\[image\]\(([^)]+)\)", raw_content)
 
     if not image_keys:
-        return f"[{user_name}]: {raw_content}"
+        return f"[{user_name}]: {raw_content}", []
 
     # 并发处理所有图片
     image_tasks = [image_client.process_image(message_id, key) for key in image_keys]
@@ -78,4 +83,4 @@ async def process_message_content(result: dict) -> Any:
     elif content_parts:
         content_parts.insert(0, {"type": "text", "text": f"[{user_name}]: "})
 
-    return content_parts
+    return content_parts, [image for image in image_results if isinstance(image, str)]

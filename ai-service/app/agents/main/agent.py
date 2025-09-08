@@ -17,7 +17,7 @@ YIELD_INTERVAL = 0.5
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     agent = ChatAgent("gpt-4.1", "main", MAIN_TOOLS)
 
-    messages = await load_memory(message_id)
+    messages, image_urls = await load_memory(message_id)
 
     accumulate_chunk = ChatStreamChunk(
         content="",
@@ -28,7 +28,13 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     processor = AIMessageChunkProcessor()
 
     try:
-        async for token in agent.stream(messages):
+        async for token in agent.stream(
+            messages,
+            {
+                "curr_message_id": message_id,
+                "image_url_list": image_urls,
+            },
+        ):
             # 工具调用忽略
             if isinstance(token, AIMessageChunk):
                 finish_reason = token.response_metadata.get("finish_reason")
