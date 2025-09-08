@@ -29,6 +29,8 @@ async def generate_image(
     try:
         context = get_runtime(ContextSchema).context
 
+        logger.info(f"生成图片请求: {query}, 参考图片: {image_list}")
+
         async with OpenAIClient(
             "openrouter:google/gemini-2.5-flash-image-preview"
         ) as client:
@@ -41,18 +43,16 @@ async def generate_image(
                             *[
                                 {
                                     "type": "image_url",
-                                    "image_url": {"url": context.image_url_list[i]},
+                                    "image_url": {"url": context.image_url_list[i]},  # type: ignore
                                 }
                                 for i in (image_list or [])
-                                if 0 <= i < len(context.image_url_list)
+                                if 0 <= i < len(context.image_url_list)  # type: ignore
                             ],
                         ],
                     }
                 ]  # 这里可以根据需要添加更多的上下文消息
             )
             message = completion.choices[0].message
-
-            logger.info(f"生成图片结果: {message}")
 
             response = {"description": message.content, "images": []}
 

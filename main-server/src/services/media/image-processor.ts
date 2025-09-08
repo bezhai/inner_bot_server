@@ -1,4 +1,4 @@
-import { downloadResource, uploadImage } from '../integrations/lark-client';
+import { downloadResource, downloadSelfImage, uploadImage } from '../integrations/lark-client';
 import { getOss } from '../integrations/aliyun/oss';
 import { cache } from '../../utils/cache/cache-decorator';
 import { RedisLock } from '../../utils/cache/redis-lock';
@@ -10,7 +10,7 @@ import sharp from 'sharp';
  * 图片处理请求接口
  */
 export interface ImageProcessRequest {
-    message_id: string;
+    message_id?: string;
     file_key: string;
 }
 
@@ -205,7 +205,7 @@ export class ImageProcessorService {
         console.debug(`确认文件未上传，开始下载和上传: file_key=${file_key}`);
 
         // 下载图片
-        const imageStream = await this.downloadImage(message_id, file_key);
+        const imageStream = await this.downloadImage(file_key, message_id);
 
         // 上传到OSS
         fileName = await this.uploadToOssOnly(file_key, imageStream);
@@ -246,9 +246,16 @@ export class ImageProcessorService {
     /**
      * 从Lark下载图片
      */
-    private async downloadImage(messageId: string, fileKey: string): Promise<Readable> {
+    private async downloadImage(fileKey: string, messageId?: string): Promise<Readable> {
         try {
-            const downloadResponse = await downloadResource(messageId, fileKey, 'image');
+            let downloadResponse;
+            if (messageId) {
+                // 通过 messageId 和 fileKey 下载
+                downloadResponse = await downloadResource(messageId, fileKey, 'image');
+            } else {
+                // 仅通过 image_key 下载
+                downloadResponse = await downloadSelfImage(fileKey);
+            }
             const imageStream = downloadResponse.getReadableStream();
 
             if (!imageStream) {

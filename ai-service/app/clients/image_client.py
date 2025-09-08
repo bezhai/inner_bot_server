@@ -19,7 +19,7 @@ class ImageProcessClient:
         self.base_url = settings.main_server_base_url
         self.timeout = settings.main_server_timeout
 
-    async def process_image(self, message_id: str, file_key: str) -> str | None:
+    async def process_image(self, file_key: str, message_id: str | None) -> str | None:
         """
         处理图片，返回图片URL
 

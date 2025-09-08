@@ -39,6 +39,7 @@ async def process_message_content(result: dict) -> tuple[Any, list[str]]:
     raw_content = result.get("content", "")
     user_name = result.get("user_name", "未知用户")
     message_id = result.get("message_id", "")
+    need_message_id = result.get("role") == "user"  # 仅用户消息需要传递 message_id
 
     # 直接提取图片keys
     image_keys = re.findall(r"!\[image\]\(([^)]+)\)", raw_content)
@@ -47,7 +48,10 @@ async def process_message_content(result: dict) -> tuple[Any, list[str]]:
         return f"[{user_name}]: {raw_content}", []
 
     # 并发处理所有图片
-    image_tasks = [image_client.process_image(message_id, key) for key in image_keys]
+    image_tasks = [
+        image_client.process_image(key, message_id if need_message_id else None)
+        for key in image_keys
+    ]
     image_results = await asyncio.gather(*image_tasks, return_exceptions=True)
 
     # 构建多模态内容
