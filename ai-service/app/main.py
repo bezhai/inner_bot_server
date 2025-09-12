@@ -1,10 +1,13 @@
 import logging
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from app.api.router import api_router
 from app.utils.middlewares import HeaderContextMiddleware
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
