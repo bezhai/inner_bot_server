@@ -28,6 +28,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
     interval_checker = AsyncIntervalChecker(YIELD_INTERVAL)
     processor = AIMessageChunkProcessor()
+    should_continue = True  # 控制是否继续处理和输出
 
     try:
         async for token in agent.stream(
@@ -44,13 +45,16 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 if finish_reason == "stop":
                     # 表明已经执行完毕
                     yield accumulate_chunk
-                    return
+                    should_continue = False
                 elif finish_reason == "content_filter":
                     yield ChatStreamChunk(content="小尾有点不想讨论这个话题呢~")
-                    return
+                    should_continue = False
                 elif finish_reason == "length":
                     yield ChatStreamChunk(content="(后续内容被截断)")
-                    return
+                    should_continue = False
+
+                if not should_continue:
+                    continue
 
                 status_message = processor.process_chunk(token)
                 if status_message:
