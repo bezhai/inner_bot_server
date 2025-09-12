@@ -1,6 +1,9 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import http from '../../services/http';
+import { Jieba } from '@node-rs/jieba';
+
+// 初始化jieba实例
+const jieba = new Jieba();
 
 /**
  * 检查一个词是否有意义
@@ -17,7 +20,37 @@ function isMeaningful(word: string): boolean {
 }
 
 /**
- * 调用分词服务，批量提取关键词和权重
+ * 计算词频并返回权重
+ * @param words 分词结果数组
+ * @param topN 返回的关键词数量
+ * @returns 带权重的关键词数组
+ */
+function calculateKeywordsWithWeight(words: string[], topN: number): { word: string; weight: number }[] {
+    // 统计词频
+    const wordCount = new Map<string, number>();
+    let totalWords = 0;
+
+    for (const word of words) {
+        if (word.length > 1 && isMeaningful(word)) {
+            wordCount.set(word, (wordCount.get(word) || 0) + 1);
+            totalWords++;
+        }
+    }
+
+    // 计算权重并排序
+    const keywordsWithWeight = Array.from(wordCount.entries())
+        .map(([word, count]) => ({
+            word,
+            weight: count / totalWords, // 简单的词频权重
+        }))
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, topN);
+
+    return keywordsWithWeight;
+}
+
+/**
+ * 本地jieba分词，批量提取关键词和权重
  * @param texts 文本数组
  * @param topN 每个文本提取的关键词数量
  * @returns 每个文本的关键词数组
@@ -27,17 +60,21 @@ async function extractBatchWithWeight(
     topN: number,
 ): Promise<{ text: string; keywords: { word: string; weight: number }[] }[]> {
     try {
-        const response = await http.post(
-            `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
-            {
-                texts,
-                top_n: topN,
-            },
-        );
-        return response.data;
+        const results = texts.map((text) => {
+            // 使用jieba进行分词
+            const words = jieba.cut(text, false); // false表示精确模式
+            const keywords = calculateKeywordsWithWeight(words, topN);
+            
+            return {
+                text,
+                keywords,
+            };
+        });
+
+        return results;
     } catch (error) {
-        console.error('Error calling segmentation service:', error);
-        return []; // 返回空数组以防止服务调用失败
+        console.error('Error in local jieba segmentation:', error);
+        return texts.map(text => ({ text, keywords: [] })); // 返回空数组以防止分词失败
     }
 }
 
@@ -72,7 +109,7 @@ export async function buildWeeklyWordCloud(
     const textBatches = chunkArray(texts, batchSize);
 
     for (const batch of textBatches) {
-        // 调用分词服务处理当前批次
+        // 调用本地分词服务处理当前批次
         const batchRes = await extractBatchWithWeight(batch, 6);
 
         // 处理分词结果
