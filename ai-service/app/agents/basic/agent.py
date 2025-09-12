@@ -1,11 +1,14 @@
 from collections.abc import AsyncGenerator
 
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
+from langfuse.langchain import CallbackHandler
 from langgraph.prebuilt import create_react_agent
 
 from app.agents.basic.context import ContextSchema
 from app.agents.basic.model_builder import ModelBuilder
 from app.agents.basic.prompt import PromptService
+
+langfuse_handler = CallbackHandler()
 
 
 class ChatAgent:
@@ -28,11 +31,15 @@ class ChatAgent:
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         await self._init_agent()
         async for token, _ in self.agent.astream(
-            {"messages": messages, "context": context}, stream_mode="messages"
+            {"messages": messages, "context": context},
+            stream_mode="messages",
+            config={"callbacks": [langfuse_handler]},
         ):
             yield token  # type: ignore
 
     async def run(self, messages: list) -> AIMessage:
         await self._init_agent()
-        all_message = await self.agent.ainvoke({"messages": messages})
+        all_message = await self.agent.ainvoke(
+            {"messages": messages}, config={"callbacks": [langfuse_handler]}
+        )
         return all_message["messages"][-1]

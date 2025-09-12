@@ -13,6 +13,7 @@ dependencies = [
     "jinja2>=3.1.6",
     "langchain>=0.3.26",
     "langchain-openai>=0.3.28",
+    "langfuse>=3.3.4",
     "langgraph>=0.5.3",
     "markupsafe>=3.0.2",
     "mypy-extensions>=1.1.0",
