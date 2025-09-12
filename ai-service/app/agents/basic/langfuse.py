@@ -1,11 +1,7 @@
 from langfuse import Langfuse
 
-from app.config.config import settings
+langfuse = Langfuse()
 
 
-def init_langfuse():
-    return Langfuse(
-        public_key=settings.langfuse_public_key,
-        secret_key=settings.langfuse_secret_key,
-        host=settings.langfuse_host,
-    )
+def get_prompt(prompt_id: str):
+    return langfuse.get_prompt(prompt_id)

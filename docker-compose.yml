@@ -129,16 +129,6 @@ services:
       - elasticsearch
     restart: always
 
-  # Web Manager 前端服务
-  web-manager:
-    build:
-      context: ./web-manager
-    ports:
-      - "3001:80"
-    depends_on:
-      - app
-    restart: always
-
 volumes:
   redis-data:
   mongo_data:

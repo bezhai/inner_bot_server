@@ -11,7 +11,6 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
 
 - main-server: Node.js + TypeScript main server (port 3000)
 - ai-service: Python + FastAPI AI service (port 8000) 
-- web-manager: React-based admin interface (port 3001)
 - logstash: Log processing service
 - PostgreSQL, MongoDB, Redis, Elasticsearch for data storage
 
@@ -61,9 +60,8 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - All dependencies managed in `pyproject.toml` but modified via uv commands
 
 3. Node.js Package Management
-   - Use `npm` for main-server and web-manager
+   - Use `npm` for main-server
    - Example: `cd main-server && npm install package-name`
-   - Example: `cd web-manager && npm install package-name`
    - Use `npm uninstall package-name` to remove dependencies
    - Never manually edit package.json - use npm commands only
 
@@ -91,7 +89,7 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Memory management with Qdrant vector database
 
 ### Code Standards
-1. TypeScript/JavaScript (main-server & web-manager)
+1. TypeScript/JavaScript (main-server)
    - Use ESLint for code linting (configured in respective directories)
    - Use Prettier for code formatting
    - Follow TypeScript strict mode
@@ -105,12 +103,6 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
    - Use async/await for asynchronous operations
    - Type hints required for all functions
    - Use Pydantic for data validation
-
-3. React (web-manager)
-   - Use TypeScript with React
-   - Use functional components with hooks
-   - Follow React best practices
-   - Use Tailwind CSS for styling
 
 ## Documentation Standards
 1. Code Comments
@@ -148,7 +140,6 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
 3. Recent Project Changes
    - Added prompt management system with PostgreSQL backend
    - Refactored Bangumi agent to use database prompts
-   - Added web-manager React frontend for prompt administration
    - Updated AI service to use AsyncSessionLocal for database sessions
    - Fixed MessageContext initialization parameter passing
 
@@ -156,7 +147,6 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
 - `main-server/src/services/message-processing/rules/` - Message processing rules
 - `ai-service/app/services/chat/langgraph/` - LangGraph AI workflows
 - `ai-service/app/tools/` - AI tools and utilities
-- `web-manager/src/components/` - React UI components
 - `docs/` - Project documentation
 - `scripts/` - Deployment and utility scripts
 - `logstash/` - Log processing configuration
@@ -164,6 +154,5 @@ This is an event-driven microservice architecture project for a Feishu (Lark) bo
 ## Environment Setup
 1. Copy `.env.example` to `.env` and configure
 2. Run `make start-dev` for development
-3. Access web-manager at http://localhost:3001
-4. Main server API at http://localhost:3000
-5. AI service API at http://localhost:8000
+3. Main server API at http://localhost:3000
+4. AI service API at http://localhost:8000

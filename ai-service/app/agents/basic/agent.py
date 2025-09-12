@@ -1,12 +1,13 @@
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langfuse.langchain import CallbackHandler
 from langgraph.prebuilt import create_react_agent
 
 from app.agents.basic.context import ContextSchema
+from app.agents.basic.langfuse import get_prompt
 from app.agents.basic.model_builder import ModelBuilder
-from app.agents.basic.prompt import PromptService
 
 
 class ChatAgent:
@@ -18,8 +19,9 @@ class ChatAgent:
 
     async def _init_agent(self):
         model = await ModelBuilder.build_chat_model(self.model_id)
-        prompt = (
-            await PromptService.get_prompt(self.prompt_id) if self.prompt_id else None
+        prompt = get_prompt(self.prompt_id).get_langchain_prompt(
+            currDate=datetime.now().strftime("%Y-%m-%d"),
+            currTime=datetime.now().strftime("%H:%M:%S"),
         )
         self.agent = create_react_agent(
             model, self.tools, prompt=prompt, context_schema=ContextSchema
