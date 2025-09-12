@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from app.agents.basic.langfuse import init_langfuse
 from app.api.router import api_router
 from app.utils.middlewares import HeaderContextMiddleware
 
@@ -15,7 +16,7 @@ async def lifespan(app: FastAPI):
     应用生命周期管理
     """
 
-    # 启动工具系统
+    init_langfuse()
 
     yield
 
