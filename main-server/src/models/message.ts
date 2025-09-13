@@ -1,5 +1,4 @@
 import { LarkReceiveMessage, LarkHistoryMessage } from 'types/lark';
-import { LarkMessageMetaInfo } from 'types/mongo';
 import { LarkBaseChatInfo, LarkUser } from 'dal/entities';
 import { MessageMetadata, MessageMetadataUtils } from './message-metadata';
 import { MessageContent, MessageContentUtils } from './message-content';
@@ -17,17 +16,6 @@ export class Message {
     // Factory methods
     static async fromEvent(event: LarkReceiveMessage, content: MessageContent): Promise<Message> {
         const metadata = await MessageBuilder.buildMetadataFromEvent(event);
-        return new Message(metadata, content);
-    }
-
-    static async fromMessage(message: LarkMessageMetaInfo): Promise<Message> {
-        const metadata = MessageBuilder.buildMetadataFromInfo(message);
-        const content = MessageBuilder.buildContentFromInfo(message);
-
-        // const mentionMap =
-        //     content.mentions.length > 0 ? await batchGetUserName(content.mentions) : undefined;
-        // content.mentionMap = mentionMap;
-
         return new Message(metadata, content);
     }
 

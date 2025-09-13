@@ -36,18 +36,14 @@ export async function buildWeeklyWordCloud(texts: string[]) {
     const result = new Map<string, number>();
     const cloudSkipWordMap = new Set(cloudSkipWords);
 
-    // 将所有文本合并成一个大字符串，使用空格分隔
-    const combinedText = texts.join(' ');
-
-    // 对合并后的文本进行TF-IDF关键词提取
-    const keywords = extractTagsWithWeight(combinedText, 80);
-
-    // 处理关键词结果
-    for (const keyword of keywords) {
-        if (cloudSkipWordMap.has(keyword.word)) {
-            continue;
+    for (const text of texts) {
+        const keywords = extractTagsWithWeight(text, 80);
+        for (const keyword of keywords) {
+            if (cloudSkipWordMap.has(keyword.word)) {
+                continue;
+            }
+            result.set(keyword.word, (result.get(keyword.word) || 0) + keyword.weight);
         }
-        result.set(keyword.word, keyword.weight);
     }
 
     return result;
