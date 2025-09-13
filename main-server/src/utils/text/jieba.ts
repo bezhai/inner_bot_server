@@ -1,11 +1,10 @@
 import { cloudSkipWords } from './word-utils';
-import { dict } from '@node-rs/jieba/dict';
+import { dict, idf } from '@node-rs/jieba/dict';
 import { Jieba, TfIdf } from '@node-rs/jieba';
 
 const jieba = Jieba.withDict(dict);
-const tfidf = TfIdf.withDict(dict);
+const tfidf = TfIdf.withDict(idf);
 tfidf.setConfig({
-    stopWords: new Set(cloudSkipWords),
     useHmm: true,
     minKeywordLength: 2,
 });
@@ -35,6 +34,7 @@ function extractTagsWithWeight(text: string, topN: number): { word: string; weig
  */
 export async function buildWeeklyWordCloud(texts: string[]) {
     const result = new Map<string, number>();
+    const cloudSkipWordMap = new Set(cloudSkipWords);
 
     // 将所有文本合并成一个大字符串，使用空格分隔
     const combinedText = texts.join(' ');
@@ -44,6 +44,9 @@ export async function buildWeeklyWordCloud(texts: string[]) {
 
     // 处理关键词结果
     for (const keyword of keywords) {
+        if (cloudSkipWordMap.has(keyword.word)) {
+            continue;
+        }
         result.set(keyword.word, keyword.weight);
     }
 
