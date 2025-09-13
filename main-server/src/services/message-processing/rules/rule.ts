@@ -89,9 +89,9 @@ export const ContainKeyword =
         message.text().includes(keyword);
 
 export const EqualText =
-    (text: string): Rule =>
+    (...text: string[]): Rule =>
     (message) =>
-        message.clearText() === text;
+        text.includes(message.clearText());
 
 export const RegexpMatch =
     (pattern: string): Rule =>

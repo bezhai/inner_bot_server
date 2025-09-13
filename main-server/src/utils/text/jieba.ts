@@ -1,25 +1,14 @@
 import { cloudSkipWords } from './word-utils';
-import _ from 'lodash';
+import { dict } from '@node-rs/jieba/dict';
 import { Jieba, TfIdf } from '@node-rs/jieba';
 
-// 初始化jieba实例
-const jieba = new Jieba();
-// 初始化TF-IDF实例
-const tfidf = new TfIdf();
-
-/**
- * 检查一个词是否有意义
- * @param word 输入的单词
- * @returns 是否是有意义的单词
- */
-function isMeaningful(word: string): boolean {
-    for (const char of word) {
-        if (/\p{P}/u.test(char) || /\s/.test(char)) {
-            return false;
-        }
-    }
-    return true;
-}
+const jieba = Jieba.withDict(dict);
+const tfidf = TfIdf.withDict(dict);
+tfidf.setConfig({
+    stopWords: new Set(cloudSkipWords),
+    useHmm: true,
+    minKeywordLength: 2,
+});
 
 /**
  * 使用 TF-IDF 提取关键词和权重 (对应 jieba.analyse.extract_tags)
@@ -46,7 +35,6 @@ function extractTagsWithWeight(text: string, topN: number): { word: string; weig
  */
 export async function buildWeeklyWordCloud(texts: string[]) {
     const result = new Map<string, number>();
-    const wordMap = new Set<string>(cloudSkipWords);
 
     // 将所有文本合并成一个大字符串，使用空格分隔
     const combinedText = texts.join(' ');
@@ -56,12 +44,7 @@ export async function buildWeeklyWordCloud(texts: string[]) {
 
     // 处理关键词结果
     for (const keyword of keywords) {
-        if (wordMap.has(keyword.word)) {
-            continue;
-        }
-        if (isMeaningful(keyword.word)) {
-            result.set(keyword.word, keyword.weight);
-        }
+        result.set(keyword.word, keyword.weight);
     }
 
     return result;

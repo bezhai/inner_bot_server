@@ -81,7 +81,7 @@ const chatRules: RuleConfig[] = [
         comment: '撤回消息',
     },
     {
-        rules: [ContainKeyword('水群'), TextMessageLimit, NeedRobotMention],
+        rules: [EqualText('水群', '水群趋势'), TextMessageLimit, NeedRobotMention],
         handler: genHistoryCard,
         comment: '生成水群历史卡片',
     },

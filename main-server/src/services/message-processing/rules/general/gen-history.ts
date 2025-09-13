@@ -89,7 +89,7 @@ export async function genHistoryCard(message: Message) {
 
     // 如果某个小时没有消息,messagesGroupByHour中就不会有这个小时的key,但我们的hourKeys中会包含
     hourKeys.forEach((hour) => {
-        const { messagePersonCount, messageCount } = messageStatistic(
+        const { messageCount } = messageStatistic(
             messagesGroupByHour[hour] || [],
         );
         // hourActiveChart.chart_spec.addLineData(hour, messagePersonCount, '活跃人数');
