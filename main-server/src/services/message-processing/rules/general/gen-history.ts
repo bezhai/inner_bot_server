@@ -89,9 +89,7 @@ export async function genHistoryCard(message: Message) {
 
     // 如果某个小时没有消息,messagesGroupByHour中就不会有这个小时的key,但我们的hourKeys中会包含
     hourKeys.forEach((hour) => {
-        const { messageCount } = messageStatistic(
-            messagesGroupByHour[hour] || [],
-        );
+        const { messageCount } = messageStatistic(messagesGroupByHour[hour] || []);
         // hourActiveChart.chart_spec.addLineData(hour, messagePersonCount, '活跃人数');
         hourActiveChartSpec.addLineData(hour, messageCount, '消息数');
     });
@@ -190,7 +188,7 @@ export async function genHistoryCard(message: Message) {
     const wordCloudMap = await buildWeeklyWordCloud(clearTexts);
 
     // 对 wordCloudMap 进行排序，按照权重降序排列, 取前100个
-    const sortedWordCloudMap = Object.entries(wordCloudMap)
+    const sortedWordCloudMap = [...wordCloudMap.entries()]
         .sort((a, b) => b[1] - a[1])
         .slice(0, 100);
 
