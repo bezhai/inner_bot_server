@@ -1,9 +1,9 @@
 import { cloudSkipWords } from './word-utils';
-import { dict, idf } from '@node-rs/jieba/dict';
+import { dict } from '@node-rs/jieba/dict';
 import { Jieba, TfIdf } from '@node-rs/jieba';
 
 const jieba = Jieba.withDict(dict);
-const tfidf = TfIdf.withDict(idf);
+const tfidf = TfIdf.withDict(dict);
 tfidf.setConfig({
     useHmm: true,
     minKeywordLength: 2,
