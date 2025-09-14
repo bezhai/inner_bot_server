@@ -27,7 +27,7 @@ services:
     build:
       context: ./main-server
     ports:
-      - "3000:3000"
+      - "3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -135,6 +135,16 @@ services:
       - QDRANT__SERVICE__HTTP_PORT=6333
       - QDRANT__SERVICE__GRPC_PORT=6334
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    restart: always
+
+  nginx:
+    image: nginx:1.25-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - app
     restart: always
 
 volumes:
