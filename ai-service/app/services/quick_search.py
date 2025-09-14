@@ -2,7 +2,7 @@
 快速搜索功能 - 基于PostgreSQL的简单实现
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -77,9 +77,7 @@ async def quick_search(
             needed = limit - len(root_messages)
 
             # 计算时间窗口
-            time_threshold = current_msg.create_time - timedelta(
-                minutes=time_window_minutes
-            )
+            time_threshold = current_msg.create_time - (time_window_minutes * 60 * 1000)
 
             additional_result = await session.execute(
                 select(ConversationMessage, LarkUser.name.label("username"))
@@ -110,7 +108,7 @@ async def quick_search(
                     message_id=str(msg.message_id),
                     content=str(msg.content),
                     user_id=str(msg.user_id),
-                    create_time=msg.create_time,
+                    create_time=datetime.fromtimestamp(msg.create_time / 1000),
                     role=str(msg.role),
                     username=username,
                 )

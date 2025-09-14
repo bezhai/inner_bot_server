@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
@@ -68,7 +66,7 @@ async def create_conversation_message(
     root_message_id: str,
     chat_id: str,
     chat_type: str,
-    create_time: datetime,
+    create_time: int,
     reply_message_id: str | None = None,
 ) -> ConversationMessage:
     async with AsyncSessionLocal() as session:

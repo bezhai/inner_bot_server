@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID as PyUUID
 
-from sqlalchemy import UUID, Boolean, DateTime, String, Text
+from sqlalchemy import UUID, BigInteger, Boolean, DateTime, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -41,4 +41,4 @@ class ConversationMessage(Base):
     reply_message_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     chat_id: Mapped[str] = mapped_column(String(100))
     chat_type: Mapped[str] = mapped_column(String(10))
-    create_time: Mapped[datetime] = mapped_column(DateTime)
+    create_time: Mapped[int] = mapped_column(BigInteger)

@@ -28,7 +28,7 @@ export async function makeCardReply(message: Message): Promise<void> {
             message_id: cardManager.getMessageId()!,
             chat_id: message.chatId,
             chat_type: message.isP2P() ? 'p2p' : 'group',
-            create_time: dayjs(cardManager.getCreateTime()).toISOString(),
+            create_time: String(dayjs(cardManager.getCreateTime()).valueOf()),
             root_message_id: message.rootId,
             reply_message_id: message.messageId, // 机器人回复消息就是用户消息的id
         } as const;
@@ -77,7 +77,7 @@ export async function reCreateCard(
             message_id: cardManager.getMessageId()!,
             chat_id: chatId,
             chat_type: isP2P ? 'p2p' : 'group',
-            create_time: dayjs(cardManager.getCreateTime()).toISOString(),
+            create_time: String(dayjs(cardManager.getCreateTime()).valueOf()),
             root_message_id: rootId,
             reply_message_id: parentMessageId, // 机器人回复消息就是用户消息的id
         } as const;

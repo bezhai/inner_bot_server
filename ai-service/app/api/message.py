@@ -2,8 +2,6 @@
 消息管理API
 """
 
-from datetime import datetime
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -26,8 +24,6 @@ class MessageCreateRequest(BaseModel):
 
 @router.post("/message")
 async def create_message(request: MessageCreateRequest):
-    create_time = datetime.fromisoformat(request.create_time.replace("Z", "+00:00"))
-
     await create_conversation_message(
         message_id=request.message_id,
         user_id=request.user_id,
@@ -37,6 +33,6 @@ async def create_message(request: MessageCreateRequest):
         reply_message_id=request.reply_message_id,
         chat_id=request.chat_id,
         chat_type=request.chat_type,
-        create_time=create_time,
+        create_time=int(request.create_time),
     )
     return {"status": "ok"}

@@ -75,7 +75,7 @@ export class LarkEventHandlers {
                 message_id: message.messageId,
                 chat_id: message.chatId,
                 chat_type: message.isP2P() ? 'p2p' : 'group',
-                create_time: dayjs(parseInt(message.createTime ?? '0')).toISOString(),
+                create_time: message.createTime ?? '0',
                 root_message_id: message.rootId,
                 reply_message_id: message.parentMessageId,
             });
