@@ -82,7 +82,6 @@ async def create_conversation_message(
             chat_id=chat_id,
             chat_type=chat_type,
             create_time=create_time,
-            created_at=datetime.now(),
         )
         session.add(message)
         await session.commit()
