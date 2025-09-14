@@ -81,7 +81,7 @@ async def create_conversation_message(
             chat_type=chat_type,
             create_time=create_time,
         )
-        session.add(message)
+        message = await session.merge(message)
         await session.commit()
         await session.refresh(message)
         return message
