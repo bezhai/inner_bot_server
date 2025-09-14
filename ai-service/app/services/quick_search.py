@@ -66,8 +66,8 @@ async def quick_search(
             select(ConversationMessage, LarkUser.name.label("username"))
             .outerjoin(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
             .where(ConversationMessage.root_message_id == current_msg.root_message_id)
-            .where(ConversationMessage.created_time <= current_msg.created_time)
-            .order_by(ConversationMessage.created_time.asc())
+            .where(ConversationMessage.create_time <= current_msg.create_time)
+            .order_by(ConversationMessage.create_time.asc())
         )
         root_rows = root_result.all()
         root_messages = [(row[0], row[1]) for row in root_rows]
@@ -77,7 +77,7 @@ async def quick_search(
             needed = limit - len(root_messages)
 
             # 计算时间窗口
-            time_threshold = current_msg.created_time - timedelta(
+            time_threshold = current_msg.create_time - timedelta(
                 minutes=time_window_minutes
             )
 
@@ -87,10 +87,10 @@ async def quick_search(
                 .where(
                     ConversationMessage.chat_id == current_msg.chat_id,
                     ConversationMessage.root_message_id != current_msg.root_message_id,
-                    ConversationMessage.created_time >= time_threshold,
-                    ConversationMessage.created_time < current_msg.created_time,
+                    ConversationMessage.create_time >= time_threshold,
+                    ConversationMessage.create_time < current_msg.create_time,
                 )
-                .order_by(ConversationMessage.created_time.desc())
+                .order_by(ConversationMessage.create_time.desc())
                 .limit(needed)
             )
             additional_rows = additional_result.all()
@@ -98,7 +98,7 @@ async def quick_search(
 
             # 合并并排序
             all_messages = root_messages + additional_messages
-            all_messages.sort(key=lambda x: x[0].created_time)
+            all_messages.sort(key=lambda x: x[0].create_time)
         else:
             all_messages = root_messages
 
@@ -110,7 +110,7 @@ async def quick_search(
                     message_id=str(msg.message_id),
                     content=str(msg.content),
                     user_id=str(msg.user_id),
-                    create_time=msg.created_time,
+                    create_time=msg.create_time,
                     role=str(msg.role),
                     username=username,
                 )

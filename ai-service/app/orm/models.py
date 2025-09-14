@@ -41,4 +41,4 @@ class ConversationMessage(Base):
     reply_message_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     chat_id: Mapped[str] = mapped_column(String(100))
     chat_type: Mapped[str] = mapped_column(String(10))
-    created_time: Mapped[datetime] = mapped_column(DateTime)
+    create_time: Mapped[datetime] = mapped_column(DateTime)
