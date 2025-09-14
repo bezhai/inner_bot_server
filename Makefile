@@ -32,7 +32,7 @@ deploy:
 	git pull
 	docker compose build
 	# 先更新基础设施服务
-	docker compose up -d --no-deps redis mongo postgres elasticsearch meme
+	docker compose up -d --no-deps redis mongo postgres elasticsearch meme nginx
 	sleep 5
 	# 更新日志相关服务
 	docker compose up -d --no-deps logstash kibana
@@ -45,7 +45,7 @@ deploy-live:
 	# 只构建和更新有代码变更的服务
 	docker compose build
 	# 先更新基础设施服务（仅当有变更时）
-	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch meme
+	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch meme nginx
 	sleep 5
 	# 更新日志相关服务（仅当有变更时）
 	docker compose up -d --no-deps --no-recreate logstash kibana
