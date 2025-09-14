@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # AI 服务
   ai-app:
@@ -146,3 +144,4 @@ volumes:
   elasticsearch_data:
   ai_service_logs:
   main_server_logs:
+  qdrant_data:
