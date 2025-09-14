@@ -20,7 +20,7 @@ restart-changed:
 	git pull
 	docker compose up -d --build --no-deps
 
-# 完全重启（当前策略）
+# 完全重启
 restart-full:
 	git pull
 	docker compose build
@@ -32,26 +32,26 @@ deploy:
 	git pull
 	docker compose build
 	# 先更新基础设施服务
-	docker compose up -d --no-deps redis mongo postgres elasticsearch
-	sleep 10
+	docker compose up -d --no-deps redis mongo postgres elasticsearch meme
+	sleep 5
 	# 更新日志相关服务
 	docker compose up -d --no-deps logstash kibana
-	sleep 10
+	sleep 5
 	# 最后更新应用服务
-	docker compose up -d --no-deps ai-app app meme
+	docker compose up -d --no-deps ai-app app
 
 # 用于自动部署的生产环境部署命令
 deploy-live:
 	# 只构建和更新有代码变更的服务
 	docker compose build
 	# 先更新基础设施服务（仅当有变更时）
-	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch
+	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch meme
 	sleep 5
 	# 更新日志相关服务（仅当有变更时）
 	docker compose up -d --no-deps --no-recreate logstash kibana
 	sleep 5
 	# 最后更新应用服务（仅当有变更时）
-	docker compose up -d --no-deps ai-app app meme
+	docker compose up -d --no-deps ai-app app
 	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
 
 # 设置自动部署定时任务（每3分钟检查一次）

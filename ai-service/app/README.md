@@ -539,9 +539,6 @@ graph TB
 ### 环境变量
 
 ```bash
-# OpenAI配置
-OPENAI_API_KEY=your_openai_key
-OPENAI_BASE_URL=https://api.openai.com/v1
 
 # 数据库配置
 POSTGRES_USER=your_db_user

@@ -17,7 +17,7 @@ class AsyncRedisClient:
         """
         if AsyncRedisClient._instance is None:
             pool = ConnectionPool(
-                host=settings.redis_ip,
+                host=settings.redis_host,
                 port="6379",
                 password=settings.redis_password,
                 decode_responses=True,

@@ -86,7 +86,7 @@ declare -A SERVICES=(
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
   ["elasticsearch"]="localhost:9200"
-  # ["qdrant"]="localhost:6333"
+  ["qdrant"]="localhost:7333"
 )
 
 # 检查Docker服务状态

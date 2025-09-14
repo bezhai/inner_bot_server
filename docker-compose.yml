@@ -74,9 +74,6 @@ services:
   meme:
     image: chiwiio/meme-generator:main
     restart: always
-    environment:
-      - BAIDU_TRANS_APPID=${BAIDU_TRANS_APPID}
-      - BAIDU_TRANS_APIKEY=${BAIDU_TRANS_APIKEY}
     ports:
       - "2233:2233"
 
@@ -127,6 +124,19 @@ services:
       - "5601:5601"
     depends_on:
       - elasticsearch
+    restart: always
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "7333:6333"
+      - "7334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__HTTP_PORT=6333
+      - QDRANT__SERVICE__GRPC_PORT=6334
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
     restart: always
 
 volumes:

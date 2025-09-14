@@ -186,14 +186,9 @@ POSTGRES_PASSWORD=your_password
 POSTGRES_DB=inner_bot_db
 REDIS_PASSWORD=your_redis_password
 
-# AI服务配置
-OPENAI_API_KEY=your_openai_key
-OPENAI_BASE_URL=https://api.openai.com/v1
 
 # 搜索和表情包服务
 SEARCH_API_KEY=your_search_key
-BAIDU_TRANS_APPID=your_baidu_appid
-BAIDU_TRANS_APIKEY=your_baidu_key
 
 # 日志和监控
 ELASTIC_PASSWORD=your_elastic_password

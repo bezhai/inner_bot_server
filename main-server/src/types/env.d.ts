@@ -1,10 +1,10 @@
 declare namespace NodeJS {
     interface ProcessEnv {
         REDIS_PASSWORD: string;
-        REDIS_IP: string;
+        REDIS_HOST: string;
         MONGO_INITDB_ROOT_PASSWORD: string;
         MONGO_INITDB_ROOT_USERNAME: string;
-        MONGO_INITDB_HOST: string;
+        MONGO_HOST: string;
         AI_SERVER_HOST: string;
         AI_SERVER_PORT: string;
         POSTGRES_USER: string;
@@ -12,7 +12,7 @@ declare namespace NodeJS {
         POSTGRES_DB: string;
         POSTGRES_HOST: string;
         NEED_INIT: string; // true or false
-        HTTP_SECRET: string;
+        PROXY_HTTP_SECRET: string;
         PROXY_HOST: string;
         MEME_HOST: string;
         MEME_PORT: string;
@@ -23,7 +23,6 @@ declare namespace NodeJS {
         MEMORY_BASE_URL: string;
         AI_PROVIDER_ADMIN_KEY: string;
         IS_DEV: string; // true or false
-        IMAGE_HOST_TOKEN: string;
         INNER_HTTP_SECRET: string;
         OSS_ACCESS_KEY_ID: string;
         OSS_ACCESS_KEY_SECRET: string;

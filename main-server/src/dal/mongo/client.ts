@@ -19,7 +19,7 @@ class MongoService {
             const {
                 MONGO_INITDB_ROOT_USERNAME: username,
                 MONGO_INITDB_ROOT_PASSWORD: password,
-                MONGO_INITDB_HOST: host,
+                MONGO_HOST: host,
             } = process.env;
 
             const url =

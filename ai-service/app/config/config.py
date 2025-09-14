@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    redis_ip: str | None = None
+    redis_host: str | None = None
     redis_password: str | None = None
     stream_timeout: int = 300  # 流式请求超时时间，默认5分钟（300秒）
 

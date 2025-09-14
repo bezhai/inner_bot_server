@@ -40,7 +40,7 @@ const generateToken = (salt: string, body: string, secret: string): string => {
  */
 async function sendAuthenticatedRequest<T>(url: string, reqBody: Record<string, any>): Promise<T> {
     const salt = generateSalt(10);
-    const token = generateToken(salt, JSON.stringify(reqBody), process.env.HTTP_SECRET!);
+    const token = generateToken(salt, JSON.stringify(reqBody), process.env.PROXY_HTTP_SECRET!);
 
     try {
         const response: AxiosResponse<T> = await http.post<T>(url, reqBody, {

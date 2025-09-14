@@ -59,12 +59,12 @@ POSTGRES_DB=your_db_name
 SYNCHRONIZE_DB=false
 
 # MongoDB
-MONGO_INITDB_HOST=localhost
+MONGO_HOST=localhost
 MONGO_INITDB_ROOT_USERNAME=your_mongo_user
 MONGO_INITDB_ROOT_PASSWORD=your_mongo_password
 
 # Redis
-REDIS_IP=localhost
+REDIS_HOST=localhost
 REDIS_PORT=6379
 REDIS_PASSWORD=
 
@@ -88,7 +88,7 @@ LOG_DIR=/var/log/main-server
 AI_PROVIDER_ADMIN_KEY=   # AI 服务认证（如需要）
 NEED_INIT=false          # 首次启动初始化
 IS_DEV=false             # 开发模式
-HTTP_SECRET=             # 阿里云代理认证
+PROXY_HTTP_SECRET=             # 阿里云代理认证
 PROXY_HOST=              # 代理服务器地址
 ```
 

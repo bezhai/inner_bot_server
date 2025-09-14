@@ -2,7 +2,7 @@ import Redis from 'ioredis';
 
 // Redis配置选项
 const redisConfig = {
-    host: process.env.REDIS_IP || 'localhost',
+    host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD,
     retryStrategy: (times: number) => {
