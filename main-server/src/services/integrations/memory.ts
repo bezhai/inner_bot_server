@@ -2,7 +2,7 @@ import http from '../../services/http';
 import { ChatMessage } from 'types/chat';
 import { AxiosError } from 'axios';
 
-const BASE_URL = `${process.env.MEMORY_BASE_URL}/api/v1/memory`;
+const BASE_URL = `${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
 
 export async function storeMessage(message: ChatMessage): Promise<void> {
     try {

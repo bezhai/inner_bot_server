@@ -70,10 +70,7 @@ export class LarkEventHandlers {
 
             await storeMessage({
                 user_id: message.sender,
-                user_open_id: message.senderOpenId,
-                user_name: message.senderInfo?.name ?? '',
                 content: message.toMarkdown(),
-                is_mention_bot: message.hasMention(getBotUnionId()) || message.isP2P(),
                 role: 'user',
                 message_id: message.messageId,
                 chat_id: message.chatId,

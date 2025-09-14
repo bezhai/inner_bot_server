@@ -1,7 +1,9 @@
+from datetime import datetime
+
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
-from .models import ModelProvider
+from .models import ConversationMessage, ModelProvider
 
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
@@ -56,3 +58,33 @@ async def get_model_and_provider_info(model_id: str):
             "api_key": provider.api_key,
             "base_url": provider.base_url,
         }
+
+
+async def create_conversation_message(
+    message_id: str,
+    user_id: str,
+    content: str,
+    role: str,
+    root_message_id: str,
+    chat_id: str,
+    chat_type: str,
+    create_time: datetime,
+    reply_message_id: str | None = None,
+) -> ConversationMessage:
+    async with AsyncSessionLocal() as session:
+        message = ConversationMessage(
+            message_id=message_id,
+            user_id=user_id,
+            content=content,
+            role=role,
+            root_message_id=root_message_id,
+            reply_message_id=reply_message_id,
+            chat_id=chat_id,
+            chat_type=chat_type,
+            create_time=create_time,
+            created_at=datetime.now(),
+        )
+        session.add(message)
+        await session.commit()
+        await session.refresh(message)
+        return message

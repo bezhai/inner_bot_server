@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from app.api.chat import router as chat_router
 from app.api.extraction import router as extraction_router
+from app.api.message import router as message_router
 
 # 创建主路由
 api_router = APIRouter()
@@ -13,6 +14,7 @@ api_router = APIRouter()
 # 注册子路由
 api_router.include_router(chat_router, tags=["Chat"])
 api_router.include_router(extraction_router, tags=["Extraction"])
+api_router.include_router(message_router, tags=["Message"])
 
 
 # 健康检查路由

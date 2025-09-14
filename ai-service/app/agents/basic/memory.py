@@ -5,8 +5,8 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from app.clients import memory_client
 from app.clients.image_client import image_client
+from app.services.quick_search import QuickSearchResult, quick_search
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +15,9 @@ async def load_memory(
     message_id: str,
 ) -> tuple[list[HumanMessage | AIMessage], list[str] | None]:
     """加载历史消息，支持图片多模态"""
-    results = await memory_client.quick_search(
-        context_message_id=message_id,
-        max_results=15,
+    results = await quick_search(
+        message_id=message_id,
+        limit=15,
     )
 
     messages = []
@@ -27,19 +27,19 @@ async def load_memory(
         content, urls = await process_message_content(result)
         image_urls.extend(urls)
 
-        if result.get("role") == "user":
+        if result.role == "user":
             messages.append(HumanMessage(content=content))
         else:
             messages.append(AIMessage(content=content))
     return messages, image_urls
 
 
-async def process_message_content(result: dict) -> tuple[Any, list[str]]:
+async def process_message_content(result: QuickSearchResult) -> tuple[Any, list[str]]:
     """处理消息内容，支持图片多模态"""
-    raw_content = result.get("content", "")
-    user_name = result.get("user_name", "未知用户")
-    message_id = result.get("message_id", "")
-    need_message_id = result.get("role") == "user"  # 仅用户消息需要传递 message_id
+    raw_content = result.content
+    user_name = result.username or "未知用户"
+    message_id = result.message_id
+    need_message_id = result.role == "user"  # 仅用户消息需要传递 message_id
 
     # 直接提取图片keys
     image_keys = re.findall(r"!\[image\]\(([^)]+)\)", raw_content)

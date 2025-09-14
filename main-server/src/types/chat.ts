@@ -13,24 +13,9 @@ export interface ChatMessage {
     user_id: string;
 
     /**
-     * 用户open_id, 仅当用户为真人时存在
-     */
-    user_open_id?: string;
-
-    /**
-     * 用户名
-     */
-    user_name: string;
-
-    /**
      * 转义成markdown的消息内容, 包括图片等
      */
     content: string;
-
-    /**
-     * 是否@机器人
-     */
-    is_mention_bot: boolean;
 
     /**
      * 角色

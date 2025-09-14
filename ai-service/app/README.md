@@ -41,7 +41,6 @@ graph TB
         I --> L[Model Service]
         I --> M[Tool Manager]
         
-        K --> N[Memory Client]
         L --> O[OpenAI Client]
         M --> P[Builtin Tools]
     end
@@ -106,7 +105,6 @@ graph TB
         subgraph "数据访问层"
             E1[ORM Models] --> E2[CRUD Operations]
             E3[Qdrant Client] --> E4[Vector Search]
-            E5[Memory Client] --> E6[Context Retrieval]
         end
     end
     
@@ -277,7 +275,6 @@ ai-service/app/
 │   └── openai_config.py   # OpenAI配置
 ├── core/                  # 核心功能模块
 │   ├── clients/           # 外部客户端
-│   │   ├── memory_client.py # 内存服务客户端
 │   │   └── openai.py      # OpenAI客户端封装
 │   ├── event_system.py    # 事件系统核心
 │   ├── events.py          # 事件处理和初始化
