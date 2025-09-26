@@ -323,37 +323,32 @@ check_system_resources() {
 # 检查Qdrant服务健康状态
 check_qdrant() {
   log "检查 Qdrant 健康状态..."
-  
-  # 从.env文件读取Qdrant服务配置
+
+  # 使用SERVICES数组中的配置作为默认值
+  SERVICE_NAME="qdrant"
+  QDRANT_HOST_PORT=${SERVICES[$SERVICE_NAME]}
+  QDRANT_SERVICE_HOST=$(echo $QDRANT_HOST_PORT | cut -d: -f1)
+  QDRANT_SERVICE_PORT=$(echo $QDRANT_HOST_PORT | cut -d: -f2)
+
+  # 从.env文件读取Qdrant服务配置（如果存在则覆盖默认值）
   if [ -f "$PROJECT_DIR/.env" ]; then
     source "$PROJECT_DIR/.env"
-  else
-    log "❌ 找不到.env文件，无法获取Qdrant配置"
-    return 1
+
+    # 检查环境变量是否存在，如果存在则覆盖默认值
+    if [ ! -z "$QDRANT_SERVICE_HOST" ]; then
+      QDRANT_SERVICE_HOST="$QDRANT_SERVICE_HOST"
+    fi
+
+    if [ ! -z "$QDRANT_SERVICE_PORT" ]; then
+      QDRANT_SERVICE_PORT="$QDRANT_SERVICE_PORT"
+    fi
   fi
-  
-  # 检查环境变量是否存在 (注意：环境变量应该是大写)
-  if [ -z "$QDRANT_SERVICE_HOST" ]; then
-    # 尝试使用小写变量名 (与pydantic配置中的名称匹配)
-    QDRANT_SERVICE_HOST="$qdrant_service_host"
-  fi
-  
-  if [ -z "$QDRANT_SERVICE_PORT" ]; then
-    QDRANT_SERVICE_PORT="$qdrant_service_port"
-  fi
-  
+
   # 获取API密钥
   if [ -z "$QDRANT_SERVICE_API_KEY" ]; then
     QDRANT_SERVICE_API_KEY="$qdrant_service_api_key"
   fi
-  
-  # 再次检查是否获取到了配置
-  if [ -z "$QDRANT_SERVICE_HOST" ] || [ -z "$QDRANT_SERVICE_PORT" ]; then
-    log "❌ 无法获取Qdrant配置，尝试使用默认值"
-    QDRANT_SERVICE_HOST="localhost"
-    QDRANT_SERVICE_PORT="6333"
-  fi
-  
+
   log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
   
   # 检查端口连通性
