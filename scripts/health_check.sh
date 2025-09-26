@@ -363,7 +363,7 @@ check_qdrant() {
       return 0
     else
       # 尝试集合API，作为备选检查
-      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_HOST}:${QDRANT_SERVICE_PORT}/collections"
+      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_HOST}:${QDRANT_PORT}/collections"
       COLLECTIONS_RESPONSE=$(eval $COLLECTIONS_CMD)
       
       if [ "$COLLECTIONS_RESPONSE" == "200" ]; then
