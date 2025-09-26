@@ -51,7 +51,7 @@ async def bangumi_search(query: str) -> str:
     """
     try:
         # 获取agent
-        agent = ChatAgent("gpt-4.1-mini", "bangumi", BANGUMI_TOOLS)
+        agent = ChatAgent("grok-4-fast-reasoning", "bangumi", BANGUMI_TOOLS)
 
         # 执行agent
         message = await agent.run([HumanMessage(content=query)])

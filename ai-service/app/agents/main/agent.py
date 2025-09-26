@@ -15,7 +15,7 @@ YIELD_INTERVAL = 0.5
 
 
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
-    agent = ChatAgent("gpt-4.1", "main", MAIN_TOOLS)
+    agent = ChatAgent("gemini-2.5-flash-preview-09-2025", "main", MAIN_TOOLS)
 
     messages, image_urls = await load_memory(message_id)
 
