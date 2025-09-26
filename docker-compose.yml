@@ -127,7 +127,7 @@ services:
   qdrant:
     image: qdrant/qdrant:latest
     ports:
-      - "7333:6333"
+      - "6333:6333"
       - "7334:6334"
     volumes:
       - qdrant_data:/qdrant/storage

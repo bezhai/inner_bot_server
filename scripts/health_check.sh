@@ -80,13 +80,13 @@ fi
 
 # 健康检查配置
 declare -A SERVICES=(
-  ["main-server"]="http://localhost:3000/api/health"
+  ["main-server"]="http://localhost:3001/api/health"
   ["ai-service"]="http://localhost:8000/health"
   ["redis"]="localhost:6379"
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
   ["elasticsearch"]="localhost:9200"
-  ["qdrant"]="localhost:7333"
+  ["qdrant"]="localhost:6333"
 )
 
 # 检查Docker服务状态
