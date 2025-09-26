@@ -324,29 +324,18 @@ check_system_resources() {
 check_qdrant() {
   log "检查 Qdrant 健康状态..."
 
-  # 使用SERVICES数组中的配置作为默认值
+  # 使用SERVICES数组中的配置
   SERVICE_NAME="qdrant"
   QDRANT_HOST_PORT=${SERVICES[$SERVICE_NAME]}
   QDRANT_SERVICE_HOST=$(echo $QDRANT_HOST_PORT | cut -d: -f1)
   QDRANT_SERVICE_PORT=$(echo $QDRANT_HOST_PORT | cut -d: -f2)
 
-  # 从.env文件读取Qdrant服务配置（如果存在则覆盖默认值）
+  # 获取API密钥（如果有的话）
   if [ -f "$PROJECT_DIR/.env" ]; then
     source "$PROJECT_DIR/.env"
-
-    # 检查环境变量是否存在，如果存在则覆盖默认值
-    if [ ! -z "$QDRANT_SERVICE_HOST" ]; then
-      QDRANT_SERVICE_HOST="$QDRANT_SERVICE_HOST"
+    if [ ! -z "$QDRANT_SERVICE_API_KEY" ]; then
+      QDRANT_SERVICE_API_KEY="$QDRANT_SERVICE_API_KEY"
     fi
-
-    if [ ! -z "$QDRANT_SERVICE_PORT" ]; then
-      QDRANT_SERVICE_PORT="$QDRANT_SERVICE_PORT"
-    fi
-  fi
-
-  # 获取API密钥
-  if [ -z "$QDRANT_SERVICE_API_KEY" ]; then
-    QDRANT_SERVICE_API_KEY="$qdrant_service_api_key"
   fi
 
   log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT}"
