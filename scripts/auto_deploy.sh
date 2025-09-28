@@ -23,20 +23,40 @@ send_feishu_notification() {
     log "警告: DEPLOY_WEBHOOK_URL 环境变量未设置，无法发送通知"
     return 1
   fi
-  
+
   # 构建通知消息
   MESSAGE="$1"
-  
+
   # 发送通知
   log "发送飞书通知: $MESSAGE"
-  HTTP_STATUS=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" \
+  log "飞书Webhook URL: $DEPLOY_WEBHOOK_URL"
+
+  # 使用临时文件来获取完整的响应内容和HTTP状态码
+  RESPONSE_FILE=$(mktemp)
+  HTTP_STATUS=$(curl -s -w "HTTPSTATUS:%{http_code}" --max-time 30 -X POST -H "Content-Type: application/json" \
     -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MESSAGE\"}}" \
-    -o /dev/null "$DEPLOY_WEBHOOK_URL")
-    
-  if [ "$HTTP_STATUS" = "200" ]; then
-    log "飞书通知发送成功 (HTTP $HTTP_STATUS)"
+    -o "$RESPONSE_FILE" "$DEPLOY_WEBHOOK_URL")
+
+  # 提取HTTP状态码
+  HTTP_CODE=$(echo "$HTTP_STATUS" | grep -o 'HTTPSTATUS:[0-9]*' | cut -d: -f2)
+
+  # 读取响应内容
+  RESPONSE_CONTENT=$(cat "$RESPONSE_FILE" 2>/dev/null || echo "无法读取响应内容")
+
+  # 清理临时文件
+  rm -f "$RESPONSE_FILE"
+
+  if [ "$HTTP_CODE" = "200" ]; then
+    log "飞书通知发送成功 (HTTP $HTTP_CODE)"
   else
-    log "飞书通知发送失败 (HTTP $HTTP_STATUS)"
+    log "飞书通知发送失败 (HTTP $HTTP_CODE)"
+    log "响应内容: $RESPONSE_CONTENT"
+    log "请求消息: $MESSAGE"
+
+    # 尝试分析错误原因
+    if echo "$RESPONSE_CONTENT" | grep -q '"msg"'; then
+      log "飞书API错误详情: $(echo "$RESPONSE_CONTENT" | grep -o '"msg":"[^"]*"' | cut -d'"' -f4)"
+    fi
   fi
 }
 
