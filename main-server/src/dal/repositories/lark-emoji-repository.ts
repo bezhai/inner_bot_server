@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import AppDataSource from '../../ormconfig';
 import { LarkEmoji } from '../entities/lark-emoji';
 
@@ -13,6 +13,12 @@ export class LarkEmojiRepository {
     async getAllEmojis(): Promise<LarkEmoji[]> {
         return this.repository.find({
             order: { key: 'ASC' },
+        });
+    }
+
+    async getEmojiByText(texts: string[]): Promise<LarkEmoji[]> {
+        return this.repository.find({
+            where: { text: In(texts) },
         });
     }
 
@@ -40,4 +46,3 @@ export class LarkEmojiRepository {
 }
 
 export const larkEmojiRepository = new LarkEmojiRepository();
-

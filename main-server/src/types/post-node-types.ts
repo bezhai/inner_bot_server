@@ -42,6 +42,11 @@ export interface CodeBlockPostNode {
     text: string; // 代码块内容
 }
 
+export interface EmotionNode {
+    tag: 'emotion';
+    emoji_type: string; // 表情 Key
+}
+
 // 富文本消息中的每个节点
 export type PostNode =
     | TextPostNode
@@ -50,4 +55,5 @@ export type PostNode =
     | AtPostNode
     | MediaPostNode
     | MdPostNode
-    | CodeBlockPostNode;
+    | CodeBlockPostNode
+    | EmotionNode;

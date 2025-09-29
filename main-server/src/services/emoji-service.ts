@@ -64,7 +64,9 @@ export class EmojiService {
 
             // 1. 获取远程数据
             const emojiDataResponse = await this.fetchEmojiData();
-            console.info(`Fetched ${Object.keys(emojiDataResponse.emojiData).length} emojis from API`);
+            console.info(
+                `Fetched ${Object.keys(emojiDataResponse.emojiData).length} emojis from API`,
+            );
 
             // 2. 提取有效数据
             const validEmojis = this.extractValidEmojis(emojiDataResponse);
@@ -82,7 +84,6 @@ export class EmojiService {
             // 4. 批量插入新数据
             await larkEmojiRepository.upsertEmojis(validEmojis);
             console.info(`Successfully synced ${validEmojis.length} emojis to database`);
-
         } catch (error) {
             console.error('Failed to sync emoji data:', error);
             throw error;
@@ -101,6 +102,13 @@ export class EmojiService {
      */
     async getEmojiByKey(key: string): Promise<LarkEmoji | null> {
         return larkEmojiRepository.getEmojiByKey(key);
+    }
+
+    /**
+     * 根据name获取emoji
+     */
+    async getEmojiByText(texts: string[]): Promise<LarkEmoji[]> {
+        return larkEmojiRepository.getEmojiByText(texts);
     }
 }
 

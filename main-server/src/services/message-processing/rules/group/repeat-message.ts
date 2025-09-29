@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { get, setWithExpire } from 'dal/redis';
 import { BaseChatInfoRepository } from 'dal/repositories/repositories';
 import { Message } from 'models/message';
-import { sendMsg, sendSticker, replyMessage } from '@lark-basic/message';
+import { sendSticker, replyMessage, sendPost } from '@lark-basic/message';
+import { createPostContentFromText } from 'utils/text/post-content-processor';
 
 interface RepeatMsg {
     chatId: string;
@@ -57,7 +58,9 @@ export async function repeatMessage(message: Message) {
         message.isTextOnly() &&
         (await addRepeatMsgAndCheck(message.chatId, message.withMentionText()))
     ) {
-        sendMsg(message.chatId, message.withMentionText());
+        const mentionText = message.withMentionText();
+        const postContent = await createPostContentFromText(mentionText);
+        sendPost(message.chatId, postContent);
     } else if (
         message.isStickerOnly() &&
         (await addRepeatMsgAndCheck(message.chatId, message.stickerKey()))
