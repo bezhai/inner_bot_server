@@ -1,5 +1,6 @@
 import AppDataSource from 'ormconfig';
 import {
+    LarkEmoji,
     LarkBaseChatInfo,
     LarkGroupChatInfo,
     LarkGroupMember,
@@ -12,6 +13,7 @@ import {
 } from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
+export const LarkEmojiRepository = AppDataSource.getRepository(LarkEmoji);
 export const UserRepository = AppDataSource.getRepository(LarkUser);
 export const BaseChatInfoRepository = AppDataSource.getRepository(LarkBaseChatInfo);
 export const GroupChatInfoRepository = AppDataSource.getRepository(LarkGroupChatInfo);

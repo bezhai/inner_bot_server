@@ -1,3 +1,4 @@
+export * from './lark-emoji';
 export * from './lark-user';
 export * from './lark-group-member';
 export * from './lark-base-chat-info';

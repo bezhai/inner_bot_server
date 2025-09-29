@@ -4,6 +4,7 @@ import { multiBotManager } from '../utils/bot/multi-bot-manager';
 import { botInitialization } from '../services/initialize/main';
 import { initializeLarkClients } from '../services/integrations/lark-client';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
+import { emojiScheduler } from '../services/emoji-scheduler';
 
 /**
  * 应用程序配置
@@ -45,7 +46,11 @@ export class ApplicationManager {
         await botInitialization();
         console.info('Bot initialized successfully!');
 
-        // 5. 显示当前加载的机器人配置
+        // 5. 启动emoji定时任务
+        emojiScheduler.start();
+        console.info('Emoji scheduler started!');
+
+        // 6. 显示当前加载的机器人配置
         this.logBotConfigurations();
 
         console.info('Application initialization completed!');
