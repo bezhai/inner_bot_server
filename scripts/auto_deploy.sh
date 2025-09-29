@@ -18,67 +18,25 @@ log() {
 
 # 发送飞书通知
 send_feishu_notification() {
-  # 检查webhook URL是否存在
-  if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
-    log "警告: DEPLOY_WEBHOOK_URL 环境变量未设置，无法发送通知"
-    return 1
-  fi
-
-  # 构建通知消息
   MESSAGE="$1"
 
   # 发送通知
-  log "发送飞书通知: $MESSAGE"
-  log "飞书Webhook URL: $DEPLOY_WEBHOOK_URL"
-
-  # 使用临时文件来获取完整的响应内容和HTTP状态码
   RESPONSE_FILE=$(mktemp)
-  CURL_EXIT_CODE=0
-
-  # 尝试发送请求，捕获详细错误信息
-  HTTP_STATUS=$(curl -v -w "HTTPSTATUS:%{http_code}\nEXIT:%{exitcode}\nTIME:%{time_total}\n" \
-    --max-time 30 \
-    --connect-timeout 10 \
-    --retry 1 \
-    --retry-delay 1 \
-    -X POST \
-    -H "Content-Type: application/json" \
+  HTTP_CODE=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" \
     -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MESSAGE\"}}" \
-    -o "$RESPONSE_FILE" \
-    "$DEPLOY_WEBHOOK_URL" 2>&1) || CURL_EXIT_CODE=$?
-
-  # 如果curl命令失败，记录错误
-  if [ $CURL_EXIT_CODE -ne 0 ]; then
-    log "curl命令执行失败，退出码: $CURL_EXIT_CODE"
-    log "curl错误详情: $HTTP_STATUS"
-  fi
-
-  # 提取HTTP状态码
-  HTTP_CODE=$(echo "$HTTP_STATUS" | grep -o 'HTTPSTATUS:[0-9]*' | cut -d: -f2)
-
-  # 如果没有获取到HTTP状态码，设置为000（表示连接失败）
-  if [ -z "$HTTP_CODE" ]; then
-    HTTP_CODE="000"
-    log "无法获取HTTP状态码，curl输出: $HTTP_STATUS"
-  fi
+    -o "$RESPONSE_FILE" "$DEPLOY_WEBHOOK_URL")
 
   # 读取响应内容
-  RESPONSE_CONTENT=$(cat "$RESPONSE_FILE" 2>/dev/null || echo "无法读取响应内容")
+  RESPONSE_CONTENT=$(cat "$RESPONSE_FILE" 2>/dev/null || echo "")
 
   # 清理临时文件
   rm -f "$RESPONSE_FILE"
 
   if [ "$HTTP_CODE" = "200" ]; then
-    log "飞书通知发送成功 (HTTP $HTTP_CODE)"
+    log "飞书通知发送成功"
   else
     log "飞书通知发送失败 (HTTP $HTTP_CODE)"
     log "响应内容: $RESPONSE_CONTENT"
-    log "请求消息: $MESSAGE"
-
-    # 尝试分析错误原因
-    if echo "$RESPONSE_CONTENT" | grep -q '"msg"'; then
-      log "飞书API错误详情: $(echo "$RESPONSE_CONTENT" | grep -o '"msg":"[^"]*"' | cut -d'"' -f4)"
-    fi
   fi
 }
 
@@ -193,14 +151,17 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   DEPLOY_STATUS=$?
   if [ $DEPLOY_STATUS -eq 124 ]; then
     log "部署超时（超过${TIMEOUT}秒），请手动检查服务状态"
+    unset_proxy
     send_feishu_notification "⚠️ 部署超时警告：部署操作超过${TIMEOUT}秒，请检查服务状态。"
   elif [ $DEPLOY_STATUS -ne 0 ]; then
     log "部署失败，退出码: $DEPLOY_STATUS"
+    unset_proxy
     send_feishu_notification "❌ 部署失败：从 $OLD_VERSION 更新到 $NEW_VERSION 失败，退出码: $DEPLOY_STATUS"
   else
     log "部署成功：从 $OLD_VERSION 更新到 $NEW_VERSION"
     # 发送部署成功的飞书通知
     NOTIFICATION_MESSAGE="✅ 服务已部署成功！\n从版本 $OLD_VERSION 更新到 $NEW_VERSION\n\n📝 变更内容:\n$CHANGES"
+    unset_proxy
     send_feishu_notification "$NOTIFICATION_MESSAGE"
   fi
 else
