@@ -433,3 +433,27 @@ table "conversation_messages" {
     columns = [column.create_time]
   }
 }
+table "lark_emoji" {
+  schema = schema.public
+  column "key" {
+    null = false
+    type = character_varying(100)
+  }
+  column "text" {
+    null = false
+    type = character_varying(500)
+  }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_lark_emoji" {
+    columns = [column.key]
+  }
+}
