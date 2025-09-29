@@ -33,12 +33,34 @@ send_feishu_notification() {
 
   # 使用临时文件来获取完整的响应内容和HTTP状态码
   RESPONSE_FILE=$(mktemp)
-  HTTP_STATUS=$(curl -s -w "HTTPSTATUS:%{http_code}" --max-time 30 -X POST -H "Content-Type: application/json" \
+  CURL_EXIT_CODE=0
+
+  # 尝试发送请求，捕获详细错误信息
+  HTTP_STATUS=$(curl -v -w "HTTPSTATUS:%{http_code}\nEXIT:%{exitcode}\nTIME:%{time_total}\n" \
+    --max-time 30 \
+    --connect-timeout 10 \
+    --retry 1 \
+    --retry-delay 1 \
+    -X POST \
+    -H "Content-Type: application/json" \
     -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MESSAGE\"}}" \
-    -o "$RESPONSE_FILE" "$DEPLOY_WEBHOOK_URL")
+    -o "$RESPONSE_FILE" \
+    "$DEPLOY_WEBHOOK_URL" 2>&1) || CURL_EXIT_CODE=$?
+
+  # 如果curl命令失败，记录错误
+  if [ $CURL_EXIT_CODE -ne 0 ]; then
+    log "curl命令执行失败，退出码: $CURL_EXIT_CODE"
+    log "curl错误详情: $HTTP_STATUS"
+  fi
 
   # 提取HTTP状态码
   HTTP_CODE=$(echo "$HTTP_STATUS" | grep -o 'HTTPSTATUS:[0-9]*' | cut -d: -f2)
+
+  # 如果没有获取到HTTP状态码，设置为000（表示连接失败）
+  if [ -z "$HTTP_CODE" ]; then
+    HTTP_CODE="000"
+    log "无法获取HTTP状态码，curl输出: $HTTP_STATUS"
+  fi
 
   # 读取响应内容
   RESPONSE_CONTENT=$(cat "$RESPONSE_FILE" 2>/dev/null || echo "无法读取响应内容")
