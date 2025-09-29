@@ -91,18 +91,10 @@ sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-
 sudo chmod +x /usr/local/bin/docker-compose
 ```
 
-### 域名配置（可选）
-
-```bash
-vim nginx/conf.d/main-server.conf
-docker compose restart nginx
-```
-
 ### 服务端口
 
 | 服务 | 端口 | 说明 |
 |------|------|------|
-| Web界面 | 80 | nginx代理入口 |
 | Main Server | 3001 | 飞书机器人API |
 | AI Service | 8000 | 智能对话服务 |
 | PostgreSQL | 5432 | 用户数据 |
@@ -183,7 +175,6 @@ curl http://localhost/health     # HTTP检查
 如需自定义配置，请编辑：
 
 - `docker-compose.yml` - 服务配置
-- `nginx/conf.d/main-server.conf` - 反向代理
 - `.env` - 环境变量
 
 性能优化示例：

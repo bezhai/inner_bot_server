@@ -137,16 +137,6 @@ services:
       - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
     restart: always
 
-  nginx:
-    image: nginx:1.25-alpine
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-    depends_on:
-      - app
-    restart: always
-
 volumes:
   redis-data:
   mongo_data:
