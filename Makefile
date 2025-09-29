@@ -84,6 +84,20 @@ health-check-setup:
 	@echo "已添加健康检查定时任务，每5分钟执行一次"
 	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
 
+# 数据库schema同步
+db-sync:
+	@echo "正在同步数据库schema..."
+	@if [ -f .env ]; then \
+		export $$(cat .env | grep -v '^#' | xargs) && \
+		atlas schema apply \
+			--url "postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:5432/$${POSTGRES_DB}?sslmode=disable" \
+			--to "file://schema" \
+			--dev-url "docker://postgres/15/dev"; \
+	else \
+		echo "错误: .env 文件不存在，请先创建并配置环境变量"; \
+		exit 1; \
+	fi
+
 # 设置所有监控任务（自动部署和健康检查）
 monitoring-setup: auto-deploy-setup health-check-setup
 	@echo "所有监控任务已设置完成"
