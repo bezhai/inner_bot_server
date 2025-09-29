@@ -1,5 +1,5 @@
 import { PostContent } from 'types/content-types';
-import { PostNode, MdPostNode, EmotionNode } from 'types/post-node-types';
+import { PostNode, TextPostNode, AtPostNode, EmotionNode } from 'types/post-node-types';
 import { emojiService } from 'services/emoji-service';
 
 /**
@@ -18,21 +18,57 @@ function extractEmojiTexts(text: string): string[] {
 }
 
 /**
- * 将文本转换为 PostContent，支持 emoji 表情
+ * 处理单个文本片段，识别 @提及
+ */
+function processTextSegment(text: string): PostNode[] {
+    const nodes: PostNode[] = [];
+
+    // 正则表达式匹配 <at user_id="xxx"></at> 格式
+    const atRegex = /<at user_id="([^"]+)"><\/at>/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = atRegex.exec(text)) !== null) {
+        // 添加 @ 符号前的文本
+        if (match.index > lastIndex) {
+            const textBefore = text.substring(lastIndex, match.index);
+            if (textBefore.trim()) {
+                nodes.push({
+                    tag: 'text',
+                    text: textBefore,
+                } as TextPostNode);
+            }
+        }
+
+        // 添加 @提及节点
+        nodes.push({
+            tag: 'at',
+            user_id: match[1],
+        } as AtPostNode);
+
+        lastIndex = match.index + match[0].length;
+    }
+
+    // 添加最后的文本
+    if (lastIndex < text.length) {
+        const remainingText = text.substring(lastIndex);
+        if (remainingText.trim()) {
+            nodes.push({
+                tag: 'text',
+                text: remainingText,
+            } as TextPostNode);
+        }
+    }
+
+    return nodes;
+}
+
+/**
+ * 将文本转换为 PostContent，支持 emoji 表情和 @提及
  */
 export async function createPostContentFromText(text: string): Promise<PostContent> {
     // 提取所有形如 [xxx] 的子串
     const emojiTexts = extractEmojiTexts(text);
-
-    if (emojiTexts.length === 0) {
-        // 如果没有 emoji，直接返回纯文本
-        return {
-            content: [[{
-                tag: 'md',
-                text: text
-            } as MdPostNode]]
-        };
-    }
 
     // 批量查询 emoji 数据
     const emojis = await emojiService.getEmojiByText(emojiTexts);
@@ -43,64 +79,56 @@ export async function createPostContentFromText(text: string): Promise<PostConte
         emojiMap.set(emoji.text, emoji.key);
     });
 
-    // 分割文本
-    const content: PostNode[] = [];
+    // 分割文本处理 emoji
+    const contents: PostNode[] = [];
     let lastIndex = 0;
-    const regex = /\[([^\]]+)\]/g;
+    const emojiRegex = /\[([^\]]+)\]/g;
     let match;
 
-    while ((match = regex.exec(text)) !== null) {
+    while ((match = emojiRegex.exec(text)) !== null) {
         const emojiText = match[1];
         const emojiKey = emojiMap.get(emojiText);
 
-        // 添加前面的文本（如果有）
+        // 处理 emoji 前的文本（包含可能的 @提及）
         if (match.index > lastIndex) {
             const textBefore = text.substring(lastIndex, match.index);
-            if (textBefore.trim()) {
-                content.push({
-                    tag: 'md',
-                    text: textBefore
-                } as MdPostNode);
-            }
+            const processedNodes = processTextSegment(textBefore);
+            contents.push(...processedNodes);
         }
 
         // 添加 emoji（如果找到对应的 key）
         if (emojiKey) {
-            content.push({
+            contents.push({
                 tag: 'emotion',
-                emoji_type: emojiKey
+                emoji_type: emojiKey,
             } as EmotionNode);
         } else {
             // 如果没找到对应的 emoji，将 [xxx] 当作普通文本处理
-            content.push({
-                tag: 'md',
-                text: `[${emojiText}]`
-            } as MdPostNode);
+            contents.push({
+                tag: 'text',
+                text: `[${emojiText}]`,
+            } as TextPostNode);
         }
 
         lastIndex = match.index + match[0].length;
     }
 
-    // 添加最后的文本（如果有）
+    // 处理最后的文本（包含可能的 @提及）
     if (lastIndex < text.length) {
         const remainingText = text.substring(lastIndex);
-        if (remainingText.trim()) {
-            content.push({
-                tag: 'md',
-                text: remainingText
-            } as MdPostNode);
-        }
+        const processedNodes = processTextSegment(remainingText);
+        contents.push(...processedNodes);
     }
 
     // 如果没有任何内容，返回空文本
-    if (content.length === 0) {
+    if (contents.length === 0) {
         return {
             content: [[{
-                tag: 'md',
-                text: text
-            } as MdPostNode]]
+                tag: 'text',
+                text: text,
+            } as TextPostNode]],
         };
     }
 
-    return { content: [content] };
+    return { content: [contents] };
 }
