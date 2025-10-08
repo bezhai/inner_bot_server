@@ -433,6 +433,41 @@ table "conversation_messages" {
     columns = [column.create_time]
   }
 }
+table "topic_memory" {
+  schema = schema.public
+  column "id" {
+    null = false
+    type = serial
+  }
+  column "group_id" {
+    null = false
+    type = character_varying(100)
+  }
+  column "title" {
+    null = false
+    type = character_varying(255)
+  }
+  column "summary" {
+    null = false
+    type = text
+  }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_topic_memory" {
+    columns = [column.id]
+  }
+  index "idx_topic_memory_group_updated" {
+    columns = [column.group_id, column.updated_at]
+  }
+}
 table "lark_emoji" {
   schema = schema.public
   column "key" {
