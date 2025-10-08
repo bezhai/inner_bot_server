@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     langfuse_secret_key: str | None = None
     langfuse_host: str | None = None
 
+    # L2 话题刷新策略配置
+    l2_queue_trigger_threshold: int = 10
+    l2_force_update_after_minutes: int = 60
+    l2_scan_interval_minutes: int = 5
+    l2_queue_max_len: int = 200
+
     class Config:
         env_file = ".env"
         extra = "ignore"

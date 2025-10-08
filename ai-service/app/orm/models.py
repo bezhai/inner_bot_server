@@ -42,3 +42,14 @@ class ConversationMessage(Base):
     chat_id: Mapped[str] = mapped_column(String(100))
     chat_type: Mapped[str] = mapped_column(String(10))
     create_time: Mapped[int] = mapped_column(BigInteger)
+
+
+class TopicMemory(Base):
+    __tablename__ = "topic_memory"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    group_id: Mapped[str] = mapped_column(String(100))
+    title: Mapped[str] = mapped_column(String(255))
+    summary: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

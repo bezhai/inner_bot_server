@@ -1,7 +1,7 @@
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
-from .models import ConversationMessage, ModelProvider
+from .models import ConversationMessage, ModelProvider, TopicMemory
 
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
@@ -85,3 +85,41 @@ async def create_conversation_message(
         await session.commit()
         await session.refresh(message)
         return message
+
+
+# =========================
+# TopicMemory CRUD (L2)
+# =========================
+
+async def get_topics_by_group(group_id: str) -> list[TopicMemory]:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(TopicMemory).where(TopicMemory.group_id == group_id)
+        )
+        return list(result.scalars().all())
+
+
+async def upsert_topic(
+    *,
+    topic_id: int | None,
+    group_id: str,
+    title: str,
+    summary: str,
+) -> TopicMemory:
+    async with AsyncSessionLocal() as session:
+        if topic_id is not None:
+            # 更新
+            existing = await session.get(TopicMemory, topic_id)
+            if existing:
+                existing.title = title
+                existing.summary = summary
+                await session.commit()
+                await session.refresh(existing)
+                return existing
+
+        # 插入
+        topic = TopicMemory(group_id=group_id, title=title, summary=summary)
+        session.add(topic)
+        await session.commit()
+        await session.refresh(topic)
+        return topic

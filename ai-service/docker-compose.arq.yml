@@ -1,0 +1,27 @@
+version: '3.9'
+services:
+  ai-service-arq-worker:
+    build: .
+    command: bash -lc "python -m arq app.memory.worker.WorkerSettings"
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - L2_QUEUE_TRIGGER_THRESHOLD=${L2_QUEUE_TRIGGER_THRESHOLD:-10}
+      - L2_FORCE_UPDATE_AFTER_MINUTES=${L2_FORCE_UPDATE_AFTER_MINUTES:-60}
+      - L2_SCAN_INTERVAL_MINUTES=${L2_SCAN_INTERVAL_MINUTES:-5}
+      - L2_QUEUE_MAX_LEN=${L2_QUEUE_MAX_LEN:-200}
+    volumes:
+      - ./:/app
+    working_dir: /app
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"

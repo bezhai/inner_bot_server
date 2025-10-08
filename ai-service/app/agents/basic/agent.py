@@ -17,20 +17,24 @@ class ChatAgent:
         self.tools = tools
         self._langfuse_handler = CallbackHandler()
 
-    async def _init_agent(self):
+    async def _init_agent(self, **prompt_vars):
         model = await ModelBuilder.build_chat_model(self.model_id)
         prompt = get_prompt(self.prompt_id).get_langchain_prompt(
             currDate=datetime.now().strftime("%Y-%m-%d"),
             currTime=datetime.now().strftime("%H:%M:%S"),
+            **prompt_vars,
         )
         self.agent = create_react_agent(
             model, self.tools, prompt=prompt, context_schema=ContextSchema
         )
 
     async def stream(
-        self, messages: list, context: dict | None = None
+        self,
+        messages: list,
+        context: dict | None = None,
+        prompt_vars: dict | None = None,
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
-        await self._init_agent()
+        await self._init_agent(**(prompt_vars or {}))
         async for token, _ in self.agent.astream(
             {"messages": messages, "context": context},
             stream_mode="messages",
@@ -38,8 +42,8 @@ class ChatAgent:
         ):
             yield token  # type: ignore
 
-    async def run(self, messages: list) -> AIMessage:
-        await self._init_agent()
+    async def run(self, messages: list, prompt_vars: dict | None = None) -> AIMessage:
+        await self._init_agent(**(prompt_vars or {}))
         all_message = await self.agent.ainvoke(
             {"messages": messages}, config={"callbacks": [self._langfuse_handler]}
         )
