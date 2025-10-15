@@ -113,9 +113,30 @@ RETURNING *;
 - 若不可重试：status → FAILED, 记录 error_log
 
 # 提议的解决方案
-（待 INNOVATE 模式填充）
 
-# 当前执行步骤："1. 分析现有代码"
+## 技术方案选择
+1. BaseTask 接口：极简接口设计
+2. 任务注册：全局字典 TASK_REGISTRY
+3. 执行器模式：批量并发执行（batch_size=5）
+4. 数据库锁定：CTE 批量原子锁定
+5. arq 集成：浅集成（定时触发器模式）
+6. 失败重试：立即重试机制
+
+## 文件结构
+```
+app/long_tasks/
+├── __init__.py
+├── enums.py
+├── base.py
+├── registry.py
+├── models.py
+├── crud.py
+├── executor.py
+├── api.py
+└── worker.py
+```
+
+# 当前执行步骤："3. 详细规划"
 
 # 任务进度
 [2025-10-15_16:31:13]
