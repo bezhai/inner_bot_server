@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import TypeVar
 
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langfuse.langchain import CallbackHandler
@@ -15,13 +15,12 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class ChatAgent:
-
     def __init__(
         self,
         model_id: str,
         prompt_id: str,
         tools: list,
-        structured_output_schema: Optional[Type[BaseModel]] = None,
+        structured_output_schema: type[BaseModel] | None = None,
     ):
         self.model_id = model_id
         self.prompt_id = prompt_id
