@@ -21,7 +21,7 @@ export async function makeCardReply(message: Message): Promise<void> {
         }
         return {
             user_id: getBotUnionId(),
-            user_name: '赤尾小助手',
+            user_name: '赤尾',
             content,
             is_mention_bot: false,
             role: 'assistant',
@@ -70,7 +70,7 @@ export async function reCreateCard(
         }
         return {
             user_id: getBotUnionId(),
-            user_name: '赤尾小助手',
+            user_name: '赤尾',
             content,
             is_mention_bot: false,
             role: 'assistant',

@@ -29,7 +29,7 @@ def format_chat_message(msg: QuickSearchResult, is_trigger: bool = False) -> str
     username = msg.username or "未知用户"
     trigger_mark = " <<<--- [TRIGGER]" if is_trigger else ""
 
-    return f"[{time_str}] [ID: {msg.message_id}] [User: {username}]: {msg.content}{trigger_mark}"
+    return f"[{time_str}] [User: {username}]: {msg.content}{trigger_mark}"
 
 
 def build_chat_history(messages: list[QuickSearchResult], trigger_id: str) -> str:
@@ -99,14 +99,14 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     """
 
     user_content = f"""# 近期聊天记录
-这是最新的聊天记录。你被提及的消息已被标记为 <<<--- [TRIGGER]
+这是最新的聊天记录。你需要回复的消息已被标记为 <<<--- [TRIGGER]
 
 {chat_history}
 
 ---
 
 # 你的任务
-请按照你的人设，根据上面提供的聊天记录，针对被 <<<--- [TRIGGER] 标记的消息，生成一条直接的、完整的回复。回复的提问者是 **{trigger_username}**。
+请按照你的人设，根据上面提供的聊天记录，针对被标记的消息，生成一条直接的、完整的回复。回复的提问者是 **{trigger_username}**。
 """
 
     messages = [HumanMessage(content=user_content)]
