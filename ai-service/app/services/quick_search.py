@@ -110,7 +110,7 @@ async def quick_search(
                     user_id=str(msg.user_id),
                     create_time=datetime.fromtimestamp(msg.create_time / 1000),
                     role=str(msg.role),
-                    username=username,
+                    username=username if msg.role == "user" else "赤尾小助手",
                 )
             )
 

@@ -53,6 +53,12 @@ class OpenAIClient:
             **kwargs,
         )
 
+    async def embed(self, text: str) -> list[float]:
+        """直接调用embedding API"""
+        client = self._ensure_connected()
+        resp = await client.embeddings.create(model=self.model_name, input=text)
+        return list(resp.data[0].embedding)
+
     async def __aenter__(self):
         """Async context manager entry."""
         await self.connect()

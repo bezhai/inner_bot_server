@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
+
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
-from .models import ConversationMessage, ModelProvider
+from .models import ConversationMessage, ModelProvider, TopicMemory
 
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
@@ -85,3 +87,60 @@ async def create_conversation_message(
         await session.commit()
         await session.refresh(message)
         return message
+
+
+# =========================
+# TopicMemory CRUD (L2)
+# =========================
+
+
+async def get_topics_by_group(
+    group_id: str, *, hours: int | None = None, limit: int | None = None
+) -> list[TopicMemory]:
+    """
+    获取群组的话题记录
+
+    Args:
+        group_id: 群组ID
+        hours: 可选，限制返回最近多少小时内的话题（基于updated_at字段）
+        limit: 可选，限制返回记录的数量
+    """
+    async with AsyncSessionLocal() as session:
+        query = select(TopicMemory).where(TopicMemory.group_id == group_id)
+
+        # 添加时间过滤
+        if hours is not None:
+            cutoff = datetime.now() - timedelta(hours=hours)
+            query = query.where(TopicMemory.updated_at >= cutoff)
+
+        # 添加数量限制
+        if limit is not None:
+            query = query.limit(limit)
+
+        result = await session.execute(query)
+        return list(result.scalars().all())
+
+
+async def upsert_topic(
+    *,
+    topic_id: int | None,
+    group_id: str,
+    title: str,
+    summary: str,
+) -> TopicMemory:
+    """
+    根据topic_id执行upsert
+    """
+    async with AsyncSessionLocal() as session:
+        # 创建要保存的对象
+        topic = TopicMemory(
+            id=topic_id,
+            group_id=group_id,
+            title=title,
+            summary=summary,
+        )
+
+        # 使用merge进行upsert操作
+        topic = await session.merge(topic)
+        await session.commit()
+        return topic
