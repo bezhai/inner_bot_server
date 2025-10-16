@@ -2,7 +2,6 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-from arq.connections import RedisSettings
 from sqlalchemy import func, select
 
 from app.clients.redis import AsyncRedisClient
@@ -140,18 +139,3 @@ async def cron_daily_consensus(ctx) -> None:
         logger.info(f"已为 {len(group_ids)} 个群组创建共识提炼任务")
     except Exception as e:
         logger.error(f"cron_daily_consensus error: {str(e)}")
-
-
-class WorkerSettings:
-    redis_settings = RedisSettings(
-        host=settings.redis_host or "localhost",
-        port=6379,
-        password=settings.redis_password,
-        database=0,
-    )
-
-    functions = [task_update_topic_memory, task_distill_consensus]
-    cron_jobs = [
-        # cron(cron_5m_scan_queues, minute=f"*/{settings.l2_scan_interval_minutes}"),
-        # cron(cron_daily_consensus, hour=2, minute=0),  # 每天凌晨2点执行
-    ]
