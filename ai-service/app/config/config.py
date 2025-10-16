@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     l2_scan_interval_minutes: int = 5
     l2_queue_max_len: int = 200
 
+    # 长期任务配置
+    long_task_batch_size: int = 5
+    long_task_lock_timeout: int = 1800  # 30分钟
+
     class Config:
         env_file = ".env"
         extra = "ignore"
