@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理
     """
-    init_qdrant_collections()
+    await init_qdrant_collections()
 
     yield
 
