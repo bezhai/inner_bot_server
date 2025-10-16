@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 
 from app.api.router import api_router
+from app.services.qdrant import init_qdrant_collections
 from app.utils.middlewares import HeaderContextMiddleware
 
 load_dotenv()
@@ -17,6 +18,7 @@ async def lifespan(app: FastAPI):
     """
     应用生命周期管理
     """
+    init_qdrant_collections()
 
     yield
 
