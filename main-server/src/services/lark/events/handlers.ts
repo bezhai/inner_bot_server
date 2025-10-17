@@ -8,8 +8,6 @@ import { EventHandler } from './event-registry';
 import { runRules } from 'services/message-processing/rule-engine';
 import { MessageTransferer } from './factory';
 import { storeMessage } from 'services/integrations/memory';
-import { getBotUnionId } from 'utils/bot/bot-var';
-import dayjs from 'dayjs';
 import {
     UpdatePhotoCard,
     FetchPhotoDetails,
@@ -24,6 +22,7 @@ import { handleRetryCard } from '@callback/retry-card';
 import { handleFeedback } from '@callback/feedback';
 import { LarkGroupMember, LarkUser } from 'dal/entities';
 import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
+import { getUserInfo } from 'services/integrations/lark-client';
 import {
     GroupMemberRepository,
     UserRepository,
@@ -249,25 +248,56 @@ export class LarkEventHandlers {
         await AppDataSource.transaction(async (manager) => {
             const baseChatInfoRepository = manager.getRepository(LarkBaseChatInfo);
             const userChatMappingRepository = manager.getRepository(UserChatMapping);
+            const userRepository = manager.getRepository(LarkUser);
 
-            // 查询是否已经存在, 不存在则创建
-            const baseChatInfo = await baseChatInfoRepository.findOne({
-                where: { chat_id: data.chat_id },
-            });
-            if (baseChatInfo) {
-                return;
-            }
+            const unionId = data.operator_id!.union_id!;
 
-            // 创建基础聊天信息
-            await userChatMappingRepository.save({
-                chat_id: data.chat_id!,
-                union_id: data.operator_id!.union_id!,
-                chatInfo: {
-                    chat_id: data.chat_id!,
-                    chat_mode: 'p2p',
-                    // 已移除 has_main_bot 和 has_dev_bot 字段，使用多机器人配置表替代
-                },
-            });
+            await Promise.allSettled([
+                (async () => {
+                    // 查询是否已经存在, 不存在则创建
+                    const baseChatInfo = await baseChatInfoRepository.findOne({
+                        where: { chat_id: data.chat_id },
+                    });
+                    if (baseChatInfo) {
+                        return;
+                    }
+                    // 1. 创建基础聊天信息
+                    userChatMappingRepository.save({
+                        chat_id: data.chat_id!,
+                        union_id: unionId,
+                        chatInfo: {
+                            chat_id: data.chat_id!,
+                            chat_mode: 'p2p',
+                        },
+                    });
+                })(),
+                // 2. 检查并创建用户信息
+                (async () => {
+                    const existingUser = await userRepository.findOne({
+                        where: { union_id: unionId },
+                    });
+
+                    if (!existingUser) {
+                        try {
+                            const userInfo = await getUserInfo(unionId);
+
+                            const newUser = new LarkUser();
+                            newUser.union_id = unionId;
+                            newUser.name = userInfo.user?.name || '未知用户';
+                            newUser.avatar_origin = userInfo.user?.avatar?.avatar_origin;
+
+                            await userRepository.save(newUser);
+
+                            console.info(`Created new user record for union_id: ${unionId}`);
+                        } catch (error) {
+                            console.error(
+                                `Failed to fetch user info for union_id ${unionId}:`,
+                                error,
+                            );
+                        }
+                    }
+                })(),
+            ]);
         });
     }
 
