@@ -59,6 +59,25 @@ class OpenAIClient:
         resp = await client.embeddings.create(model=self.model_name, input=text)
         return list(resp.data[0].embedding)
 
+    async def images_generate(
+        self,
+        prompt: str,
+        size: str,
+    ) -> list[str]:
+        client = self._ensure_connected()
+        resp = await client.images.generate(
+            model=self.model_name,
+            response_format="b64_json",
+            prompt=prompt,
+            size=size,
+            extra_body={
+                # "image": images,
+                "watermark": False,
+                "sequential_image_generation": "disabled",
+            },
+        )
+        return resp.data
+
     async def __aenter__(self):
         """Async context manager entry."""
         await self.connect()
