@@ -15,39 +15,50 @@ logger = logging.getLogger(__name__)
 YIELD_INTERVAL = 0.5
 
 
-def format_chat_message(msg: QuickSearchResult, is_trigger: bool = False) -> str:
+def format_chat_message(msg: QuickSearchResult) -> str:
     """格式化单条聊天消息
 
     Args:
         msg: 消息对象
-        is_trigger: 是否为触发消息
 
     Returns:
         格式化后的消息字符串
     """
     time_str = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
     username = msg.username or "未知用户"
-    trigger_mark = " <<<--- [TRIGGER]" if is_trigger else ""
 
-    return f"[{time_str}] [User: {username}]: {msg.content}{trigger_mark}"
+    return f"[{time_str}] [User: {username}]: {msg.content}"
 
 
-def build_chat_history(messages: list[QuickSearchResult], trigger_id: str) -> str:
-    """构建格式化的聊天历史
+def build_chat_context(
+    messages: list[QuickSearchResult], trigger_id: str
+) -> tuple[str, str, str]:
+    """构建聊天上下文和触发消息
 
     Args:
         messages: 消息列表
         trigger_id: 触发消息的ID
 
     Returns:
-        格式化后的聊天历史字符串
+        元组：(聊天历史, 格式化的触发消息, 触发用户名)
     """
-    formatted = []
-    for msg in messages:
-        is_trigger = msg.message_id == trigger_id
-        formatted.append(format_chat_message(msg, is_trigger))
+    history_messages = []
+    trigger_msg = None
+    trigger_username = "未知用户"
 
-    return "\n".join(formatted)
+    for msg in messages:
+        if msg.message_id == trigger_id:
+            trigger_msg = msg
+            trigger_username = msg.username or "未知用户"
+        else:
+            history_messages.append(format_chat_message(msg))
+
+    chat_history = "\n".join(history_messages) if history_messages else "（暂无历史记录）"
+    trigger_formatted = (
+        format_chat_message(trigger_msg) if trigger_msg else "（未找到触发消息）"
+    )
+
+    return chat_history, trigger_formatted, trigger_username
 
 
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
@@ -80,12 +91,9 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     # )
     # consensus_markdown = "\n".join(consensus_list) if consensus_list else "（暂无共识记录）"
 
-    # 格式化聊天历史
-    chat_history = build_chat_history(l1_results, message_id)
-
-    # 找到触发消息的用户名
-    trigger_username = next(
-        (msg.username for msg in l1_results if msg.message_id == message_id), "未知用户"
+    # 构建聊天上下文和触发消息
+    chat_history, trigger_content, trigger_username = build_chat_context(
+        l1_results, message_id
     )
 
     # 构建结构化的用户消息内容
@@ -98,15 +106,20 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 {topics_summary}
     """
 
-    user_content = f"""# 近期聊天记录
-这是最新的聊天记录。你需要回复的消息已被标记为 <<<--- [TRIGGER]
+    user_content = f"""# 1. 近期聊天记录（上下文）
+以下是最近的聊天记录，供你了解当前对话的背景：
 
 {chat_history}
 
 ---
 
-# 你的任务
-请按照你的人设，根据上面提供的聊天记录，针对被标记的消息，生成一条直接的、完整的回复。回复的提问者是 **{trigger_username}**。
+# 2. 需要回复的消息
+{trigger_content}
+
+---
+
+# 3. 你的任务
+请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
 """
 
     messages = [HumanMessage(content=user_content)]

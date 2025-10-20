@@ -1,4 +1,5 @@
 import { TextUtils } from 'utils/text/text-utils';
+import { getBotUnionId } from 'utils/bot/bot-var';
 
 export enum ContentType {
     Text = 'text',
@@ -44,7 +45,9 @@ export class MessageContentUtils {
 
         content.mentions.forEach((mention, index) => {
             const mentionInfo = content.mentionMap?.[mention]!;
-            markdown = markdown.replace(`@_user_${index + 1}`, `@${mentionInfo.name}`);
+            const botUnionId = getBotUnionId();
+            const displayName = mention === botUnionId ? '赤尾' : mentionInfo.name;
+            markdown = markdown.replace(`@_user_${index + 1}`, `@${displayName}`);
         });
 
         return markdown;

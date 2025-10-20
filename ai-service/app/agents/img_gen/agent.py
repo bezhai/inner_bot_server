@@ -53,7 +53,7 @@ async def generate_image(
     # ] = None,
 ) -> str | dict[str, Any]:
     """
-    通过文本提示词生成图片, 返回图片url
+    通过文本提示词生成图片, 返回图片image_key
     """
     try:
         # context = get_runtime(ContextSchema).context
