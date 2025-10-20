@@ -53,7 +53,7 @@ export class MessageContentUtils {
         return markdown;
     }
 
-    static texts(content: MessageContent): string[] {
+    static texts(content: MessageContent): string[] { 
         return content.items
             .filter((item) => item.type === ContentType.Text)
             .map((item) => item.value);
