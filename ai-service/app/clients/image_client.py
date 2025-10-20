@@ -86,7 +86,7 @@ class ImageProcessClient:
             return None
 
         try:
-            logger.info(f"上传base64图片到飞书，base64_data: {base64_data}")
+            # logger.info(f"上传base64图片到飞书，base64_data: {base64_data}")
             request_data = {"base64_data": base64_data}
 
             async with httpx.AsyncClient(timeout=self.timeout) as client:
