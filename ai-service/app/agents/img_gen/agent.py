@@ -18,7 +18,7 @@ async def generate_image(
     ],
     size: Annotated[
         str,
-        Field(description="图片尺寸, 例如 '1024x1024', 或者以宽高比表示, 例如 '1:1'"),
+        Field(description="图片尺寸, 例如 '1024x1024', "),
     ] = "1024x1024",
     # image_list: Annotated[
     #     list[int] | None,

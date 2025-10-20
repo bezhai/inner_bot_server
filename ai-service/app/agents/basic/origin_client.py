@@ -76,7 +76,7 @@ class OpenAIClient:
                 "sequential_image_generation": "disabled",
             },
         )
-        return "data:image/jpeg;base64," + resp.data.b64_json
+        return "data:image/jpeg;base64," + resp.data[0].b64_json
 
     async def __aenter__(self):
         """Async context manager entry."""
