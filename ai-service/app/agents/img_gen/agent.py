@@ -18,7 +18,9 @@ async def generate_image(
     ],
     size: Annotated[
         str,
-        Field(description="图片尺寸, 例如 '1024x1024', "),
+        Field(
+            description="图片尺寸, 例如 '1024x1024', 或者指定生成图像的分辨率, 如1k、2k"
+        ),
     ] = "1024x1024",
     # image_list: Annotated[
     #     list[int] | None,
