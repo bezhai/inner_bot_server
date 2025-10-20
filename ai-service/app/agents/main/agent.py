@@ -14,6 +14,47 @@ logger = logging.getLogger(__name__)
 
 YIELD_INTERVAL = 0.5
 
+# 私聊提示词模板
+PRIVATE_CHAT_CONTEXT_TEMPLATE = """# 1. 对话背景
+这是你与用户 **{trigger_username}** 的私聊对话。
+
+# 2. 近期聊天记录（上下文）
+以下是最近的聊天记录，供你了解当前对话的背景：
+
+{chat_history}
+
+---
+
+# 3. 需要回复的消息
+{trigger_content}
+
+---
+
+# 4. 你的任务
+请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
+"""
+
+# 群聊提示词模板
+GROUP_CHAT_CONTEXT_TEMPLATE = """# 1. 对话背景
+这是群聊「**{group_name}**」中的对话，当前有多位成员参与讨论。
+
+# 2. 近期聊天记录（上下文）
+以下是最近的聊天记录，供你了解当前对话的背景：
+
+{chat_history}
+
+---
+
+# 3. 需要回复的消息
+{trigger_content}
+
+---
+
+# 4. 你的任务
+请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
+注意：这是群聊环境，回复时要考虑多人在场的社交场景，保持话题的连贯性。
+"""
+
 
 def format_chat_message(msg: QuickSearchResult) -> str:
     """格式化单条聊天消息
@@ -32,7 +73,7 @@ def format_chat_message(msg: QuickSearchResult) -> str:
 
 def build_chat_context(
     messages: list[QuickSearchResult], trigger_id: str
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, str, str | None]:
     """构建聊天上下文和触发消息
 
     Args:
@@ -40,16 +81,20 @@ def build_chat_context(
         trigger_id: 触发消息的ID
 
     Returns:
-        元组：(聊天历史, 格式化的触发消息, 触发用户名)
+        元组：(聊天历史, 格式化的触发消息, 触发用户名, 聊天类型, 群聊名称)
     """
     history_messages = []
     trigger_msg = None
     trigger_username = "未知用户"
+    chat_type = "p2p"  # 默认私聊
+    chat_name = None
 
     for msg in messages:
         if msg.message_id == trigger_id:
             trigger_msg = msg
             trigger_username = msg.username or "未知用户"
+            chat_type = msg.chat_type or "p2p"
+            chat_name = msg.chat_name
         else:
             history_messages.append(format_chat_message(msg))
 
@@ -58,7 +103,7 @@ def build_chat_context(
         format_chat_message(trigger_msg) if trigger_msg else "（未找到触发消息）"
     )
 
-    return chat_history, trigger_formatted, trigger_username
+    return chat_history, trigger_formatted, trigger_username, chat_type, chat_name
 
 
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
@@ -92,7 +137,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     # consensus_markdown = "\n".join(consensus_list) if consensus_list else "（暂无共识记录）"
 
     # 构建聊天上下文和触发消息
-    chat_history, trigger_content, trigger_username = build_chat_context(
+    chat_history, trigger_content, trigger_username, chat_type, chat_name = build_chat_context(
         l1_results, message_id
     )
 
@@ -106,21 +151,20 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 {topics_summary}
     """
 
-    user_content = f"""# 1. 近期聊天记录（上下文）
-以下是最近的聊天记录，供你了解当前对话的背景：
-
-{chat_history}
-
----
-
-# 2. 需要回复的消息
-{trigger_content}
-
----
-
-# 3. 你的任务
-请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
-"""
+    # 根据聊天类型选择不同的提示词模板
+    if chat_type == "group" and chat_name:
+        user_content = GROUP_CHAT_CONTEXT_TEMPLATE.format(
+            group_name=chat_name,
+            chat_history=chat_history,
+            trigger_content=trigger_content,
+            trigger_username=trigger_username,
+        )
+    else:
+        user_content = PRIVATE_CHAT_CONTEXT_TEMPLATE.format(
+            trigger_username=trigger_username,
+            chat_history=chat_history,
+            trigger_content=trigger_content,
+        )
 
     messages = [HumanMessage(content=user_content)]
     image_urls = []

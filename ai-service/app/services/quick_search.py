@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from app.orm.base import AsyncSessionLocal
-from app.orm.models import ConversationMessage, LarkUser
+from app.orm.models import ConversationMessage, LarkGroupChatInfo, LarkUser
 
 
 class QuickSearchResult:
@@ -21,6 +21,8 @@ class QuickSearchResult:
         create_time: datetime,
         role: str,
         username: str | None = None,
+        chat_type: str | None = None,
+        chat_name: str | None = None,
     ):
         self.message_id = message_id
         self.content = content
@@ -28,6 +30,8 @@ class QuickSearchResult:
         self.create_time = create_time
         self.role = role
         self.username = username
+        self.chat_type = chat_type
+        self.chat_name = chat_name
 
 
 async def quick_search(
@@ -63,14 +67,21 @@ async def quick_search(
 
         # 2. 获取同一root_message_id的所有消息，left join lark_user表获取用户名
         root_result = await session.execute(
-            select(ConversationMessage, LarkUser.name.label("username"))
+            select(
+                ConversationMessage,
+                LarkUser.name.label("username"),
+                LarkGroupChatInfo.name.label("chat_name"),
+            )
             .outerjoin(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
+            .outerjoin(
+                LarkGroupChatInfo, ConversationMessage.chat_id == LarkGroupChatInfo.chat_id
+            )
             .where(ConversationMessage.root_message_id == current_msg.root_message_id)
             .where(ConversationMessage.create_time <= current_msg.create_time)
             .order_by(ConversationMessage.create_time.asc())
         )
         root_rows = root_result.all()
-        root_messages = [(row[0], row[1]) for row in root_rows]
+        root_messages = [(row[0], row[1], row[2]) for row in root_rows]
 
         # 3. 如果数量不足，补充同一chat_id的其他消息
         if len(root_messages) < limit:
@@ -80,8 +91,16 @@ async def quick_search(
             time_threshold = current_msg.create_time - (time_window_minutes * 60 * 1000)
 
             additional_result = await session.execute(
-                select(ConversationMessage, LarkUser.name.label("username"))
+                select(
+                    ConversationMessage,
+                    LarkUser.name.label("username"),
+                    LarkGroupChatInfo.name.label("chat_name"),
+                )
                 .outerjoin(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
+                .outerjoin(
+                    LarkGroupChatInfo,
+                    ConversationMessage.chat_id == LarkGroupChatInfo.chat_id,
+                )
                 .where(
                     ConversationMessage.chat_id == current_msg.chat_id,
                     ConversationMessage.root_message_id != current_msg.root_message_id,
@@ -92,7 +111,7 @@ async def quick_search(
                 .limit(needed)
             )
             additional_rows = additional_result.all()
-            additional_messages = [(row[0], row[1]) for row in additional_rows]
+            additional_messages = [(row[0], row[1], row[2]) for row in additional_rows]
 
             # 合并并排序
             all_messages = root_messages + additional_messages
@@ -102,7 +121,7 @@ async def quick_search(
 
         # 4. 转换为搜索结果格式
         results = []
-        for msg, username in all_messages:
+        for msg, username, chat_name in all_messages:
             results.append(
                 QuickSearchResult(
                     message_id=str(msg.message_id),
@@ -111,6 +130,8 @@ async def quick_search(
                     create_time=datetime.fromtimestamp(msg.create_time / 1000),
                     role=str(msg.role),
                     username=username if msg.role == "user" else "赤尾",
+                    chat_type=str(msg.chat_type),
+                    chat_name=chat_name,
                 )
             )
 

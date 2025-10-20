@@ -44,6 +44,18 @@ class ConversationMessage(Base):
     create_time: Mapped[int] = mapped_column(BigInteger)
 
 
+class LarkGroupChatInfo(Base):
+    __tablename__ = "lark_group_chat_info"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    name: Mapped[str] = mapped_column(String)
+    avatar: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_count: Mapped[int] = mapped_column(BigInteger)
+    chat_status: Mapped[str] = mapped_column(String(20))
+    is_leave: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+
+
 class TopicMemory(Base):
     __tablename__ = "topic_memory"
 
