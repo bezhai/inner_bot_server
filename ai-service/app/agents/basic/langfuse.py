@@ -9,5 +9,5 @@ client = Langfuse(
 )
 
 
-def get_prompt(prompt_id: str):
-    return client.get_prompt(prompt_id)
+def get_prompt(prompt_id: str, label: str | None = None):
+    return client.get_prompt(prompt_id, label=label)

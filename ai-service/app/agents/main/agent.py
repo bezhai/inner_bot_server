@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 from langchain_core.messages import AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
+from app.agents.basic.langfuse import get_prompt
 from app.agents.main.tools import MAIN_TOOLS
 from app.services.quick_search import QuickSearchResult, quick_search
 from app.types.chat import ChatStreamChunk
@@ -13,47 +14,6 @@ from app.utils.status_processor import AIMessageChunkProcessor
 logger = logging.getLogger(__name__)
 
 YIELD_INTERVAL = 0.5
-
-# 私聊提示词模板
-PRIVATE_CHAT_CONTEXT_TEMPLATE = """# 1. 对话背景
-这是你与用户 **{trigger_username}** 的私聊对话。
-
-# 2. 近期聊天记录（上下文）
-以下是最近的聊天记录，供你了解当前对话的背景：
-
-{chat_history}
-
----
-
-# 3. 需要回复的消息
-{trigger_content}
-
----
-
-# 4. 你的任务
-请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
-"""
-
-# 群聊提示词模板
-GROUP_CHAT_CONTEXT_TEMPLATE = """# 1. 对话背景
-这是群聊「**{group_name}**」中的对话，当前有多位成员参与讨论。
-
-# 2. 近期聊天记录（上下文）
-以下是最近的聊天记录，供你了解当前对话的背景：
-
-{chat_history}
-
----
-
-# 3. 需要回复的消息
-{trigger_content}
-
----
-
-# 4. 你的任务
-请按照你的人设，根据上面提供的聊天上下文，针对用户 **{trigger_username}** 的消息，生成一条直接的、完整的回复。
-注意：这是群聊环境，回复时要考虑多人在场的社交场景，保持话题的连贯性。
-"""
 
 
 def format_chat_message(msg: QuickSearchResult) -> str:
@@ -154,19 +114,13 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     """
 
     # 根据聊天类型选择不同的提示词模板
-    if chat_type == "group" and chat_name:
-        user_content = GROUP_CHAT_CONTEXT_TEMPLATE.format(
-            group_name=chat_name,
-            chat_history=chat_history,
-            trigger_content=trigger_content,
-            trigger_username=trigger_username,
-        )
-    else:
-        user_content = PRIVATE_CHAT_CONTEXT_TEMPLATE.format(
-            trigger_username=trigger_username,
-            chat_history=chat_history,
-            trigger_content=trigger_content,
-        )
+
+    user_content = get_prompt("context_builder", label=chat_type).compile(
+        group_name=chat_name,
+        chat_history=chat_history,
+        trigger_content=trigger_content,
+        trigger_username=trigger_username,
+    )
 
     messages = [HumanMessage(content=user_content)]
     image_urls = []
