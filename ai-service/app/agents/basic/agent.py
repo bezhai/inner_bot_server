@@ -2,7 +2,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import TypeVar
 
-from langchain.agents import create_react_agent
+from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
@@ -41,7 +41,7 @@ class ChatAgent:
             currTime=datetime.now().strftime("%H:%M:%S"),
             **prompt_vars,
         )
-        self._agent = create_react_agent(
+        self._agent = create_agent(
             model, self.tools, prompt=prompt, context_schema=ContextSchema
         )
 
