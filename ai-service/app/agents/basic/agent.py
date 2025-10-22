@@ -2,9 +2,9 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 from typing import TypeVar
 
+from langchain.agents import create_react_agent
 from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langfuse.langchain import CallbackHandler
-from langgraph.prebuilt import create_react_agent
 from pydantic import BaseModel
 
 from app.agents.basic.context import ContextSchema
