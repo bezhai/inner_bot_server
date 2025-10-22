@@ -894,11 +894,12 @@ wheels = [
 
 [[package]]
 name = "langfuse"
-version = "3.3.4"
+version = "3.8.0"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
 dependencies = [
     { name = "backoff" },
     { name = "httpx" },
+    { name = "openai" },
     { name = "opentelemetry-api" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-sdk" },
@@ -907,9 +908,9 @@ dependencies = [
     { name = "requests" },
     { name = "wrapt" },
 ]
-sdist = { url = "https://mirrors.aliyun.com/pypi/packages/27/9d/c9c422c660459687293727c9146185f92443b6c72fda564ab10e9e16ab41/langfuse-3.3.4.tar.gz", hash = "sha256:e5df4e7284298990b522e02a1dc6c3c72ebc4a7a411dc7d39255fb8c2e5a7c3a" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/44/4c/3b35002cfd055f16fec759fe063a1692fde297f6dccdab33bc32647a8734/langfuse-3.8.0.tar.gz", hash = "sha256:f10ecd76a02d89368b41568e386f2bde8744729209a1ca0838b1209703eb7455" }
 wheels = [
-    { url = "https://mirrors.aliyun.com/pypi/packages/dc/46/edd370d47ca72ed4ca36b3c3b8f3a4ce71a310629d0bcb6ed760b04b08b1/langfuse-3.3.4-py3-none-any.whl", hash = "sha256:15b9d20878cf39a48ca9cfa7e52acdfeb043603d3a9cef8cf451687a4d838c6b" },
+    { url = "https://mirrors.aliyun.com/pypi/packages/da/d9/43a9b3d64cf65f62ccd21046991c72ce4e5b2d851b66a00ce7faca38ffdd/langfuse-3.8.0-py3-none-any.whl", hash = "sha256:9b7e786e7ae8ad895af479b8ad5d094e600f2c7ec1b3dc8bbcd225b1bc7e320a" },
 ]
 
 [[package]]
