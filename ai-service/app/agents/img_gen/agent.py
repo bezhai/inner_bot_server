@@ -61,12 +61,11 @@ async def generate_image(
         logger.info(f"生成图片请求: {query}")
 
         async with OpenAIClient("doubao:doubao-seedream-4-0-250828") as client:
-            data = await client.images_generate(query, size)
-            from app.clients.image_client import image_client
+            base64_images = await client.images_generate(query, size)
 
-            image_key = await image_client.upload_base64_image(base64_data=data)
+            image_keys = await batch_upload_images(base64_images=base64_images)
             return {
-                "image_key": image_key,
+                "image_keys": image_keys,
             }
 
     except Exception as e:
