@@ -34,8 +34,14 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         trigger_username=context.trigger_username,
     )
 
-    # 构建 LangChain 消息
-    messages = [HumanMessage(content=user_content)]
+    # 构建多模态 LangChain 消息
+    content_blocks = [{"type": "text", "text": user_content}]
+    
+    # 追加图片
+    for url in context.image_urls:
+        content_blocks.append({"type": "image", "url": url})
+    
+    messages = [HumanMessage(content_blocks=content_blocks)]
 
     accumulate_chunk = ChatStreamChunk(
         content="",
