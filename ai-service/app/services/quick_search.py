@@ -74,7 +74,8 @@ async def quick_search(
             )
             .outerjoin(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
             .outerjoin(
-                LarkGroupChatInfo, ConversationMessage.chat_id == LarkGroupChatInfo.chat_id
+                LarkGroupChatInfo,
+                ConversationMessage.chat_id == LarkGroupChatInfo.chat_id,
             )
             .where(ConversationMessage.root_message_id == current_msg.root_message_id)
             .where(ConversationMessage.create_time <= current_msg.create_time)

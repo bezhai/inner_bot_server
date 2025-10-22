@@ -98,7 +98,9 @@ def build_chat_context(
         else:
             history_messages.append(format_chat_message(msg))
 
-    chat_history = "\n".join(history_messages) if history_messages else "（暂无历史记录）"
+    chat_history = (
+        "\n".join(history_messages) if history_messages else "（暂无历史记录）"
+    )
     trigger_formatted = (
         format_chat_message(trigger_msg) if trigger_msg else "（未找到触发消息）"
     )
@@ -137,8 +139,8 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     # consensus_markdown = "\n".join(consensus_list) if consensus_list else "（暂无共识记录）"
 
     # 构建聊天上下文和触发消息
-    chat_history, trigger_content, trigger_username, chat_type, chat_name = build_chat_context(
-        l1_results, message_id
+    chat_history, trigger_content, trigger_username, chat_type, chat_name = (
+        build_chat_context(l1_results, message_id)
     )
 
     # 构建结构化的用户消息内容
@@ -197,7 +199,8 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 if finish_reason == "stop":
                     # 表明已经执行完毕
                     yield accumulate_chunk
-                    should_continue = False
+                    # should_continue = False
+                    # 太傻逼了, google 模型就喜欢搞这种骚操作, 非要在tool_calls之后加stop
                 elif finish_reason == "content_filter":
                     yield ChatStreamChunk(content="小尾有点不想讨论这个话题呢~")
                     should_continue = False
