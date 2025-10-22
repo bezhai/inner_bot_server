@@ -42,7 +42,7 @@ class ChatAgent:
             **prompt_vars,
         )
         self._agent = create_agent(
-            model, self.tools, prompt=prompt, context_schema=ContextSchema
+            model, self.tools, system_prompt=prompt, context_schema=ContextSchema
         )
 
     async def stream(
