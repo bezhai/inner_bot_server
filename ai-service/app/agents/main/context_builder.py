@@ -64,14 +64,31 @@ class ChatContext:
     image_urls: list[str]
 
 
+def _build_message_id_map(messages: list[QuickSearchResult]) -> dict[str, int]:
+    """构建消息ID到编号的映射
+    
+    Args:
+        messages: 消息列表
+        
+    Returns:
+        dict[str, int]: 消息ID到编号的映射（从1开始）
+    """
+    return {msg.message_id: idx + 1 for idx, msg in enumerate(messages)}
+
+
 def _format_chat_message(
-    msg: QuickSearchResult, image_counter: dict[str, int]
+    msg: QuickSearchResult, 
+    image_counter: dict[str, int],
+    message_index: int,
+    message_id_map: dict[str, int]
 ) -> tuple[str, list[str]]:
     """格式化单条聊天消息，提取图片keys
 
     Args:
         msg: 消息对象
         image_counter: 图片计数器字典，包含 "count" 键
+        message_index: 当前消息的编号
+        message_id_map: 消息ID到编号的映射
 
     Returns:
         tuple[str, list[str]]: (格式化后的消息字符串, 图片keys列表)
@@ -87,7 +104,18 @@ def _format_chat_message(
     # 更新计数器
     image_counter["count"] += len(image_keys)
 
-    formatted_text = f"[{time_str}] [User: {username}]: {processed_content}"
+    # 构建回复标注
+    reply_tag = ""
+    if msg.reply_message_id:
+        if msg.reply_message_id in message_id_map:
+            # 回复的消息在上下文中
+            parent_index = message_id_map[msg.reply_message_id]
+            reply_tag = f" [↪️回复消息{parent_index}]"
+        else:
+            # 回复的消息不在上下文中
+            reply_tag = " [↪️回复(消息已不在上下文)]"
+
+    formatted_text = f"【消息{message_index}】[{time_str}] [User: {username}]{reply_tag}: {processed_content}"
     return formatted_text, image_keys
 
 
@@ -114,8 +142,14 @@ async def _build_context_from_messages(
     image_counter = {"count": 0}
     all_image_keys: list[tuple[str, str, str]] = []  # (key, message_id, role)
 
-    for msg in messages:
-        formatted_text, image_keys = _format_chat_message(msg, image_counter)
+    # 构建消息ID到编号的映射
+    message_id_map = _build_message_id_map(messages)
+
+    for idx, msg in enumerate(messages):
+        message_index = idx + 1
+        formatted_text, image_keys = _format_chat_message(
+            msg, image_counter, message_index, message_id_map
+        )
 
         # 收集图片keys及其元信息
         for key in image_keys:

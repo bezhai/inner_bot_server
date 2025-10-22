@@ -23,6 +23,7 @@ class QuickSearchResult:
         username: str | None = None,
         chat_type: str | None = None,
         chat_name: str | None = None,
+        reply_message_id: str | None = None,
     ):
         self.message_id = message_id
         self.content = content
@@ -32,6 +33,7 @@ class QuickSearchResult:
         self.username = username
         self.chat_type = chat_type
         self.chat_name = chat_name
+        self.reply_message_id = reply_message_id
 
 
 async def quick_search(
@@ -133,6 +135,7 @@ async def quick_search(
                     username=username if msg.role == "user" else "赤尾",
                     chat_type=str(msg.chat_type),
                     chat_name=chat_name,
+                    reply_message_id=str(msg.reply_message_id) if msg.reply_message_id else None,
                 )
             )
 
