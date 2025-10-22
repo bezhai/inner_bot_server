@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 
+from app.agents.basic.context import ContextSchema
 from langchain_core.messages import AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
@@ -55,10 +56,10 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     try:
         async for token in agent.stream(
             messages,
-            context={
-                "curr_message_id": message_id,
-                "image_url_list": context.image_urls,
-            },
+            context=ContextSchema(
+                curr_message_id=message_id,
+                image_url_list=context.image_urls,
+            ),
         ):
             # 工具调用忽略
             if isinstance(token, AIMessageChunk):
