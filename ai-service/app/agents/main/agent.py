@@ -5,8 +5,8 @@ from langchain_core.messages import AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.langfuse import get_prompt
+from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
-from app.services.quick_search import QuickSearchResult, quick_search
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
 from app.utils.status_processor import AIMessageChunkProcessor
@@ -16,118 +16,26 @@ logger = logging.getLogger(__name__)
 YIELD_INTERVAL = 0.5
 
 
-def format_chat_message(msg: QuickSearchResult) -> str:
-    """格式化单条聊天消息
-
-    Args:
-        msg: 消息对象
-
-    Returns:
-        格式化后的消息字符串
-    """
-    time_str = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
-    username = msg.username or "未知用户"
-
-    return f"[{time_str}] [User: {username}]: {msg.content}"
-
-
-def build_chat_context(
-    messages: list[QuickSearchResult], trigger_id: str
-) -> tuple[str, str, str, str, str | None]:
-    """构建聊天上下文和触发消息
-
-    Args:
-        messages: 消息列表
-        trigger_id: 触发消息的ID
-
-    Returns:
-        元组：(聊天历史, 格式化的触发消息, 触发用户名, 聊天类型, 群聊名称)
-    """
-    history_messages = []
-    trigger_msg = None
-    trigger_username = "未知用户"
-    chat_type = "p2p"  # 默认私聊
-    chat_name = None
-
-    for msg in messages:
-        if msg.message_id == trigger_id:
-            trigger_msg = msg
-            trigger_username = msg.username or "未知用户"
-            chat_type = msg.chat_type or "p2p"
-            chat_name = msg.chat_name
-        else:
-            history_messages.append(format_chat_message(msg))
-
-    chat_history = (
-        "\n".join(history_messages) if history_messages else "（暂无历史记录）"
-    )
-    trigger_formatted = (
-        format_chat_message(trigger_msg) if trigger_msg else "（未找到触发消息）"
-    )
-
-    return chat_history, trigger_formatted, trigger_username, chat_type, chat_name
-
-
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     agent = ChatAgent("gemini-2.5-flash-preview-09-2025", "main", MAIN_TOOLS)
 
-    # L1: 使用 quick_search 拉取近期历史
-    l1_results = await quick_search(message_id=message_id, limit=10)
+    # 使用统一的上下文构建接口
+    context = await build_chat_context(message_id)
 
-    # 如果没有结果，直接返回
-    if not l1_results:
+    if context is None:
         logger.warning(f"No results found for message_id: {message_id}")
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
 
-    # 从最后一条获取 chat_id / group_id
-    # group_id = l1_results[-1].chat_id
-
-    # L2: 获取活跃话题并格式化
-    # active_topics = await get_active_topics(group_id, hours=3) if group_id else []
-    # topics_summary = "\n".join([
-    #     f"- 话题: {t.title}\n  - 摘要: {t.summary}"
-    #     for t in active_topics
-    # ]) if active_topics else "（暂无近期话题）"
-
-    # L3: 获取共识并格式化
-    # consensus_list = (
-    #     await search_relevant_consensus(group_id, l1_results[-1].content, k=3)
-    #     if group_id
-    #     else []
-    # )
-    # consensus_markdown = "\n".join(consensus_list) if consensus_list else "（暂无共识记录）"
-
-    # 构建聊天上下文和触发消息
-    chat_history, trigger_content, trigger_username, chat_type, chat_name = (
-        build_chat_context(l1_results, message_id)
+    user_content = get_prompt("context_builder", label=context.chat_type).compile(
+        group_name=context.chat_name,
+        chat_history=context.chat_history,
+        trigger_content=context.trigger_content,
+        trigger_username=context.trigger_username,
     )
 
-    # 构建结构化的用户消息内容
-    # TODO: 增加背景信息
-    """
-    ## 1. 核心共识
-{consensus_markdown}
-
-## 2. 近期话题摘要
-{topics_summary}
-    """
-
-    # 根据聊天类型选择不同的提示词模板
-
-    user_content = get_prompt("context_builder", label=chat_type).compile(
-        group_name=chat_name,
-        chat_history=chat_history,
-        trigger_content=trigger_content,
-        trigger_username=trigger_username,
-    )
-
+    # 构建 LangChain 消息
     messages = [HumanMessage(content=user_content)]
-    image_urls = []
-
-    logger.info(
-        f"Built structured user message with L1+L2+L3 for message_id: {message_id}"
-    )
 
     accumulate_chunk = ChatStreamChunk(
         content="",
@@ -143,7 +51,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
             messages,
             context={
                 "curr_message_id": message_id,
-                "image_url_list": image_urls,
+                "image_url_list": context.image_urls,
             },
         ):
             # 工具调用忽略
