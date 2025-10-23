@@ -1,10 +1,14 @@
 """OpenAI API client for AI/ML operations."""
 
+import logging
+
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 
 from app.agents.basic.model_builder import ModelBuilder
+
+logger = logging.getLogger(__name__)
 
 
 class OpenAIClient:
@@ -70,6 +74,10 @@ class OpenAIClient:
             "watermark": False,
             "sequential_image_generation": "disabled",
         }
+
+        logger.info(
+            f"生成图片请求: prompt={prompt}, size={size}, reference_urls={reference_urls}"
+        )
 
         # 如果提供了参考图片，添加到 extra_body
         if reference_urls:
