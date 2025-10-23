@@ -44,7 +44,6 @@ class ChatAgent:
             currDate=datetime.now().strftime("%Y-%m-%d"),
             currTime=datetime.now().strftime("%H:%M:%S"),
             **prompt_vars,
-            **langfuse_prompt.variables,
         )
         self._agent = create_agent(
             model, self.tools, system_prompt=prompt, context_schema=ContextSchema
