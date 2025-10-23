@@ -5,8 +5,8 @@ Bangumi ReAct Agent
 
 import logging
 
-from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.tools import tool
+from langchain.messages import AIMessage, HumanMessage
+from langchain.tools import tool
 
 from app.agents.bangumi.tools import (
     get_character_persons,

@@ -63,18 +63,24 @@ class OpenAIClient:
         self,
         prompt: str,
         size: str,
+        reference_urls: list[str] | None = None,
     ) -> list[str]:
         client = self._ensure_connected()
+        extra_body = {
+            "watermark": False,
+            "sequential_image_generation": "disabled",
+        }
+
+        # 如果提供了参考图片，添加到 extra_body
+        if reference_urls:
+            extra_body["image"] = reference_urls
+
         resp = await client.images.generate(
             model=self.model_name,
             response_format="b64_json",
             prompt=prompt,
             size=size,
-            extra_body={
-                # "image": images,
-                "watermark": False,
-                "sequential_image_generation": "disabled",
-            },
+            extra_body=extra_body,
         )
         return ["data:image/jpeg;base64," + image.b64_json for image in resp.data]
 

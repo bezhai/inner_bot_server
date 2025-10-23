@@ -2,9 +2,11 @@ import asyncio
 import logging
 from typing import Annotated, Any
 
-from langchain_core.tools import tool
+from langchain.tools import tool
+from langgraph.runtime import get_runtime
 from pydantic import Field
 
+from app.agents.basic.context import ContextSchema
 from app.agents.basic.origin_client import OpenAIClient
 
 logger = logging.getLogger(__name__)
@@ -47,21 +49,47 @@ async def generate_image(
             宽高比取值范围：[1/16, 16]"""
         ),
     ] = "2048x2048",
-    # image_list: Annotated[
-    #     list[int] | None,
-    #     Field(description="参考图片列表, 按当前上下文的图片顺序编号, 从0开始"),
-    # ] = None,
+    image_list: Annotated[
+        list[int] | None,
+        Field(
+            description="参考图片列表，使用文本中的图片编号，从1开始（如【图片1】对应编号1）"
+        ),
+    ] = None,
 ) -> str | dict[str, Any]:
     """
     通过文本提示词生成图片, 返回图片image_key
     """
     try:
-        # context = get_runtime(ContextSchema).context
+        # 获取runtime context中的图片URL列表
+        image_url_list = []
+        try:
+            context = get_runtime(ContextSchema).context
+            image_url_list = context.get("image_url_list") or []
+        except Exception as e:
+            logger.warning(f"无法获取runtime context，参考图片功能不可用: {e}")
+
+        # 根据image_list获取实际的图片URLs
+        reference_urls = []
+        if image_list and image_url_list:
+            for idx in image_list:
+                # 编号从1开始，转换为数组索引（从0开始）
+                array_index = idx - 1
+                if 0 <= array_index < len(image_url_list):
+                    reference_urls.append(image_url_list[array_index])
+                else:
+                    logger.warning(
+                        f"图片编号 {idx} 超出范围（总共 {len(image_url_list)} 张图片）"
+                    )
+
+        if reference_urls:
+            logger.info(f"使用参考图片: {reference_urls}")
 
         logger.info(f"生成图片请求: {query}")
 
         async with OpenAIClient("doubao:doubao-seedream-4-0-250828") as client:
-            base64_images = await client.images_generate(query, size)
+            base64_images = await client.images_generate(
+                query, size, reference_urls if reference_urls else None
+            )
 
             image_keys = await batch_upload_images(base64_images=base64_images)
             return {

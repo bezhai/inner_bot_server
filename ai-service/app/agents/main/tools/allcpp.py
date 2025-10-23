@@ -4,7 +4,7 @@ from datetime import datetime
 
 import arrow
 import httpx
-from langchain_core.tools import tool
+from langchain.tools import tool
 from pydantic import BaseModel, field_validator
 
 from app.utils.decorators.log_decorator import log_io

@@ -66,10 +66,10 @@ class ChatContext:
 
 def _build_message_id_map(messages: list[QuickSearchResult]) -> dict[str, int]:
     """构建消息ID到编号的映射
-    
+
     Args:
         messages: 消息列表
-        
+
     Returns:
         dict[str, int]: 消息ID到编号的映射（从1开始）
     """
@@ -77,10 +77,10 @@ def _build_message_id_map(messages: list[QuickSearchResult]) -> dict[str, int]:
 
 
 def _format_chat_message(
-    msg: QuickSearchResult, 
+    msg: QuickSearchResult,
     image_counter: dict[str, int],
     message_index: int,
-    message_id_map: dict[str, int]
+    message_id_map: dict[str, int],
 ) -> tuple[str, list[str]]:
     """格式化单条聊天消息，提取图片keys
 
@@ -132,7 +132,6 @@ async def _build_context_from_messages(
         ChatContext对象
     """
     history_messages = []
-    trigger_msg = None
     trigger_username = "未知用户"
     trigger_formatted = "（未找到触发消息）"
     chat_type = "p2p"  # 默认私聊
@@ -156,7 +155,6 @@ async def _build_context_from_messages(
             all_image_keys.append((key, msg.message_id, msg.role))
 
         if msg.message_id == trigger_id:
-            trigger_msg = msg
             trigger_username = msg.username or "未知用户"
             chat_type = msg.chat_type or "p2p"
             chat_name = msg.chat_name

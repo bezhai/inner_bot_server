@@ -1,5 +1,5 @@
 import httpx
-from langchain_core.tools import tool
+from langchain.tools import tool
 from pydantic import BaseModel
 
 from app.config import settings

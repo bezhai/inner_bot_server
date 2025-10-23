@@ -1,9 +1,10 @@
 import logging
 from collections.abc import AsyncGenerator
 
-from langchain_core.messages import AIMessageChunk, HumanMessage
+from langchain.messages import AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
+from app.agents.basic.context import ContextSchema
 from app.agents.basic.langfuse import get_prompt
 from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
@@ -36,11 +37,11 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
     # 构建多模态 LangChain 消息
     content_blocks = [{"type": "text", "text": user_content}]
-    
+
     # 追加图片
     for url in context.image_urls:
         content_blocks.append({"type": "image", "url": url})
-    
+
     messages = [HumanMessage(content_blocks=content_blocks)]
 
     accumulate_chunk = ChatStreamChunk(
@@ -55,10 +56,10 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     try:
         async for token in agent.stream(
             messages,
-            context={
-                "curr_message_id": message_id,
-                "image_url_list": context.image_urls,
-            },
+            context=ContextSchema(
+                curr_message_id=message_id,
+                image_url_list=context.image_urls,
+            ),
         ):
             # 工具调用忽略
             if isinstance(token, AIMessageChunk):

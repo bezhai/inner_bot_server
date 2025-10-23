@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import TypeVar
 
 from langchain.agents import create_agent
-from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
+from langchain.messages import AIMessage, AIMessageChunk, ToolMessage
 from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
 

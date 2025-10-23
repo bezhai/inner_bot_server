@@ -135,7 +135,9 @@ async def quick_search(
                     username=username if msg.role == "user" else "赤尾",
                     chat_type=str(msg.chat_type),
                     chat_name=chat_name,
-                    reply_message_id=str(msg.reply_message_id) if msg.reply_message_id else None,
+                    reply_message_id=str(msg.reply_message_id)
+                    if msg.reply_message_id
+                    else None,
                 )
             )
 
