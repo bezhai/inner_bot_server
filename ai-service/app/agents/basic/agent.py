@@ -53,7 +53,8 @@ class ChatAgent:
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         await self._init_agent(**(prompt_vars or {}))
         async for token, _ in self._agent.astream(
-            {"messages": messages, "context": context},
+            {"messages": messages},
+            context=context,
             stream_mode="messages",
             config={"callbacks": [self._langfuse_handler]},
         ):
