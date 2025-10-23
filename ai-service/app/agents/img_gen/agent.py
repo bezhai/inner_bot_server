@@ -64,7 +64,7 @@ async def generate_image(
         image_url_list = []
         try:
             context = get_runtime(ContextSchema).context
-            image_url_list = context.get("image_url_list") or []
+            image_url_list = context.image_url_list or []
         except Exception as e:
             logger.warning(f"无法获取runtime context，参考图片功能不可用: {e}")
 
