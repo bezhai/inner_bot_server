@@ -2,8 +2,7 @@ import asyncio
 import logging
 from typing import Annotated, Any
 
-from langchain.tools import tool
-from langgraph.runtime import get_runtime
+from langchain.tools import ToolRuntime, tool
 from pydantic import Field
 
 from app.agents.basic.context import ContextSchema
@@ -44,17 +43,17 @@ async def generate_image(
             方法一：指定生成图像的分辨率，并在prompt中用自然语言描述图片宽高比、图片形状或图片用途
             可选值：1K、2K、4K
             方法二：指定生成图像的宽高像素值
-            默认值：2048x2048
             总像素取值范围：[1280x720, 4096x4096]
             宽高比取值范围：[1/16, 16]"""
         ),
-    ] = "2048x2048",
+    ],
     image_list: Annotated[
-        list[int] | None,
+        list[int],
         Field(
-            description="参考图片列表，使用文本中的图片编号，从1开始（如【图片1】对应编号1）"
+            description="参考图片列表，使用文本中的图片编号，从1开始（如【图片1】对应编号1）, 如果为空，则不使用参考图片"
         ),
-    ] = None,
+    ],
+    runtime: ToolRuntime[ContextSchema],
 ) -> str | dict[str, Any]:
     """
     通过文本提示词生成图片, 返回图片image_key
@@ -63,8 +62,7 @@ async def generate_image(
         # 获取runtime context中的图片URL列表
         image_url_list = []
         try:
-            context = get_runtime(ContextSchema).context
-            image_url_list = context.get("image_url_list") or []
+            image_url_list = runtime.context.image_url_list or []
         except Exception as e:
             logger.warning(f"无法获取runtime context，参考图片功能不可用: {e}")
 
@@ -83,8 +81,6 @@ async def generate_image(
 
         if reference_urls:
             logger.info(f"使用参考图片: {reference_urls}")
-
-        logger.info(f"生成图片请求: {query}")
 
         async with OpenAIClient("doubao:doubao-seedream-4-0-250828") as client:
             base64_images = await client.images_generate(
