@@ -18,7 +18,7 @@ YIELD_INTERVAL = 0.5
 
 
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
-    agent = ChatAgent("gemini-2.5-flash-preview-09-2025", "main", MAIN_TOOLS)
+    agent = ChatAgent("main", MAIN_TOOLS, model_id="gemini-2.5-flash-preview-09-2025")
 
     # 使用统一的上下文构建接口
     context = await build_chat_context(message_id)

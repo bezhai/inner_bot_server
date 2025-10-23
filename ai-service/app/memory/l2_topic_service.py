@@ -59,7 +59,7 @@ async def update_topic_memory(group_id: str, new_messages_slice: list[str]) -> N
         from app.agents.basic import ChatAgent
 
         agent = ChatAgent(
-            "gemini-2.5-flash-preview-09-2025", "upsert_group_topic", tools=[]
+            "upsert_group_topic", tools=[], model_id="gemini-2.5-flash-preview-09-2025"
         )
         result = await agent.run(messages=prompt)
         text = result.content or ""

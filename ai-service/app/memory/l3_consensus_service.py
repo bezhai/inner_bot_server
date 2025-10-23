@@ -62,7 +62,7 @@ async def distill_consensus_daily(group_id: str) -> None:
             {"role": "user", "content": source},
         ]
         agent = ChatAgent(
-            "gemini-2.5-flash-preview-09-2025", "consensus_summary", tools=[]
+            "consensus_summary", tools=[], model_id="gemini-2.5-flash-preview-09-2025"
         )
         result = await agent.run(messages=messages)
         text = result.content or ""

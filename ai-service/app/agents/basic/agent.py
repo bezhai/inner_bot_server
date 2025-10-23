@@ -17,9 +17,9 @@ T = TypeVar("T", bound=BaseModel)
 class ChatAgent:
     def __init__(
         self,
-        model_id: str,
         prompt_id: str,
         tools: list,
+        model_id: str | None = None,
         structured_output_schema: type[BaseModel] | None = None,
     ):
         self.model_id = model_id
@@ -30,16 +30,21 @@ class ChatAgent:
         self._agent = None  # 缓存agent实例
 
     async def _init_agent(self, **prompt_vars):
+        langfuse_prompt = get_prompt(self.prompt_id)
+        if langfuse_prompt.config.get("model_name"):
+            self.model_id = langfuse_prompt.config.get("model_name")
+
         model = await ModelBuilder.build_chat_model(self.model_id)
 
         # 如果指定了结构化输出schema，则绑定到模型上
         if self.structured_output_schema:
             model = model.with_structured_output(self.structured_output_schema)
 
-        prompt = get_prompt(self.prompt_id).get_langchain_prompt(
+        prompt = langfuse_prompt.get_langchain_prompt(
             currDate=datetime.now().strftime("%Y-%m-%d"),
             currTime=datetime.now().strftime("%H:%M:%S"),
             **prompt_vars,
+            **langfuse_prompt.variables,
         )
         self._agent = create_agent(
             model, self.tools, system_prompt=prompt, context_schema=ContextSchema
