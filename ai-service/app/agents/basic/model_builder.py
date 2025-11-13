@@ -9,6 +9,8 @@ from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_community.chat_models import ChatDeepSeek
 from sqlalchemy.future import select
 
 from app.orm.base import AsyncSessionLocal
@@ -138,7 +140,7 @@ class ModelBuilder:
                     model_id, f"模型配置缺少必要字段: {', '.join(missing_fields)}"
                 )
 
-            # 准备ChatOpenAI参数
+            # 准备模型参数
             chat_params = {
                 "api_key": model_info["api_key"],
                 "base_url": model_info["base_url"],
@@ -146,13 +148,32 @@ class ModelBuilder:
                 **kwargs,
             }
 
-            logger.info(
-                f"为模型 {model_id} 构建ChatOpenAI实例，"
-                f"参数: {list(chat_params.keys())}"
-            )
-
-            # 创建ChatOpenAI实例
-            return ChatOpenAI(**chat_params)
+            # 根据 model_id 选择合适的模型类
+            if "gemini" in model_id.lower():
+                # 使用 Google Gemini 模型
+                logger.info(
+                    f"为模型 {model_id} 构建ChatGoogleGenerativeAI实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+                return ChatGoogleGenerativeAI(
+                    google_api_key=chat_params["api_key"],
+                    model=chat_params["model"],
+                    **{k: v for k, v in kwargs.items() if k not in ["api_key", "base_url", "model"]}
+                )
+            elif "deepseek" in model_id.lower():
+                # 使用 DeepSeek 模型
+                logger.info(
+                    f"为模型 {model_id} 构建ChatDeepSeek实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+                return ChatDeepSeek(**chat_params)
+            else:
+                # 默认使用 OpenAI 模型
+                logger.info(
+                    f"为模型 {model_id} 构建ChatOpenAI实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+                return ChatOpenAI(**chat_params)
 
         except Exception as e:
             if isinstance(e, ModelBuilderError):
