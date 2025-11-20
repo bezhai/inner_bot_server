@@ -86,7 +86,7 @@ async def generate_image(
 
         logger.info(f"生成图片请求: {query}")
 
-        async with OpenAIClient("doubao:doubao-seedream-4-0-250828") as client:
+        async with OpenAIClient("doubao:ep-20251024125110-4xhl4") as client:
             base64_images = await client.images_generate(
                 query, size, reference_urls if reference_urls else None
             )
