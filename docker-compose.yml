@@ -140,7 +140,7 @@ services:
   ai-service-arq-worker:
     build:
       context: ./ai-service
-    command: bash -lc "python -m arq app.workers.unified_worker.UnifiedWorkerSettings"
+    command: bash -lc "uv run --no-sync arq app.workers.unified_worker.UnifiedWorkerSettings"
     environment:
       - REDIS_HOST=${REDIS_HOST}
       - REDIS_PASSWORD=${REDIS_PASSWORD}
