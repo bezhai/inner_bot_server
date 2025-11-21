@@ -1,3 +1,5 @@
+"""Bangumi ACG 数据库搜索工具"""
+
 import asyncio
 import json
 from collections.abc import Callable
@@ -8,7 +10,7 @@ import httpx
 from langchain.tools import tool
 from pydantic import BaseModel
 
-from app.agents.bangumi.models import (
+from app.agents.search.tools.models import (
     Career,
     Character,
     CharacterForAIResult,
@@ -108,19 +110,8 @@ def append_element(array, element):
 # 工具函数定义
 
 
-class SearchSubjectsArgs(BaseModel):
-    types: list[str] | None = None
-    keyword: str | None = None
-    sort: str = "match"
-    limit: int = 10
-    offset: int = 0
-    tags: list[str] | None = None
-    start_date: str | None = None
-    end_date: str | None = None
-    min_rating: int | None = None
-    max_rating: int | None = None
-
-
+@tool
+@auto_serialize_tool
 async def search_subjects(
     types: list[str] | None = None,
     keyword: str | None = None,
