@@ -1,12 +1,12 @@
 import logging
 from collections.abc import AsyncGenerator
 
-from langchain.messages import AIMessageChunk, HumanMessage
+from langchain.messages import AIMessage, AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.basic.langfuse import get_prompt
-from app.agents.main.context_builder import build_chat_context
+from app.agents.main.context_builder import build_chat_context, build_p2p_messages
 from app.agents.main.tools import MAIN_TOOLS
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
@@ -28,21 +28,34 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
 
-    user_content = get_prompt("context_builder", label=context.chat_type).compile(
-        group_name=context.chat_name,
-        chat_history=context.chat_history,
-        trigger_content=context.trigger_content,
-        trigger_username=context.trigger_username,
-    )
+    # 根据聊天类型选择不同的消息构建方式
+    if context.chat_type == "p2p":
+        # 私聊：使用原始消息列表（不压缩）
+        result = await build_p2p_messages(message_id)
+        if result is None:
+            logger.warning(f"Failed to build p2p messages for message_id: {message_id}")
+            yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
+            return
 
-    # 构建多模态 LangChain 消息
-    content_blocks = [{"type": "text", "text": user_content}]
+        messages, image_urls = result
+    else:
+        # 群聊：使用压缩的上下文（现有逻辑）
+        user_content = get_prompt("context_builder", label=context.chat_type).compile(
+            group_name=context.chat_name,
+            chat_history=context.chat_history,
+            trigger_content=context.trigger_content,
+            trigger_username=context.trigger_username,
+        )
 
-    # 追加图片
-    for url in context.image_urls:
-        content_blocks.append({"type": "image", "url": url})
+        # 构建多模态 LangChain 消息
+        content_blocks = [{"type": "text", "text": user_content}]
 
-    messages = [HumanMessage(content_blocks=content_blocks)]
+        # 追加图片
+        for url in context.image_urls:
+            content_blocks.append({"type": "image", "url": url})
+
+        messages = [HumanMessage(content_blocks=content_blocks)]
+        image_urls = context.image_urls
 
     accumulate_chunk = ChatStreamChunk(
         content="",
@@ -58,7 +71,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
             messages,
             context=ContextSchema(
                 curr_message_id=message_id,
-                image_url_list=context.image_urls,
+                image_url_list=image_urls,
             ),
         ):
             # 工具调用忽略

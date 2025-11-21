@@ -8,6 +8,8 @@ import logging
 import re
 from dataclasses import dataclass
 
+from langchain.messages import AIMessage, HumanMessage
+
 from app.clients.image_client import image_client
 from app.services.quick_search import QuickSearchResult, quick_search
 
@@ -224,3 +226,84 @@ async def build_chat_context(message_id: str, limit: int = 10) -> ChatContext | 
     # l1_results[-1].content, k=3) if group_id else []
 
     return await _build_context_from_messages(l1_results, message_id)
+
+
+async def build_p2p_messages(
+    message_id: str, limit: int = 10
+) -> tuple[list, list[str]] | None:
+    """构建私聊的原始消息列表（不压缩）
+
+    将 quick_search 返回的消息直接映射为 LangChain 消息格式。
+
+    Args:
+        message_id: 触发消息的ID
+        limit: 获取的历史消息数量限制
+
+    Returns:
+        tuple[list, list[str]] | None: (LangChain消息列表, 图片URLs列表)，如果没有找到消息则返回None
+    """
+    # 获取原始消息列表
+    messages = await quick_search(message_id=message_id, limit=limit)
+
+    if not messages:
+        logger.warning(f"No messages found for message_id: {message_id}")
+        return None
+
+    # 存储所有图片信息：(message_index, block_index, image_key, msg_id, role)
+    all_image_info: list[tuple[int, int, str, str, str]] = []
+    langchain_messages = []
+
+    # 遍历每条消息，构建 LangChain 消息
+    for msg_idx, msg in enumerate(messages):
+        # 提取图片 keys
+        image_keys = re.findall(r"!\[image\]\(([^)]+)\)", msg.content)
+
+        # 移除图片 markdown 标记，保留纯文本
+        text_content = re.sub(r"!\[image\]\([^)]+\)", "", msg.content).strip()
+
+        # 构建 content_blocks
+        content_blocks = []
+
+        # 添加文本内容
+        if text_content:
+            content_blocks.append({"type": "text", "text": text_content})
+
+        # 为每个图片添加占位符（URL稍后回填）
+        for img_key in image_keys:
+            block_index = len(content_blocks)
+            content_blocks.append({"type": "image", "url": ""})  # 占位符
+            all_image_info.append(
+                (msg_idx, block_index, img_key, msg.message_id, msg.role)
+            )
+
+        # 根据角色创建对应的消息类型
+        if msg.role == "user":
+            langchain_messages.append(HumanMessage(content_blocks=content_blocks))
+        else:
+            langchain_messages.append(AIMessage(content_blocks=content_blocks))
+
+    # 批量异步处理所有图片
+    image_urls: list[str] = []
+    if all_image_info:
+        image_tasks = [
+            image_client.process_image(
+                img_key, msg_id if role == "user" else None
+            )
+            for _, _, img_key, msg_id, role in all_image_info
+        ]
+        image_results = await asyncio.gather(*image_tasks, return_exceptions=True)
+
+        # 回填图片 URLs 到对应的 content_blocks
+        for i, result in enumerate(image_results):
+            msg_idx, block_idx, img_key, msg_id, _ = all_image_info[i]
+
+            if isinstance(result, str) and result:
+                # 更新对应消息的 content_blocks
+                langchain_messages[msg_idx].content_blocks[block_idx]["url"] = result
+                image_urls.append(result)
+            else:
+                logger.warning(f"图片处理失败: key={img_key}, message_id={msg_id}")
+                # 图片处理失败，移除该占位符
+                langchain_messages[msg_idx].content_blocks[block_idx]["url"] = ""
+
+    return langchain_messages, image_urls
