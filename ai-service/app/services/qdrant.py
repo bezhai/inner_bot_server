@@ -195,13 +195,13 @@ async def init_qdrant_collections():
         else:
             logger.warning("QDrant消息集合可能已存在")
 
-        # 创建共识集合（L3），向量维度同样为1536
-        consensus_created = await qdrant_service.create_collection(
-            collection_name="consensus", vector_size=1536
+        # 创建群组记忆集合（L3），向量维度同样为1536
+        memory_created = await qdrant_service.create_collection(
+            collection_name="group_memories", vector_size=1536
         )
-        if consensus_created:
-            logger.info("QDrant共识集合创建成功")
+        if memory_created:
+            logger.info("QDrant群组记忆集合创建成功")
         else:
-            logger.warning("QDrant共识集合可能已存在")
+            logger.warning("QDrant群组记忆集合可能已存在")
     except Exception as e:
         logger.error(f"初始化QDrant集合失败: {str(e)}")

@@ -17,8 +17,8 @@ from app.long_tasks.executor import poll_and_execute_tasks
 # 导入记忆系统相关
 from app.memory.worker import (
     # cron_5m_scan_queues,
-    # cron_daily_consensus,
-    task_distill_consensus,
+    # cron_daily_memory_evolve,
+    task_evolve_memory,
     task_update_topic_memory,
 )
 
@@ -50,7 +50,7 @@ class UnifiedWorkerSettings:
     functions = [
         # 记忆系统任务
         task_update_topic_memory,
-        task_distill_consensus,
+        task_evolve_memory,
     ]
 
     # 所有定时任务
@@ -59,6 +59,6 @@ class UnifiedWorkerSettings:
         cron(task_executor_job, minute=set(range(60))),
         # 记忆系统：每5分钟扫描L2队列
         # cron(cron_5m_scan_queues, minute=f"*/{settings.l2_scan_interval_minutes}"),
-        # 记忆系统：每天凌晨2点执行共识提炼
-        # cron(cron_daily_consensus, hour=2, minute=0),
+        # 记忆系统：每天凌晨2点执行记忆演进
+        # cron(cron_daily_memory_evolve, hour=2, minute=0),
     ]

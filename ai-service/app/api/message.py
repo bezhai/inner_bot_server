@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.clients.redis import AsyncRedisClient
-from app.memory.l3_consensus_service import embed_text
+from app.memory.l3_memory_service import embed_text
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
 

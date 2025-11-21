@@ -10,7 +10,7 @@ from app.memory.l2_topic_service import (
     get_messages_by_ids,
     update_topic_memory,
 )
-from app.memory.l3_consensus_service import distill_consensus_daily
+from app.memory.l3_memory_service import evolve_memories
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage
 
@@ -95,14 +95,14 @@ async def _get_active_group_ids(days: int = 1) -> list[str]:
         return [row[0] for row in result.all()]
 
 
-async def task_distill_consensus(ctx, group_id: str) -> None:
-    """执行单个群组的共识提炼任务"""
+async def task_evolve_memory(ctx, group_id: str) -> None:
+    """执行单个群组的记忆演进任务"""
     try:
-        logger.info(f"开始共识提炼: {group_id}")
-        await distill_consensus_daily(group_id)
-        logger.info(f"共识提炼完成: {group_id}")
+        logger.info(f"开始记忆演进: {group_id}")
+        await evolve_memories(group_id, days=1)
+        logger.info(f"记忆演进完成: {group_id}")
     except Exception as e:
-        logger.error(f"共识提炼失败 {group_id}: {str(e)}")
+        logger.error(f"记忆演进失败 {group_id}: {str(e)}")
 
 
 async def cron_5m_scan_queues(ctx) -> None:
@@ -125,17 +125,17 @@ async def cron_5m_scan_queues(ctx) -> None:
             break
 
 
-async def cron_daily_consensus(ctx) -> None:
-    """每日凌晨2点执行共识提炼"""
+async def cron_daily_memory_evolve(ctx) -> None:
+    """每日凌晨2点执行记忆演进"""
     try:
         # 获取最近活跃的群组
         group_ids = await _get_active_group_ids(days=1)
-        logger.info(f"发现 {len(group_ids)} 个活跃群组需要共识提炼")
+        logger.info(f"发现 {len(group_ids)} 个活跃群组需要记忆演进")
 
         # 为每个群组创建异步任务
         for group_id in group_ids:
-            await ctx["job_def"].enqueue_job("task_distill_consensus", group_id)
+            await ctx["job_def"].enqueue_job("task_evolve_memory", group_id)
 
-        logger.info(f"已为 {len(group_ids)} 个群组创建共识提炼任务")
+        logger.info(f"已为 {len(group_ids)} 个群组创建记忆演进任务")
     except Exception as e:
-        logger.error(f"cron_daily_consensus error: {str(e)}")
+        logger.error(f"cron_daily_memory_evolve error: {str(e)}")
