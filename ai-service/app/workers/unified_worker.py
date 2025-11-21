@@ -56,7 +56,7 @@ class UnifiedWorkerSettings:
     # 所有定时任务
     cron_jobs = [
         # 长期任务：每分钟执行一次
-        cron(task_executor_job, minute="*"),
+        cron(task_executor_job, minute=set(range(60))),
         # 记忆系统：每5分钟扫描L2队列
         # cron(cron_5m_scan_queues, minute=f"*/{settings.l2_scan_interval_minutes}"),
         # 记忆系统：每天凌晨2点执行共识提炼
