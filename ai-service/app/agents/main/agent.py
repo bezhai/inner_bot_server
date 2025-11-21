@@ -1,12 +1,17 @@
 import logging
 from collections.abc import AsyncGenerator
 
-from langchain.messages import AIMessageChunk, HumanMessage
+from langchain.messages import AIMessage, AIMessageChunk, HumanMessage
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.basic.langfuse import get_prompt
-from app.agents.main.context_builder import build_chat_context
+from app.agents.main.context_builder import (
+    ChatContext,
+    P2PChatContext,
+    P2PMessage,
+    build_chat_context,
+)
 from app.agents.main.tools import MAIN_TOOLS
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
@@ -21,28 +26,40 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     agent = ChatAgent("main", MAIN_TOOLS, model_id="gemini-2.5-flash-preview-09-2025")
 
     # 使用统一的上下文构建接口
-    context = await build_chat_context(message_id)
+    context_data = await build_chat_context(message_id)
 
-    if context is None:
+    if context_data is None:
         logger.warning(f"No results found for message_id: {message_id}")
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
 
-    user_content = get_prompt("context_builder", label=context.chat_type).compile(
-        group_name=context.chat_name,
-        chat_history=context.chat_history,
-        trigger_content=context.trigger_content,
-        trigger_username=context.trigger_username,
-    )
+    messages = []
+    context_image_urls: list[str] = []
 
-    # 构建多模态 LangChain 消息
-    content_blocks = [{"type": "text", "text": user_content}]
+    if isinstance(context_data, ChatContext):
+        user_content = get_prompt(
+            "context_builder", label=context_data.chat_type
+        ).compile(
+            group_name=context_data.chat_name,
+            chat_history=context_data.chat_history,
+            trigger_content=context_data.trigger_content,
+            trigger_username=context_data.trigger_username,
+        )
 
-    # 追加图片
-    for url in context.image_urls:
-        content_blocks.append({"type": "image", "url": url})
+        content_blocks = [{"type": "text", "text": user_content}]
+        for url in context_data.image_urls:
+            content_blocks.append({"type": "image", "url": url})
 
-    messages = [HumanMessage(content_blocks=content_blocks)]
+        messages = [HumanMessage(content_blocks=content_blocks)]
+        context_image_urls = context_data.image_urls
+    else:
+        messages = _build_p2p_messages(context_data)
+        context_image_urls = context_data.image_urls
+
+    if not messages:
+        logger.warning(f"No messages built for message_id: {message_id}")
+        yield ChatStreamChunk(content="抱歉，未找到可用的历史消息")
+        return
 
     accumulate_chunk = ChatStreamChunk(
         content="",
@@ -58,7 +75,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
             messages,
             context=ContextSchema(
                 curr_message_id=message_id,
-                image_url_list=context.image_urls,
+                image_url_list=context_image_urls,
             ),
         ):
             # 工具调用忽略
@@ -96,3 +113,27 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
         logger.error(f"stream_chat error: {str(e)}\n{traceback.format_exc()}")
         yield ChatStreamChunk(content="赤尾好像遇到了一些问题呢QAQ")
+
+
+def _build_p2p_messages(context: P2PChatContext) -> list[HumanMessage | AIMessage]:
+    """将私聊上下文转换为 LangChain 消息序列"""
+
+    def _build_content_blocks(msg: P2PMessage) -> list[dict[str, str]]:
+        blocks = []
+        if msg.content:
+            blocks.append({"type": "text", "text": msg.content})
+        for url in msg.image_urls:
+            blocks.append({"type": "image", "url": url})
+        return blocks
+
+    lc_messages: list[HumanMessage | AIMessage] = []
+
+    for msg in context.messages:
+        content_blocks = _build_content_blocks(msg)
+
+        if msg.role == "assistant":
+            lc_messages.append(AIMessage(content_blocks=content_blocks, name=msg.username))
+        else:
+            lc_messages.append(HumanMessage(content_blocks=content_blocks, name=msg.username))
+
+    return lc_messages

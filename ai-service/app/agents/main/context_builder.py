@@ -7,6 +7,7 @@ import asyncio
 import logging
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.clients.image_client import image_client
 from app.services.quick_search import QuickSearchResult, quick_search
@@ -45,22 +46,35 @@ def _extract_and_replace_images(
 
 @dataclass
 class ChatContext:
-    """聊天上下文数据类
-
-    Attributes:
-        chat_history: 格式化的聊天历史
-        trigger_content: 触发消息的格式化内容
-        trigger_username: 触发用户的用户名
-        chat_type: 聊天类型（p2p/group）
-        chat_name: 群聊名称（私聊时为None）
-        image_urls: 图片URL列表
-    """
+    """群聊上下文数据类"""
 
     chat_history: str
     trigger_content: str
     trigger_username: str
     chat_type: str
     chat_name: str | None
+    image_urls: list[str]
+
+
+@dataclass
+class P2PMessage:
+    """私聊消息节点"""
+
+    message_id: str
+    role: str
+    username: str
+    content: str
+    create_time: datetime
+    image_urls: list[str]
+
+
+@dataclass
+class P2PChatContext:
+    """私聊上下文数据类"""
+
+    chat_type: str
+    chat_name: str | None
+    messages: list[P2PMessage]
     image_urls: list[str]
 
 
@@ -119,29 +133,50 @@ def _format_chat_message(
     return formatted_text, image_keys
 
 
-async def _build_context_from_messages(
+def _extract_image_keys(content: str) -> list[str]:
+    """仅提取图片 keys，不对文本做替换"""
+    return re.findall(r"!\[image\]\(([^)]+)\)", content)
+
+
+async def _process_image_requests(
+    all_image_keys: list[tuple[str, str, str]],
+) -> tuple[list[str], dict[str, list[str]]]:
+    """统一处理图片，返回全量URL及按消息聚合的映射"""
+    image_urls: list[str] = []
+    message_image_map: dict[str, list[str]] = {}
+
+    if not all_image_keys:
+        return image_urls, message_image_map
+
+    image_tasks = [
+        image_client.process_image(key, msg_id if role == "user" else None)
+        for key, msg_id, role in all_image_keys
+    ]
+    image_results = await asyncio.gather(*image_tasks, return_exceptions=True)
+
+    for i, result in enumerate(image_results):
+        key, msg_id, _ = all_image_keys[i]
+        if isinstance(result, str) and result:
+            image_urls.append(result)
+            message_image_map.setdefault(msg_id, []).append(result)
+        else:
+            logger.warning(f"图片处理失败: key={key}, message_id={msg_id}")
+
+    return image_urls, message_image_map
+
+
+async def _build_group_context(
     messages: list[QuickSearchResult], trigger_id: str
 ) -> ChatContext:
-    """从消息列表构建聊天上下文
-
-    Args:
-        messages: 消息列表
-        trigger_id: 触发消息的ID
-
-    Returns:
-        ChatContext对象
-    """
+    """构建群聊上下文"""
     history_messages = []
     trigger_username = "未知用户"
     trigger_formatted = "（未找到触发消息）"
-    chat_type = "p2p"  # 默认私聊
+    chat_type = "group"
     chat_name = None
 
-    # 初始化图片计数器和收集器
     image_counter = {"count": 0}
-    all_image_keys: list[tuple[str, str, str]] = []  # (key, message_id, role)
-
-    # 构建消息ID到编号的映射
+    all_image_keys: list[tuple[str, str, str]] = []
     message_id_map = _build_message_id_map(messages)
 
     for idx, msg in enumerate(messages):
@@ -150,13 +185,12 @@ async def _build_context_from_messages(
             msg, image_counter, message_index, message_id_map
         )
 
-        # 收集图片keys及其元信息
         for key in image_keys:
             all_image_keys.append((key, msg.message_id, msg.role))
 
         if msg.message_id == trigger_id:
             trigger_username = msg.username or "未知用户"
-            chat_type = msg.chat_type or "p2p"
+            chat_type = msg.chat_type or "group"
             chat_name = msg.chat_name
             trigger_formatted = formatted_text
         else:
@@ -166,23 +200,7 @@ async def _build_context_from_messages(
         "\n".join(history_messages) if history_messages else "（暂无历史记录）"
     )
 
-    # 批量处理所有图片
-    image_urls: list[str] = []
-    if all_image_keys:
-        # 按顺序并发处理所有图片
-        image_tasks = [
-            image_client.process_image(key, msg_id if role == "user" else None)
-            for key, msg_id, role in all_image_keys
-        ]
-        image_results = await asyncio.gather(*image_tasks, return_exceptions=True)
-
-        # 收集成功的URLs
-        for i, result in enumerate(image_results):
-            if isinstance(result, str) and result:
-                image_urls.append(result)
-            else:
-                key, msg_id, _ = all_image_keys[i]
-                logger.warning(f"图片处理失败: key={key}, message_id={msg_id}")
+    image_urls, _ = await _process_image_requests(all_image_keys)
 
     return ChatContext(
         chat_history=chat_history,
@@ -194,7 +212,49 @@ async def _build_context_from_messages(
     )
 
 
-async def build_chat_context(message_id: str, limit: int = 10) -> ChatContext | None:
+async def _build_p2p_context(
+    messages: list[QuickSearchResult], trigger_id: str
+) -> P2PChatContext:
+    """构建私聊上下文（保留多轮消息）"""
+    all_image_keys: list[tuple[str, str, str]] = []
+
+    for msg in messages:
+        for key in _extract_image_keys(msg.content):
+            all_image_keys.append((key, msg.message_id, msg.role))
+
+    image_urls, message_image_map = await _process_image_requests(all_image_keys)
+
+    chat_type = "p2p"
+    chat_name = None
+    p2p_messages: list[P2PMessage] = []
+
+    for msg in messages:
+        if msg.message_id == trigger_id:
+            chat_type = msg.chat_type or "p2p"
+            chat_name = msg.chat_name
+
+        p2p_messages.append(
+            P2PMessage(
+                message_id=msg.message_id,
+                role=msg.role,
+                username=msg.username or "未知用户",
+                content=msg.content,
+                create_time=msg.create_time,
+                image_urls=message_image_map.get(msg.message_id, []),
+            )
+        )
+
+    return P2PChatContext(
+        chat_type=chat_type,
+        chat_name=chat_name,
+        messages=p2p_messages,
+        image_urls=image_urls,
+    )
+
+
+async def build_chat_context(
+    message_id: str, limit: int = 10
+) -> ChatContext | P2PChatContext | None:
     """构建聊天上下文
 
     从数据库获取历史消息并构建结构化的上下文对象。
@@ -223,4 +283,10 @@ async def build_chat_context(message_id: str, limit: int = 10) -> ChatContext | 
     # consensus_list = await search_relevant_consensus(group_id,
     # l1_results[-1].content, k=3) if group_id else []
 
-    return await _build_context_from_messages(l1_results, message_id)
+    trigger_msg = next((msg for msg in l1_results if msg.message_id == message_id), None)
+    chat_type = (trigger_msg.chat_type if trigger_msg else None) or "p2p"
+
+    if chat_type == "group":
+        return await _build_group_context(l1_results, message_id)
+
+    return await _build_p2p_context(l1_results, message_id)

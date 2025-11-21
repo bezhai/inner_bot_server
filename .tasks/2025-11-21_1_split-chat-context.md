@@ -24,9 +24,16 @@ LangChain驱动的AI聊天服务，现有主Agent上下文统一在app/agents/ma
 
 图片处理 `_extract_and_replace_images` 及 `image_client.process_image` 逻辑是通用的，可以在两种上下文路径里共享；`ContextSchema` 只包含 `curr_message_id` 与 `image_url_list`，因此私聊新增的多轮消息可以直接传给 agent 而无需调整 schema。
 # 提议的解决方案
+拆分上下文构建：群聊继续压缩为单条 message，沿用 Langfuse prompt；私聊保留 QuickSearchResult 多轮消息，逐条转换为 LangChain `HumanMessage`/`AIMessage` 并附带图片 URL blocks，共用图片下载逻辑。
 
-# 当前执行步骤："1. 研究代码现状"
+# 当前执行步骤："5. 等待Review"
 
 # 任务进度
+[2025-11-21_19:07:12]
+- 已修改：app/agents/main/context_builder.py app/agents/main/agent.py
+- 更改：重构上下文构建拆分群聊与私聊路径，新增私聊多轮消息数据结构，并在主 agent 中按类型构造 LangChain 消息序列。
+- 原因：满足私聊无需历史压缩、需要原生消息多模态输入的需求。
+- 阻碍因素：`uv`/`ruff` 命令在当前环境不存在，已改用 IDE 诊断确认无 lint。
+- 状态：成功
 
 # 最终审查
