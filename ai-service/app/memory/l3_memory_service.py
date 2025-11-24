@@ -7,13 +7,13 @@ import json
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any
 
 from pydantic import BaseModel
 from qdrant_client.http import models
 from sqlalchemy import select
 
-from app.agents.basic import ChatAgent
+from app.agents.basic.langfuse import get_prompt
 from app.agents.basic.origin_client import OpenAIClient
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkUser, MemoryVersion
@@ -309,23 +309,26 @@ async def evolve_memories(
         }
 
         # Step 4: LLM融合演进（使用结构化输出）
-        agent = ChatAgent(
-            "memory_evolve",
-            tools=[],
-            model_id="gemini-2.5-flash-preview-09-2025",
-            structured_output_schema=EvolutionOutput,
+        # 获取系统提示
+        langfuse_prompt = get_prompt("memory_evolve")
+        system_prompt = (
+            langfuse_prompt.prompt
+            if hasattr(langfuse_prompt, "prompt")
+            else str(langfuse_prompt)
         )
-        evolution_output = cast(
-            EvolutionOutput,
-            await agent.run_structured(
+
+        # 使用 OpenAIClient 进行结构化输出
+        async with OpenAIClient("gemini-2.5-flash-preview-09-2025") as client:
+            evolution_output = await client.structured_completion(
                 messages=[
+                    {"role": "system", "content": system_prompt},
                     {
                         "role": "user",
                         "content": json.dumps(prompt_context, ensure_ascii=False),
-                    }
-                ]
-            ),
-        )
+                    },
+                ],
+                response_model=EvolutionOutput,
+            )
 
         # Step 4.5: 直接获取结构化输出的演进项列表
         evolved_items = evolution_output.items

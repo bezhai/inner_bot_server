@@ -1,10 +1,15 @@
 """OpenAI API client for AI/ML operations."""
 
+from typing import TypeVar
+
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
+from pydantic import BaseModel
 
 from app.agents.basic.model_builder import ModelBuilder
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class OpenAIClient:
@@ -79,10 +84,58 @@ class OpenAIClient:
             model=self.model_name,
             response_format="b64_json",
             prompt=prompt,
-            size=size,
+            size=size,  # pyright: ignore[reportArgumentType]
             extra_body=extra_body,
         )
-        return ["data:image/jpeg;base64," + image.b64_json for image in resp.data]
+        return [f"data:image/jpeg;base64,{image.b64_json}" for image in resp.data or []]
+
+    async def structured_completion(
+        self,
+        messages: list[ChatCompletionMessageParam],
+        response_model: type[T],
+        **kwargs,
+    ) -> T:
+        """
+        使用结构化输出创建 chat completion
+
+        Args:
+            messages: 消息列表，必须符合 OpenAI 格式
+            response_model: Pydantic BaseModel 类型，定义期望的响应结构
+            **kwargs: 其他传递给 chat.completions.create 的参数
+
+        Returns:
+            解析后的 Pydantic 对象
+
+        Raises:
+            ValueError: 当响应内容为空时
+            RuntimeError: 当客户端未连接时
+        """
+        client = self._ensure_connected()
+
+        # 将 Pydantic model 转换为 JSON Schema
+        json_schema = response_model.model_json_schema()
+
+        # 调用 OpenAI API with response_format
+        response = await client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": response_model.__name__,
+                    "schema": json_schema,
+                    "strict": True,
+                },
+            },
+            **kwargs,
+        )
+
+        # 解析响应内容为 Pydantic 对象
+        content = response.choices[0].message.content
+        if not content:
+            raise ValueError("Empty response from OpenAI")
+
+        return response_model.model_validate_json(content)
 
     async def __aenter__(self):
         """Async context manager entry."""
