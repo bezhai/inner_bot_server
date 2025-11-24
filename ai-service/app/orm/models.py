@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID as PyUUID
 
-from sqlalchemy import UUID, BigInteger, Boolean, DateTime, String, Text
+from sqlalchemy import UUID, BigInteger, Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -65,3 +65,26 @@ class TopicMemory(Base):
     summary: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class MemoryVersion(Base):
+    """记忆版本快照"""
+
+    __tablename__ = "memory_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    memory_id: Mapped[str] = mapped_column(String(100), index=True)
+    group_id: Mapped[str] = mapped_column(String(100), index=True)
+    version: Mapped[int] = mapped_column(Integer)
+
+    statement: Mapped[str] = mapped_column(Text)
+    parent_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    change_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    status: Mapped[str] = mapped_column(
+        String(20), default="active"
+    )  # active/deprecated
+    strength: Mapped[float] = mapped_column(Float, default=0.8)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    deprecated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

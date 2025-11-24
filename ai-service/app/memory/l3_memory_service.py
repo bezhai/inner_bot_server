@@ -7,27 +7,21 @@ import json
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from pydantic import BaseModel
 from qdrant_client.http import models
-from sqlalchemy import desc, select
+from sqlalchemy import select
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.origin_client import OpenAIClient
 from app.orm.base import AsyncSessionLocal
-from app.orm.models import ConversationMessage
+from app.orm.models import ConversationMessage, LarkUser, MemoryVersion
 from app.services.qdrant import qdrant_service
+from app.services.quick_search import QuickSearchResult
+from app.utils.message_formatter import format_messages_to_strings
 
 logger = logging.getLogger(__name__)
-
-try:
-    from json_repair import repair_json
-
-    HAS_JSON_REPAIR = True
-except ImportError:
-    HAS_JSON_REPAIR = False
-    logger.warning("json_repair未安装，JSON容错功能将降级")
 
 
 # ==================== 数据模型 ====================
@@ -55,6 +49,12 @@ class EvolutionItem(BaseModel):
     old_id: str | None = None
     statement: str | None = None
     change_reason: str | None = None
+
+
+class EvolutionOutput(BaseModel):
+    """LLM结构化输出：演进操作列表"""
+
+    items: list[EvolutionItem]
 
 
 class EvolutionResult(BaseModel):
@@ -173,101 +173,84 @@ async def search_relevant_memories(
     return filtered[:k]
 
 
-async def _get_recent_messages(
-    group_id: str, days: int = 1, limit: int = 200
-) -> list[str]:
+async def _get_messages_by_time_range(
+    group_id: str,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+    days: int | None = None,
+    limit: int = 200,
+) -> tuple[list[QuickSearchResult], datetime | None, datetime | None]:
     """
-    获取最近N天的消息列表
+    按时间范围获取消息列表
 
     Args:
         group_id: 群组ID
-        days: 天数
+        start_time: 开始时间(优先级最高)
+        end_time: 结束时间(默认为当前时间)
+        days: 如果start_time为空,则从end_time往前推days天
         limit: 最多返回条数
 
     Returns:
-        消息文本列表
+        (结构化消息对象列表, 实际开始时间, 实际结束时间)
     """
     async with AsyncSessionLocal() as session:
-        since_ts = int((datetime.now() - timedelta(days=days)).timestamp())
+        # 计算时间范围
+        if end_time is None:
+            end_time = datetime.now()
+
+        if start_time is None:
+            if days is None:
+                days = 1
+            start_time = end_time - timedelta(days=days)
+
+        # 毫秒时间戳
+        start_ts = int(start_time.timestamp()) * 1000
+        end_ts = int(end_time.timestamp()) * 1000
+
+        # 添加 JOIN LarkUser 获取用户名
         result = await session.execute(
-            select(ConversationMessage)
+            select(ConversationMessage, LarkUser.name.label("username"))
+            .outerjoin(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
             .where(ConversationMessage.chat_id == group_id)
-            .where(ConversationMessage.create_time >= since_ts)
-            .order_by(desc(ConversationMessage.create_time))
+            .where(ConversationMessage.create_time >= start_ts)
+            .where(ConversationMessage.create_time <= end_ts)
+            .order_by(ConversationMessage.create_time)
             .limit(limit)
         )
-        rows = list(result.scalars().all())
-        rows.reverse()
+        rows = result.all()
 
+        # 构造 QuickSearchResult 对象列表
         messages = []
-        for m in rows:
-            prefix = "User" if m.role == "user" else "Assistant"
-            messages.append(f"{prefix}: {m.content}")
-
-        return messages
-
-
-def parse_evolution_result_robust(llm_output: str) -> list[EvolutionItem]:
-    """
-    健壮地解析LLM输出的JSON Lines
-
-    容错策略：
-    1. 尝试直接解析每行JSON
-    2. 如果失败，使用json_repair修复后再解析
-    3. 如果仍失败，记录错误并跳过该行
-
-    Args:
-        llm_output: LLM原始输出文本
-
-    Returns:
-        成功解析的演进项列表
-    """
-    items = []
-    lines = [line.strip() for line in llm_output.splitlines() if line.strip()]
-
-    for i, line in enumerate(lines, 1):
-        # 跳过非JSON行（如markdown代码块标记、注释行）
-        if line.startswith("```") or line.startswith("#") or line.startswith("//"):
-            continue
-
-        try:
-            # 尝试1: 直接解析
-            obj = json.loads(line)
-            items.append(EvolutionItem(**obj))
-        except json.JSONDecodeError as e:
-            if HAS_JSON_REPAIR:
-                try:
-                    # 尝试2: 使用json_repair修复后解析
-                    logger.warning(f"第{i}行JSON格式错误，尝试修复: {line[:50]}...")
-                    repaired = repair_json(line)
-                    obj = json.loads(repaired)
-                    items.append(EvolutionItem(**obj))
-                    logger.info(f"第{i}行JSON修复成功")
-                except Exception as repair_error:
-                    # 尝试3: 实在无法解析，记录详细错误并跳过
-                    logger.error(
-                        f"第{i}行JSON解析最终失败，已跳过 | "
-                        f"原始: {line[:100]}... | "
-                        f"原始错误: {e} | "
-                        f"修复错误: {repair_error}"
-                    )
-                    continue
-            else:
-                # 没有json_repair，直接跳过
-                logger.error(
-                    f"第{i}行JSON解析失败，已跳过 | 原始: {line[:100]}... | 错误: {e}"
+        for msg, username in rows:
+            messages.append(
+                QuickSearchResult(
+                    message_id=str(msg.message_id),
+                    content=str(msg.content),
+                    user_id=str(msg.user_id),
+                    create_time=datetime.fromtimestamp(msg.create_time / 1000),
+                    role=str(msg.role),
+                    username=username if msg.role == "user" else "赤尾",
+                    chat_type=str(msg.chat_type),
+                    chat_name=None,  # 不需要群聊名称
+                    reply_message_id=str(msg.reply_message_id)
+                    if msg.reply_message_id
+                    else None,
                 )
-                continue
+            )
 
-    if not items:
-        logger.warning("未能解析任何有效的演进项，可能LLM输出格式完全错误")
-    else:
-        logger.info(f"成功解析 {len(items)}/{len(lines)} 条演进项")
-
-    return items
+        logger.info(
+            f"获取消息: {group_id} | {start_time} ~ {end_time} | {len(messages)}条"
+        )
+        return messages, start_time, end_time
 
 
-async def evolve_memories(group_id: str, days: int = 1) -> EvolutionResult:
+async def evolve_memories(
+    group_id: str,
+    days: int | None = None,
+    start_time: datetime | None = None,
+    end_time: datetime | None = None,
+    limit: int = 200,
+) -> EvolutionResult:
     """
     融合演进群组记忆
 
@@ -279,27 +262,36 @@ async def evolve_memories(group_id: str, days: int = 1) -> EvolutionResult:
 
     Args:
         group_id: 群组ID
-        days: 获取最近N天的消息
+        days: 获取最近N天的消息(如果start_time为空)
+        start_time: 明确指定开始时间(用于历史回溯)
+        end_time: 明确指定结束时间
+        limit: 最多获取消息条数
 
     Returns:
         演进结果统计
     """
-    evolution_time = datetime.now().isoformat()
+    evolution_time = datetime.now()
 
     try:
         # Step 1: 获取现有记忆
         existing_memories = await get_active_memories(group_id)
 
-        # Step 2: 获取新消息
-        new_messages = await _get_recent_messages(group_id, days)
+        # Step 2: 获取新消息(返回结构化消息对象)
+        new_messages, _, _ = await _get_messages_by_time_range(
+            group_id, start_time, end_time, days, limit
+        )
+
         if not new_messages:
             return EvolutionResult(
                 group_id=group_id,
-                evolution_time=evolution_time,
+                evolution_time=evolution_time.isoformat(),
                 stats={"kept": 0, "updated": 0, "created": 0, "deleted": 0},
                 changes=[],
                 message="无新消息",
             )
+
+        # Step 2.5: 格式化消息为字符串列表（包含时间戳、用户名、回复关系）
+        formatted_messages = format_messages_to_strings(new_messages)
 
         # Step 3: 构建LLM输入
         prompt_context = {
@@ -313,27 +305,30 @@ async def evolve_memories(group_id: str, days: int = 1) -> EvolutionResult:
                 }
                 for m in existing_memories
             ],
-            "new_discussions": new_messages[:200],  # 限制消息数量
+            "new_discussions": formatted_messages,
         }
 
-        # Step 4: LLM融合演进
+        # Step 4: LLM融合演进（使用结构化输出）
         agent = ChatAgent(
-            "memory_evolve", tools=[], model_id="gemini-2.5-flash-preview-09-2025"
+            "memory_evolve",
+            tools=[],
+            model_id="gemini-2.5-flash-preview-09-2025",
+            structured_output_schema=EvolutionOutput,
         )
-        result = await agent.run(
-            messages=[
-                {
-                    "role": "user",
-                    "content": json.dumps(prompt_context, ensure_ascii=False),
-                }
-            ]
+        evolution_output = cast(
+            EvolutionOutput,
+            await agent.run_structured(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": json.dumps(prompt_context, ensure_ascii=False),
+                    }
+                ]
+            ),
         )
 
-        # Step 4.5: 健壮的JSON解析
-        content = (
-            result.content if isinstance(result.content, str) else str(result.content)
-        )
-        evolved_items = parse_evolution_result_robust(content)
+        # Step 4.5: 直接获取结构化输出的演进项列表
+        evolved_items = evolution_output.items
 
         # Step 5: 应用演进结果
         stats = {"kept": 0, "updated": 0, "created": 0, "deleted": 0}
@@ -399,20 +394,22 @@ async def evolve_memories(group_id: str, days: int = 1) -> EvolutionResult:
 
         return EvolutionResult(
             group_id=group_id,
-            evolution_time=evolution_time,
+            evolution_time=evolution_time.isoformat(),
             stats=stats,
             changes=changes,
         )
 
     except Exception as e:
-        logger.error(f"记忆演进失败 {group_id}: {str(e)}")
+        error_message = str(e)
+        logger.error(f"记忆演进失败 {group_id}: {error_message}")
+
         return EvolutionResult(
             success=False,
             group_id=group_id,
-            evolution_time=evolution_time,
+            evolution_time=evolution_time.isoformat(),
             stats={"kept": 0, "updated": 0, "created": 0, "deleted": 0},
             changes=[],
-            message=f"演进失败: {str(e)}",
+            message=f"演进失败: {error_message}",
         )
 
 
@@ -438,12 +435,12 @@ async def _update_memory(
     # 生成新记忆
     new_memory_id = str(uuid.uuid4())
     new_version = old_memory.version + 1
-    now = datetime.now().isoformat()
+    now = datetime.now()
 
     # 向量化新陈述
     vec = await embed_text(item.statement or "")
 
-    # 插入新记忆
+    # 插入新记忆到Qdrant
     await qdrant_service.upsert_vectors(
         collection="group_memories",
         vectors=[vec],
@@ -455,7 +452,7 @@ async def _update_memory(
                 "statement": item.statement,
                 "version": new_version,
                 "created_at": old_memory.created_at,
-                "updated_at": now,
+                "updated_at": now.isoformat(),
                 "parent_id": item.old_id,
                 "change_summary": item.change_reason,
                 "status": "active",
@@ -463,6 +460,22 @@ async def _update_memory(
             }
         ],
     )
+
+    # 保存新版本快照到数据库
+    async with AsyncSessionLocal() as session:
+        version = MemoryVersion(
+            memory_id=new_memory_id,
+            group_id=group_id,
+            version=new_version,
+            statement=item.statement or "",
+            parent_id=item.old_id,
+            change_summary=item.change_reason,
+            status="active",
+            strength=old_memory.strength * 1.1,
+            created_at=now,
+        )
+        session.add(version)
+        await session.commit()
 
     # 标记旧记忆为deprecated
     if item.old_id:
@@ -480,12 +493,12 @@ async def _create_memory(item: EvolutionItem, group_id: str) -> None:
         group_id: 群组ID
     """
     memory_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
+    now = datetime.now()
 
     # 向量化陈述
     vec = await embed_text(item.statement or "")
 
-    # 插入记忆
+    # 插入记忆到Qdrant
     await qdrant_service.upsert_vectors(
         collection="group_memories",
         vectors=[vec],
@@ -496,8 +509,8 @@ async def _create_memory(item: EvolutionItem, group_id: str) -> None:
                 "group_id": group_id,
                 "statement": item.statement,
                 "version": 1,
-                "created_at": now,
-                "updated_at": now,
+                "created_at": now.isoformat(),
+                "updated_at": now.isoformat(),
                 "parent_id": None,
                 "change_summary": item.change_reason,
                 "status": "active",
@@ -505,6 +518,22 @@ async def _create_memory(item: EvolutionItem, group_id: str) -> None:
             }
         ],
     )
+
+    # 保存版本快照到数据库
+    async with AsyncSessionLocal() as session:
+        version = MemoryVersion(
+            memory_id=memory_id,
+            group_id=group_id,
+            version=1,
+            statement=item.statement or "",
+            parent_id=None,
+            change_summary=item.change_reason,
+            status="active",
+            strength=0.8,
+            created_at=now,
+        )
+        session.add(version)
+        await session.commit()
 
     logger.info(f"创建新记忆: {memory_id}")
 
@@ -539,19 +568,20 @@ async def _deprecate_memory(memory_id: str) -> None:
             collection_name="group_memories", payload=payload, points=[memory_id]
         )
 
+        # 更新数据库中的版本快照
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(MemoryVersion)
+                .where(MemoryVersion.memory_id == memory_id)
+                .where(MemoryVersion.status == "active")
+            )
+            version = result.scalar_one_or_none()
+            if version:
+                version.status = "deprecated"
+                version.deprecated_at = datetime.now()
+                await session.commit()
+
         logger.info(f"标记记忆为deprecated: {memory_id}")
 
     except Exception as e:
         logger.error(f"标记记忆失败 {memory_id}: {str(e)}")
-
-
-# ==================== 兼容旧代码的函数 ====================
-
-
-async def distill_consensus_daily(group_id: str) -> None:
-    """
-    旧版共识提炼函数（保持兼容性）
-    现在调用新的evolve_memories
-    """
-    logger.warning("distill_consensus_daily已废弃，请使用evolve_memories")
-    await evolve_memories(group_id, days=1)

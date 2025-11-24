@@ -4,6 +4,7 @@ from typing import TypeVar
 
 from langchain.agents import create_agent
 from langchain.messages import AIMessage, AIMessageChunk, ToolMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel
 
@@ -28,6 +29,8 @@ class ChatAgent:
         self.structured_output_schema = structured_output_schema
         self._langfuse_handler = CallbackHandler()
         self._agent = None  # 缓存agent实例
+        self._model = None
+        self._prompt = None
 
     async def _init_agent(self, **prompt_vars):
         langfuse_prompt = get_prompt(self.prompt_id)
@@ -36,15 +39,15 @@ class ChatAgent:
 
         model = await ModelBuilder.build_chat_model(self.model_id)
 
-        # 如果指定了结构化输出schema，则绑定到模型上
-        if self.structured_output_schema:
-            model = model.with_structured_output(self.structured_output_schema)
-
         prompt = langfuse_prompt.get_langchain_prompt(
             currDate=datetime.now().strftime("%Y-%m-%d"),
             currTime=datetime.now().strftime("%H:%M:%S"),
             **prompt_vars,
         )
+
+        self._model = model
+        self._prompt = prompt
+
         self._agent = create_agent(
             model, self.tools, system_prompt=prompt, context_schema=ContextSchema
         )
@@ -74,23 +77,22 @@ class ChatAgent:
     async def run_structured(
         self, messages: list, prompt_vars: dict | None = None
     ) -> BaseModel:
-        """
-        运行agent并返回结构化输出结果
-
-        Args:
-            messages: 输入消息列表
-            prompt_vars: 提示变量
-
-        Returns:
-            结构化输出结果（Pydantic模型实例）
-        """
         if not self.structured_output_schema:
-            raise ValueError(
-                "未指定结构化输出schema，请在初始化时提供structured_output_schema参数"
-            )
+            raise ValueError("未指定结构化输出schema")
 
         await self._init_agent(**(prompt_vars or {}))
-        result = await self._agent.ainvoke(
+
+        # 动态构建专用 Chain：Prompt + Structured LLM
+        prompt_runnable = ChatPromptTemplate.from_messages(
+            [
+                ("system", self._prompt),  # 注入系统提示词
+                MessagesPlaceholder("messages"),  # 为输入的 messages 列表预留位置
+            ]
+        )
+        chain = prompt_runnable | self._model.with_structured_output(
+            self.structured_output_schema
+        )
+
+        return await chain.ainvoke(
             {"messages": messages}, config={"callbacks": [self._langfuse_handler]}
         )
-        return result["messages"][-1]

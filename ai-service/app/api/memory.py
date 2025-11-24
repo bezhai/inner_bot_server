@@ -4,6 +4,7 @@
 """
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -21,6 +22,15 @@ logger = logging.getLogger(__name__)
 
 
 # ==================== 响应模型 ====================
+
+
+class ManualEvolveRequest(BaseModel):
+    """记忆演进请求模型"""
+
+    start_time: str | None = None  # ISO格式: "2025-01-01T00:00:00"
+    end_time: str | None = None  # ISO格式: "2025-01-07T23:59:59"
+    days: int | None = None  # 不指定时默认为1
+    limit: int = 20000
 
 
 class MemoryListResponse(BaseModel):
@@ -46,31 +56,95 @@ class MemorySearchResponse(BaseModel):
 @router.post("/memory/evolve/{group_id}")
 async def evolve_group_memories(
     group_id: str,
-    days: int = Query(default=1, ge=1, le=7, description="获取最近N天的消息"),
+    request: ManualEvolveRequest,
 ):
     """
-    触发群组记忆演进
+    触发群组记忆演进 (支持灵活的时间范围指定)
 
-    这个接口会：
-    1. 获取群组现有的活跃记忆
-    2. 获取最近N天的新消息
-    3. 使用LLM融合演进记忆
-    4. 返回演进统计结果
+    这个接口支持三种方式指定时间范围:
+    1. 使用 start_time + end_time: 明确指定时间范围
+    2. 使用 days: 获取最近N天的消息
+    3. 使用 start_time + days: 从start_time往后days天
+
+    使用场景：
+    - 历史数据回溯: 指定start_time和end_time处理历史某段时间的消息
+    - 增量处理: 每天定时处理前一天的消息
+    - 批量处理: 分段处理大量历史数据
 
     Args:
         group_id: 群组ID
-        days: 获取最近N天的消息，默认1天
+        request: 演进请求参数
+            - start_time: 开始时间 (ISO格式, 例如 "2025-01-01T00:00:00")
+            - end_time: 结束时间 (ISO格式, 例如 "2025-01-07T23:59:59")
+            - days: 天数 (如果start_time/end_time为空，默认为1)
+            - limit: 最多处理消息数量 (默认200)
 
     Returns:
         演进结果统计
+
+    Examples:
+        1. 处理2025年1月1日到7日的消息:
+           POST /memory/evolve/oc_xxx
+           {
+             "start_time": "2025-01-01T00:00:00",
+             "end_time": "2025-01-07T23:59:59"
+           }
+
+        2. 处理最近3天的消息:
+           POST /memory/evolve/oc_xxx
+           {
+             "days": 3
+           }
+
+        3. 处理2025年1月1日开始的5天:
+           POST /memory/evolve/oc_xxx
+           {
+             "start_time": "2025-01-01T00:00:00",
+             "days": 5
+           }
+
+        4. 处理最近1天的消息 (使用默认值):
+           POST /memory/evolve/oc_xxx
+           {}
     """
     try:
-        logger.info(f"收到记忆演进请求: {group_id}, days={days}")
-        result = await evolve_memories(group_id, days)
+        logger.info(
+            f"收到手动演进请求: {group_id}, "
+            f"start_time={request.start_time}, end_time={request.end_time}, "
+            f"days={request.days}, limit={request.limit}"
+        )
+
+        # 解析时间参数
+        start_dt = (
+            datetime.fromisoformat(request.start_time) if request.start_time else None
+        )
+        end_dt = datetime.fromisoformat(request.end_time) if request.end_time else None
+
+        # 调用演进函数
+        result = await evolve_memories(
+            group_id=group_id,
+            start_time=start_dt,
+            end_time=end_dt,
+            days=request.days,
+            limit=request.limit,
+        )
+
+        logger.info(
+            f"手动演进完成: {group_id} | "
+            f"kept={result.stats.get('kept', 0)}, "
+            f"updated={result.stats.get('updated', 0)}, "
+            f"created={result.stats.get('created', 0)}, "
+            f"deleted={result.stats.get('deleted', 0)}"
+        )
+
         return result
+
+    except ValueError as e:
+        logger.error(f"时间格式错误: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
     except Exception as e:
-        logger.error(f"记忆演进API失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"记忆演进失败: {str(e)}") from e
+        logger.error(f"演进失败 {group_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"演进失败: {str(e)}") from e
 
 
 @router.get("/memory/list/{group_id}", response_model=MemoryListResponse)

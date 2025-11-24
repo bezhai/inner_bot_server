@@ -38,7 +38,7 @@ export class MessageContentUtils {
                     return `![image](${item.value})`;
                 }
                 if (item.type === ContentType.Sticker) {
-                    return `[Unparsable Sticker]`;
+                    return `[表情包]`;
                 }
             })
             .join('');
