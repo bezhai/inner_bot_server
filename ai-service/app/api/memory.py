@@ -1,6 +1,6 @@
 """
 群组记忆管理API
-提供L3群组长期记忆的CRUD和演进操作
+提供L3群组长期记忆的CRUD和更新操作
 """
 
 import logging
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 class ManualEvolveRequest(BaseModel):
-    """记忆演进请求模型"""
+    """记忆更新请求模型"""
 
     start_time: str | None = None  # ISO格式: "2025-01-01T00:00:00"
     end_time: str | None = None  # ISO格式: "2025-01-07T23:59:59"
@@ -59,7 +59,7 @@ async def evolve_group_memories(
     request: ManualEvolveRequest,
 ):
     """
-    触发群组记忆演进 (支持灵活的时间范围指定)
+    触发群组记忆更新 (支持灵活的时间范围指定)
 
     这个接口支持三种方式指定时间范围:
     1. 使用 start_time + end_time: 明确指定时间范围
@@ -73,14 +73,14 @@ async def evolve_group_memories(
 
     Args:
         group_id: 群组ID
-        request: 演进请求参数
+        request: 更新请求参数
             - start_time: 开始时间 (ISO格式, 例如 "2025-01-01T00:00:00")
             - end_time: 结束时间 (ISO格式, 例如 "2025-01-07T23:59:59")
             - days: 天数 (如果start_time/end_time为空，默认为1)
             - limit: 最多处理消息数量 (默认200)
 
     Returns:
-        演进结果统计
+        更新结果统计
 
     Examples:
         1. 处理2025年1月1日到7日的消息:
@@ -109,7 +109,7 @@ async def evolve_group_memories(
     """
     try:
         logger.info(
-            f"收到手动演进请求: {group_id}, "
+            f"收到手动更新请求: {group_id}, "
             f"start_time={request.start_time}, end_time={request.end_time}, "
             f"days={request.days}, limit={request.limit}"
         )
@@ -120,7 +120,7 @@ async def evolve_group_memories(
         )
         end_dt = datetime.fromisoformat(request.end_time) if request.end_time else None
 
-        # 调用演进函数
+        # 调用更新函数
         result = await evolve_memories(
             group_id=group_id,
             start_time=start_dt,
@@ -130,7 +130,7 @@ async def evolve_group_memories(
         )
 
         logger.info(
-            f"手动演进完成: {group_id} | "
+            f"手动更新完成: {group_id} | "
             f"kept={result.stats.get('kept', 0)}, "
             f"updated={result.stats.get('updated', 0)}, "
             f"created={result.stats.get('created', 0)}, "
@@ -143,8 +143,8 @@ async def evolve_group_memories(
         logger.error(f"时间格式错误: {str(e)}")
         raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
     except Exception as e:
-        logger.error(f"演进失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"演进失败: {str(e)}") from e
+        logger.error(f"更新失败 {group_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
 
 
 @router.get("/memory/list/{group_id}", response_model=MemoryListResponse)

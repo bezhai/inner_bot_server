@@ -96,13 +96,13 @@ async def _get_active_group_ids(days: int = 1) -> list[str]:
 
 
 async def task_evolve_memory(ctx, group_id: str) -> None:
-    """执行单个群组的记忆演进任务"""
+    """执行单个群组的记忆更新任务"""
     try:
-        logger.info(f"开始记忆演进: {group_id}")
+        logger.info(f"开始记忆更新: {group_id}")
         await evolve_memories(group_id, days=1)
-        logger.info(f"记忆演进完成: {group_id}")
+        logger.info(f"记忆更新完成: {group_id}")
     except Exception as e:
-        logger.error(f"记忆演进失败 {group_id}: {str(e)}")
+        logger.error(f"记忆更新失败 {group_id}: {str(e)}")
 
 
 async def cron_5m_scan_queues(ctx) -> None:
@@ -126,16 +126,16 @@ async def cron_5m_scan_queues(ctx) -> None:
 
 
 async def cron_daily_memory_evolve(ctx) -> None:
-    """每日凌晨2点执行记忆演进"""
+    """每日凌晨2点执行记忆更新"""
     try:
         # 获取最近活跃的群组
         group_ids = await _get_active_group_ids(days=1)
-        logger.info(f"发现 {len(group_ids)} 个活跃群组需要记忆演进")
+        logger.info(f"发现 {len(group_ids)} 个活跃群组需要记忆更新")
 
         # 为每个群组创建异步任务
         for group_id in group_ids:
             await ctx["job_def"].enqueue_job("task_evolve_memory", group_id)
 
-        logger.info(f"已为 {len(group_ids)} 个群组创建记忆演进任务")
+        logger.info(f"已为 {len(group_ids)} 个群组创建记忆更新任务")
     except Exception as e:
         logger.error(f"cron_daily_memory_evolve error: {str(e)}")

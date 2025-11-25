@@ -59,6 +59,6 @@ class UnifiedWorkerSettings:
         cron(task_executor_job, minute=set(range(60))),
         # 记忆系统：每5分钟扫描L2队列
         # cron(cron_5m_scan_queues, minute=f"*/{settings.l2_scan_interval_minutes}"),
-        # 记忆系统：每天凌晨2点执行记忆演进
+        # 记忆系统：每天凌晨2点执行记忆更新
         # cron(cron_daily_memory_evolve, hour=2, minute=0),
     ]

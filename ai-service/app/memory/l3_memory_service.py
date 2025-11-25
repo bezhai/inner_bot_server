@@ -1,8 +1,9 @@
 """
 L3群组记忆服务
-实现基于融合演进的群组长期记忆管理
+实现基于融合更新的群组长期记忆管理
 """
 
+import asyncio
 import json
 import logging
 import uuid
@@ -11,7 +12,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from qdrant_client.http import models
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.agents.basic.langfuse import get_prompt
 from app.agents.basic.origin_client import OpenAIClient
@@ -43,7 +44,7 @@ class Memory(BaseModel):
 
 
 class EvolutionItem(BaseModel):
-    """演进操作项"""
+    """更新操作项"""
 
     action: str  # keep | update | create | delete
     old_id: str | None = None
@@ -52,13 +53,13 @@ class EvolutionItem(BaseModel):
 
 
 class EvolutionOutput(BaseModel):
-    """LLM结构化输出：演进操作列表"""
+    """LLM结构化输出：更新操作列表"""
 
     items: list[EvolutionItem]
 
 
 class EvolutionResult(BaseModel):
-    """演进结果统计"""
+    """更新结果统计"""
 
     success: bool = True
     group_id: str
@@ -75,6 +76,39 @@ async def embed_text(text: str) -> list[float]:
     """文本向量化"""
     async with OpenAIClient("text-embedding-3-small") as ec:
         return await ec.embed(text)
+
+
+async def embed_texts_concurrent(
+    texts: list[str], max_concurrency: int = 3
+) -> list[list[float]]:
+    """并发文本向量化（限制并发数）
+
+    Args:
+        texts: 文本列表
+        max_concurrency: 最大并发数，默认3
+
+    Returns:
+        向量列表，与输入顺序一致
+    """
+    if not texts:
+        return []
+
+    # 使用信号量限制并发数
+    semaphore = asyncio.Semaphore(max_concurrency)
+
+    async def embed_with_semaphore(text: str, index: int) -> tuple[int, list[float]]:
+        """带信号量控制的embedding"""
+        async with semaphore:
+            vector = await embed_text(text)
+            return index, vector
+
+    # 并发执行所有embedding任务
+    tasks = [embed_with_semaphore(text, i) for i, text in enumerate(texts)]
+    results = await asyncio.gather(*tasks)
+
+    # 按原始顺序排序结果
+    sorted_results = sorted(results, key=lambda x: x[0])
+    return [vector for _, vector in sorted_results]
 
 
 async def get_active_memories(group_id: str, limit: int = 100) -> list[Memory]:
@@ -252,13 +286,13 @@ async def evolve_memories(
     limit: int = 200,
 ) -> EvolutionResult:
     """
-    融合演进群组记忆
+    融合更新群组记忆
 
     核心流程：
     1. 获取现有记忆
     2. 获取新消息
-    3. LLM融合演进
-    4. 应用演进结果
+    3. LLM融合更新
+    4. 应用更新结果
 
     Args:
         group_id: 群组ID
@@ -268,7 +302,7 @@ async def evolve_memories(
         limit: 最多获取消息条数
 
     Returns:
-        演进结果统计
+        更新结果统计
     """
     evolution_time = datetime.now()
 
@@ -308,7 +342,7 @@ async def evolve_memories(
             "new_discussions": formatted_messages,
         }
 
-        # Step 4: LLM融合演进（使用结构化输出）
+        # Step 4: LLM融合更新（使用结构化输出）
         # 获取系统提示
         langfuse_prompt = get_prompt("memory_evolve")
         system_prompt = (
@@ -330,67 +364,116 @@ async def evolve_memories(
                 response_model=EvolutionOutput,
             )
 
-        # Step 4.5: 直接获取结构化输出的演进项列表
+        # Step 4.5: 直接获取结构化输出的更新项列表
         evolved_items = evolution_output.items
 
-        # Step 5: 应用演进结果
+        # Step 5: 批量处理更新结果
         stats = {"kept": 0, "updated": 0, "created": 0, "deleted": 0}
         changes = []
 
-        for item in evolved_items:
-            try:
-                if item.action == "keep":
-                    stats["kept"] += 1
+        # 5.1 分组收集
+        updates_to_process = []
+        creates_to_process = []
+        deletes_to_process = []
 
-                elif item.action == "update":
-                    if not item.old_id or not item.statement:
-                        logger.warning(f"update操作缺少必要字段: {item}")
-                        continue
-                    await _update_memory(item, group_id, existing_memories)
-                    stats["updated"] += 1
-                    changes.append(
+        for item in evolved_items:
+            if item.action == "keep":
+                stats["kept"] += 1
+            elif item.action == "update":
+                if item.old_id and item.statement:
+                    updates_to_process.append(item)
+                else:
+                    logger.warning(f"update操作缺少必要字段: {item}")
+            elif item.action == "create":
+                if item.statement:
+                    creates_to_process.append(item)
+                else:
+                    logger.warning(f"create操作缺少statement: {item}")
+            elif item.action == "delete":
+                if item.old_id:
+                    deletes_to_process.append(item.old_id)
+                else:
+                    logger.warning(f"delete操作缺少old_id: {item}")
+
+        # 5.2 收集需要embedding的文本
+        texts_to_embed = []
+        texts_to_embed.extend([item.statement for item in updates_to_process])
+        texts_to_embed.extend([item.statement for item in creates_to_process])
+
+        # 5.3 并发Embedding（并发数=3）
+        if texts_to_embed:
+            all_vectors = await embed_texts_concurrent(
+                texts_to_embed, max_concurrency=3
+            )
+            update_count = len(updates_to_process)
+            update_vectors = all_vectors[:update_count]
+            create_vectors = all_vectors[update_count:]
+        else:
+            update_vectors = []
+            create_vectors = []
+
+        # 5.4 批量处理update
+        if updates_to_process:
+            try:
+                new_ids, old_ids = await _batch_update_memories(
+                    updates_to_process, update_vectors, group_id, existing_memories
+                )
+                stats["updated"] = len(new_ids)
+                changes.extend(
+                    [
                         {
                             "action": "update",
                             "old_id": item.old_id,
                             "new_statement": item.statement,
                             "change_reason": item.change_reason,
                         }
-                    )
+                        for item in updates_to_process
+                        if item.old_id in old_ids
+                    ]
+                )
+            except Exception as e:
+                logger.error(f"批量更新记忆失败: {str(e)}")
 
-                elif item.action == "create":
-                    if not item.statement:
-                        logger.warning(f"create操作缺少statement: {item}")
-                        continue
-                    await _create_memory(item, group_id)
-                    stats["created"] += 1
-                    changes.append(
+        # 5.5 批量处理create
+        if creates_to_process:
+            try:
+                created_ids = await _batch_create_memories(
+                    creates_to_process, create_vectors, group_id
+                )
+                stats["created"] = len(created_ids)
+                changes.extend(
+                    [
                         {
                             "action": "create",
                             "statement": item.statement,
                             "change_reason": item.change_reason,
                         }
-                    )
+                        for item in creates_to_process
+                    ]
+                )
+            except Exception as e:
+                logger.error(f"批量创建记忆失败: {str(e)}")
 
-                elif item.action == "delete":
-                    if not item.old_id:
-                        logger.warning(f"delete操作缺少old_id: {item}")
-                        continue
-                    await _deprecate_memory(item.old_id)
-                    stats["deleted"] += 1
-                    changes.append(
+        # 5.6 批量处理delete
+        if deletes_to_process:
+            try:
+                await _batch_deprecate_memories(deletes_to_process)
+                stats["deleted"] = len(deletes_to_process)
+                changes.extend(
+                    [
                         {
                             "action": "delete",
-                            "old_id": item.old_id,
-                            "change_reason": item.change_reason,
+                            "old_id": old_id,
+                            "change_reason": None,
                         }
-                    )
-
+                        for old_id in deletes_to_process
+                    ]
+                )
             except Exception as e:
-                logger.error(f"处理演进项失败: {item} | 错误: {str(e)}")
-                continue
+                logger.error(f"批量删除记忆失败: {str(e)}")
 
         logger.info(
-            f"记忆演进完成 {group_id} | "
+            f"记忆更新完成(批量优化) {group_id} | "
             f"kept={stats['kept']}, updated={stats['updated']}, "
             f"created={stats['created']}, deleted={stats['deleted']}"
         )
@@ -404,7 +487,7 @@ async def evolve_memories(
 
     except Exception as e:
         error_message = str(e)
-        logger.error(f"记忆演进失败 {group_id}: {error_message}")
+        logger.error(f"记忆更新失败 {group_id}: {error_message}")
 
         return EvolutionResult(
             success=False,
@@ -412,43 +495,124 @@ async def evolve_memories(
             evolution_time=evolution_time.isoformat(),
             stats={"kept": 0, "updated": 0, "created": 0, "deleted": 0},
             changes=[],
-            message=f"演进失败: {error_message}",
+            message=f"更新失败: {error_message}",
         )
 
 
-async def _update_memory(
-    item: EvolutionItem, group_id: str, existing_memories: list[Memory]
-) -> None:
-    """
-    更新记忆（创建新版本）
+# ==================== 批量操作函数 ====================
+
+
+async def _batch_create_memories(
+    items: list[EvolutionItem], vectors: list[list[float]], group_id: str
+) -> list[str]:
+    """批量创建新记忆
 
     Args:
-        item: 演进项
+        items: 更新项列表
+        vectors: 对应的向量列表
         group_id: 群组ID
-        existing_memories: 现有记忆列表
+
+    Returns:
+        创建的记忆ID列表
     """
-    # 查找旧记忆
-    old_memory = next(
-        (m for m in existing_memories if m.memory_id == item.old_id), None
-    )
-    if not old_memory:
-        logger.warning(f"未找到旧记忆ID: {item.old_id}")
-        return
+    if not items:
+        return []
 
-    # 生成新记忆
-    new_memory_id = str(uuid.uuid4())
-    new_version = old_memory.version + 1
     now = datetime.now()
+    memory_ids = [str(uuid.uuid4()) for _ in items]
 
-    # 向量化新陈述
-    vec = await embed_text(item.statement or "")
+    # 准备Qdrant批量数据
+    payloads = [
+        {
+            "memory_id": memory_id,
+            "group_id": group_id,
+            "statement": item.statement,
+            "version": 1,
+            "created_at": now.isoformat(),
+            "updated_at": now.isoformat(),
+            "parent_id": None,
+            "change_summary": item.change_reason,
+            "status": "active",
+            "strength": 0.8,
+        }
+        for memory_id, item in zip(memory_ids, items, strict=False)
+    ]
 
-    # 插入新记忆到Qdrant
+    # 批量插入Qdrant
     await qdrant_service.upsert_vectors(
         collection="group_memories",
-        vectors=[vec],
-        ids=[new_memory_id],
-        payloads=[
+        vectors=vectors,
+        ids=memory_ids,
+        payloads=payloads,
+    )
+
+    # 批量插入数据库
+    async with AsyncSessionLocal() as session:
+        version_records = [
+            MemoryVersion(
+                memory_id=memory_id,
+                group_id=group_id,
+                version=1,
+                statement=item.statement or "",
+                parent_id=None,
+                change_summary=item.change_reason,
+                status="active",
+                strength=0.8,
+                created_at=now,
+            )
+            for memory_id, item in zip(memory_ids, items, strict=False)
+        ]
+        session.add_all(version_records)
+        await session.commit()
+
+    logger.info(f"批量创建 {len(memory_ids)} 条记忆")
+    return memory_ids
+
+
+async def _batch_update_memories(
+    items: list[EvolutionItem],
+    vectors: list[list[float]],
+    group_id: str,
+    existing_memories: list[Memory],
+) -> tuple[list[str], list[str]]:
+    """批量更新记忆（创建新版本）
+
+    Args:
+        items: 更新项列表
+        vectors: 对应的向量列表
+        group_id: 群组ID
+        existing_memories: 现有记忆列表
+
+    Returns:
+        (新记忆ID列表, 旧记忆ID列表)
+    """
+    if not items:
+        return [], []
+
+    now = datetime.now()
+    memory_map = {m.memory_id: m for m in existing_memories}
+
+    new_memory_ids = []
+    old_memory_ids = []
+    new_payloads = []
+    new_vectors = []
+    version_records = []
+
+    for item, vec in zip(items, vectors, strict=False):
+        if not item.old_id or item.old_id not in memory_map:
+            logger.warning(f"未找到旧记忆ID: {item.old_id}")
+            continue
+
+        old_memory = memory_map[item.old_id]
+        new_memory_id = str(uuid.uuid4())
+        new_version = old_memory.version + 1
+
+        new_memory_ids.append(new_memory_id)
+        old_memory_ids.append(item.old_id)
+        new_vectors.append(vec)
+
+        # 准备Qdrant payload
+        new_payloads.append(
             {
                 "memory_id": new_memory_id,
                 "group_id": group_id,
@@ -459,132 +623,93 @@ async def _update_memory(
                 "parent_id": item.old_id,
                 "change_summary": item.change_reason,
                 "status": "active",
-                "strength": old_memory.strength * 1.1,  # 强化
+                "strength": old_memory.strength * 1.1,
             }
-        ],
-    )
-
-    # 保存新版本快照到数据库
-    async with AsyncSessionLocal() as session:
-        version = MemoryVersion(
-            memory_id=new_memory_id,
-            group_id=group_id,
-            version=new_version,
-            statement=item.statement or "",
-            parent_id=item.old_id,
-            change_summary=item.change_reason,
-            status="active",
-            strength=old_memory.strength * 1.1,
-            created_at=now,
         )
-        session.add(version)
-        await session.commit()
 
-    # 标记旧记忆为deprecated
-    if item.old_id:
-        await _deprecate_memory(item.old_id)
+        # 准备数据库记录
+        version_records.append(
+            MemoryVersion(
+                memory_id=new_memory_id,
+                group_id=group_id,
+                version=new_version,
+                statement=item.statement or "",
+                parent_id=item.old_id,
+                change_summary=item.change_reason,
+                status="active",
+                strength=old_memory.strength * 1.1,
+                created_at=now,
+            )
+        )
 
-    logger.info(f"更新记忆: {item.old_id} -> {new_memory_id} (v{new_version})")
+    if not new_memory_ids:
+        return [], []
 
-
-async def _create_memory(item: EvolutionItem, group_id: str) -> None:
-    """
-    创建新记忆
-
-    Args:
-        item: 演进项
-        group_id: 群组ID
-    """
-    memory_id = str(uuid.uuid4())
-    now = datetime.now()
-
-    # 向量化陈述
-    vec = await embed_text(item.statement or "")
-
-    # 插入记忆到Qdrant
+    # 批量插入新记忆到Qdrant
     await qdrant_service.upsert_vectors(
         collection="group_memories",
-        vectors=[vec],
-        ids=[memory_id],
-        payloads=[
-            {
-                "memory_id": memory_id,
-                "group_id": group_id,
-                "statement": item.statement,
-                "version": 1,
-                "created_at": now.isoformat(),
-                "updated_at": now.isoformat(),
-                "parent_id": None,
-                "change_summary": item.change_reason,
-                "status": "active",
-                "strength": 0.8,
-            }
-        ],
+        vectors=new_vectors,
+        ids=new_memory_ids,
+        payloads=new_payloads,
     )
 
-    # 保存版本快照到数据库
+    # 批量插入数据库
     async with AsyncSessionLocal() as session:
-        version = MemoryVersion(
-            memory_id=memory_id,
-            group_id=group_id,
-            version=1,
-            statement=item.statement or "",
-            parent_id=None,
-            change_summary=item.change_reason,
-            status="active",
-            strength=0.8,
-            created_at=now,
-        )
-        session.add(version)
+        session.add_all(version_records)
         await session.commit()
 
-    logger.info(f"创建新记忆: {memory_id}")
+    # 批量标记旧记忆
+    await _batch_deprecate_memories(old_memory_ids)
+
+    logger.info(f"批量更新 {len(new_memory_ids)} 条记忆")
+    return new_memory_ids, old_memory_ids
 
 
-async def _deprecate_memory(memory_id: str) -> None:
-    """
-    标记记忆为deprecated
+async def _batch_deprecate_memories(memory_ids: list[str]) -> None:
+    """批量标记记忆为deprecated
 
     Args:
-        memory_id: 记忆ID
+        memory_ids: 记忆ID列表
     """
+    if not memory_ids:
+        return
+
     try:
-        # 获取现有point
+        # 批量获取现有points
         results = qdrant_service.client.retrieve(
-            collection_name="group_memories", ids=[memory_id], with_payload=True
+            collection_name="group_memories", ids=memory_ids, with_payload=True
         )
 
-        if not results:
-            logger.warning(f"未找到记忆ID: {memory_id}")
+        # 准备批量更新的payload
+        valid_ids = []
+        for point in results:
+            if point.payload:
+                valid_ids.append(point.id)
+
+        if not valid_ids:
+            logger.warning(f"未找到任何有效的记忆ID: {memory_ids}")
             return
 
-        # 更新status为deprecated
-        payload = results[0].payload
-        if not payload:
-            logger.warning(f"记忆{memory_id}的payload为空")
-            return
-
-        payload["status"] = "deprecated"
-
-        # 重新upsert（Qdrant没有直接的update payload API）
+        # 批量更新Qdrant
         qdrant_service.client.set_payload(
-            collection_name="group_memories", payload=payload, points=[memory_id]
+            collection_name="group_memories",
+            payload={"status": "deprecated"},
+            points=valid_ids,
         )
 
-        # 更新数据库中的版本快照
+        # 批量更新数据库
+        now = datetime.now()
         async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(MemoryVersion)
-                .where(MemoryVersion.memory_id == memory_id)
+            await session.execute(
+                update(MemoryVersion)
+                .where(MemoryVersion.memory_id.in_(valid_ids))
                 .where(MemoryVersion.status == "active")
+                .values(status="deprecated", deprecated_at=now)
             )
-            version = result.scalar_one_or_none()
-            if version:
-                version.status = "deprecated"
-                version.deprecated_at = datetime.now()
-                await session.commit()
+            await session.commit()
 
-        logger.info(f"标记记忆为deprecated: {memory_id}")
+        logger.info(f"批量标记 {len(valid_ids)} 条记忆为deprecated")
 
     except Exception as e:
-        logger.error(f"标记记忆失败 {memory_id}: {str(e)}")
+        logger.error(f"批量标记记忆失败: {str(e)}")
+        raise
