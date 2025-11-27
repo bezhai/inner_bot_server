@@ -28,6 +28,8 @@ class ChatAgent:
         if langfuse_prompt.config.get("model_name"):
             self.model_id = langfuse_prompt.config.get("model_name")
 
+        assert self.model_id is not None, "Model ID must be specified"
+
         model = await ModelBuilder.build_chat_model(self.model_id)
 
         prompt = langfuse_prompt.get_langchain_prompt(
@@ -43,11 +45,14 @@ class ChatAgent:
     async def stream(
         self,
         messages: list,
-        context: dict | None = None,
+        context: ContextSchema | None = None,
         prompt_vars: dict | None = None,
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         await self._init_agent(**(prompt_vars or {}))
-        async for token, _ in self._agent.astream(
+        async for (
+            token,
+            _,
+        ) in self._agent.astream(  # pyright: ignore[reportOptionalMemberAccess]
             {"messages": messages},
             context=context,
             stream_mode="messages",
@@ -57,7 +62,7 @@ class ChatAgent:
 
     async def run(self, messages: list, prompt_vars: dict | None = None) -> AIMessage:
         await self._init_agent(**(prompt_vars or {}))
-        all_message = await self._agent.ainvoke(
+        all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
             {"messages": messages}, config={"callbacks": [self._langfuse_handler]}
         )
         return all_message["messages"][-1]
