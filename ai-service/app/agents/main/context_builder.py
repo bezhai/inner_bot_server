@@ -102,7 +102,7 @@ async def _build_group_messages(
     context = await _build_context_from_messages(messages, trigger_id)
 
     # 使用 langfuse prompt 模板
-    user_content = get_prompt("context_builder", label=context.chat_type).compile(
+    user_content = get_prompt("context_builder").compile(
         group_name=context.chat_name,
         chat_history=context.chat_history,
         trigger_content=context.trigger_content,
@@ -239,7 +239,6 @@ class ChatContext:
     chat_history: str
     trigger_content: str
     trigger_username: str
-    chat_type: str
     chat_name: str | None
     image_urls: list[str]
 
@@ -314,7 +313,6 @@ async def _build_context_from_messages(
     history_messages = []
     trigger_username = "未知用户"
     trigger_formatted = "（未找到触发消息）"
-    chat_type = "p2p"  # 默认私聊
     chat_name = None
 
     # 初始化图片计数器（用于【图片N】标记）
@@ -331,7 +329,6 @@ async def _build_context_from_messages(
 
         if msg.message_id == trigger_id:
             trigger_username = msg.username or "未知用户"
-            chat_type = msg.chat_type or "p2p"
             chat_name = msg.chat_name
             trigger_formatted = formatted_text
         else:
@@ -347,7 +344,6 @@ async def _build_context_from_messages(
         chat_history=chat_history,
         trigger_content=trigger_formatted,
         trigger_username=trigger_username,
-        chat_type=chat_type,
         chat_name=chat_name,
         image_urls=[],  # 不再在此处处理图片
     )
