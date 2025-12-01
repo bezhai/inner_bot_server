@@ -55,6 +55,19 @@ const commandRules = [
                 return;
             }
 
+            const binding = await UserGroupBindingRepository.findByUserAndChat(
+                            mentionUser,
+                            message.chatId,
+                        );
+            if (binding && binding.isActive) {
+                replyMessage(message.messageId, '该用户已绑定，无需重复绑定', true);
+                return;
+            } else if (binding && !binding.isActive) {
+                await UserGroupBindingRepository.activateBinding(mentionUser, message.chatId);
+                replyMessage(message.messageId, `绑定成功，该用户退群后将被自动重新拉回群聊`, true);
+                return;
+            }
+
             await UserGroupBindingRepository.createBinding(mentionUser, message.chatId);
 
             replyMessage(message.messageId, `绑定成功，该用户退群后将被自动重新拉回群聊`, true);
@@ -69,6 +82,15 @@ const commandRules = [
 
             if (!mentionUser) {
                 replyMessage(message.messageId, '请@具体用户进行解绑', true);
+                return;
+            }
+
+            const binding = await UserGroupBindingRepository.findByUserAndChat(
+                            mentionUser,
+                            message.chatId,
+                        );
+            if (!binding || !binding.isActive) {
+                replyMessage(message.messageId, '该用户未绑定，无需解绑', true);
                 return;
             }
 

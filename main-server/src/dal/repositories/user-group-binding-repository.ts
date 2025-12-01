@@ -29,4 +29,8 @@ export class UserGroupBindingRepository extends Repository<UserGroupBinding> {
     async deactivateBinding(userUnionId: string, chatId: string): Promise<void> {
         await this.update({ userUnionId, chatId }, { isActive: false });
     }
+
+    async activateBinding(userUnionId: string, chatId: string): Promise<void> {
+        await this.update({ userUnionId, chatId }, { isActive: true });
+    }
 }
