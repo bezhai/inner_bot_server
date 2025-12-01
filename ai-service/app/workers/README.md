@@ -33,11 +33,10 @@ python -m arq app.workers.unified_worker.UnifiedWorkerSettings
 
 #### 任务函数
 - `task_update_topic_memory`: 更新话题记忆
-- `task_evolve_memory`: 提炼群组记忆
 
 #### 定时任务
 - **L2队列扫描**：每5分钟扫描一次（可配置）
-- **每日共识提炼**：每天凌晨2点执行
+- **画像刷新扫描**：每2小时扫描一次（可配置）
 
 ## 配置说明
 

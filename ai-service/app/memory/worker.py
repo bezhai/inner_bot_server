@@ -1,8 +1,6 @@
 import json
 import logging
-from datetime import datetime, timedelta
-
-from sqlalchemy import func, select
+from datetime import datetime
 
 from app.clients.redis import AsyncRedisClient
 from app.config.config import settings
@@ -10,11 +8,13 @@ from app.memory.l2_topic_service import (
     get_messages_by_ids,
     update_topic_memory,
 )
-from app.memory.l3_memory_service import evolve_memories
-from app.orm.base import AsyncSessionLocal
-from app.orm.models import ConversationMessage
+from app.memory.l3_memory_service import clear_profile_window, evolve_group_profile
 
 logger = logging.getLogger(__name__)
+
+PROFILE_KEY_PREFIX = settings.l3_profile_redis_prefix
+PROFILE_LOCK_PREFIX = f"{PROFILE_KEY_PREFIX}:lock"
+PROFILE_SCAN_PATTERN = f"{PROFILE_KEY_PREFIX}:*"
 
 
 async def _should_trigger(now_ts: int, last_update_ts: int | None, qlen: int) -> bool:
@@ -81,30 +81,6 @@ async def task_update_topic_memory(ctx, chat_id: str) -> None:
         await redis.delete(lock_key)
 
 
-async def _get_active_group_ids(days: int = 1) -> list[str]:
-    """获取最近活跃的群组ID列表"""
-    async with AsyncSessionLocal() as session:
-        since_ts = int((datetime.now() - timedelta(days=days)).timestamp())
-        result = await session.execute(
-            select(ConversationMessage.chat_id)
-            .where(ConversationMessage.create_time >= since_ts)
-            .where(ConversationMessage.chat_type == "group")
-            .group_by(ConversationMessage.chat_id)
-            .having(func.count(ConversationMessage.message_id) >= 10)  # 至少10条消息
-        )
-        return [row[0] for row in result.all()]
-
-
-async def task_evolve_memory(ctx, group_id: str) -> None:
-    """执行单个群组的记忆更新任务"""
-    try:
-        logger.info(f"开始记忆更新: {group_id}")
-        await evolve_memories(group_id, days=1)
-        logger.info(f"记忆更新完成: {group_id}")
-    except Exception as e:
-        logger.error(f"记忆更新失败 {group_id}: {str(e)}")
-
-
 async def cron_5m_scan_queues(ctx) -> None:
     """每5分钟扫描L2队列，触发话题更新"""
     redis = AsyncRedisClient.get_instance()
@@ -125,17 +101,73 @@ async def cron_5m_scan_queues(ctx) -> None:
             break
 
 
-async def cron_daily_memory_evolve(ctx) -> None:
-    """每日凌晨2点执行记忆更新"""
+def _profile_key(chat_id: str) -> str:
+    return f"{PROFILE_KEY_PREFIX}:{chat_id}"
+
+
+async def _process_profile_window(chat_id: str, start_ts_ms: int, force: bool) -> None:
+    redis = AsyncRedisClient.get_instance()
+    lock_key = f"{PROFILE_LOCK_PREFIX}:{chat_id}"
+    got = await redis.set(lock_key, "1", nx=True, ex=900)
+    if not got:
+        return
+
     try:
-        # 获取最近活跃的群组
-        group_ids = await _get_active_group_ids(days=1)
-        logger.info(f"发现 {len(group_ids)} 个活跃群组需要记忆更新")
+        result = await evolve_group_profile(chat_id, start_ts_ms, force=force)
+        if result.updated or result.reason in {"no_messages"}:
+            await clear_profile_window(chat_id)
 
-        # 为每个群组创建异步任务
-        for group_id in group_ids:
-            await ctx["job_def"].enqueue_job("task_evolve_memory", group_id)
-
-        logger.info(f"已为 {len(group_ids)} 个群组创建记忆更新任务")
+        if result.updated:
+            logger.info(
+                "群聊画像更新成功 chat_id=%s messages=%s mention=%s force=%s",
+                chat_id,
+                result.message_count,
+                result.has_bot_mention,
+                force,
+            )
+        else:
+            logger.info(
+                "群聊画像暂未更新 chat_id=%s reason=%s messages=%s mention=%s force=%s",
+                chat_id,
+                result.reason,
+                result.message_count,
+                result.has_bot_mention,
+                force,
+            )
     except Exception as e:
-        logger.error(f"cron_daily_memory_evolve error: {str(e)}")
+        logger.error("画像更新失败 chat_id=%s error=%s", chat_id, str(e))
+    finally:
+        await redis.delete(lock_key)
+
+
+async def cron_profile_scan(ctx) -> None:
+    """每2小时扫描需要触发画像更新的群聊"""
+    redis = AsyncRedisClient.get_instance()
+    now_ms = int(datetime.now().timestamp() * 1000)
+
+    cursor = "0"
+    while True:
+        cursor, keys = await redis.scan(
+            cursor=cursor, match=PROFILE_SCAN_PATTERN, count=200
+        )
+        for key in keys:
+            if ":lock:" in key:
+                continue
+
+            start_ts = await redis.get(key)
+            if not start_ts:
+                continue
+
+            try:
+                start_ts_ms = int(start_ts)
+            except ValueError:
+                await redis.delete(key)
+                continue
+
+            chat_id = key.replace(f"{PROFILE_KEY_PREFIX}:", "", 1)
+            elapsed_hours = (now_ms - start_ts_ms) / 3600000
+            force = elapsed_hours >= settings.l3_profile_force_after_hours
+            await _process_profile_window(chat_id, start_ts_ms, force=force)
+
+        if cursor == "0":
+            break

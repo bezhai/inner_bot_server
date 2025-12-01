@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID as PyUUID
 
 from sqlalchemy import UUID, BigInteger, Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -88,3 +90,29 @@ class MemoryVersion(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     deprecated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class UserProfile(Base):
+    """用户画像：全局唯一"""
+
+    __tablename__ = "user_profiles"
+
+    user_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    profile: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now
+    )
+
+
+class GroupProfile(Base):
+    """群聊画像：每个群唯一"""
+
+    __tablename__ = "group_profiles"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    profile: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.now, onupdate=datetime.now
+    )

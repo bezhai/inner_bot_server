@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
-from .models import ConversationMessage, ModelProvider, TopicMemory
+from .models import (
+    ConversationMessage,
+    GroupProfile,
+    ModelProvider,
+    TopicMemory,
+    UserProfile,
+)
 
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
@@ -144,3 +151,77 @@ async def upsert_topic(
         topic = await session.merge(topic)
         await session.commit()
         return topic
+
+
+# =========================
+# Profile CRUD (L3)
+# =========================
+
+
+async def fetch_user_profiles(user_ids: list[str]) -> dict[str, dict[str, Any] | None]:
+    """批量获取用户画像"""
+    if not user_ids:
+        return {}
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserProfile).where(UserProfile.user_id.in_(user_ids))
+        )
+        records = {profile.user_id: profile.profile for profile in result.scalars()}
+
+    return {user_id: records.get(user_id) for user_id in user_ids}
+
+
+async def upsert_user_profiles(
+    updates: list[tuple[str, dict[str, Any] | None]]
+) -> None:
+    """批量更新/创建用户画像"""
+    if not updates:
+        return
+
+    now = datetime.now()
+    async with AsyncSessionLocal() as session:
+        for user_id, profile in updates:
+            existing = await session.get(UserProfile, user_id)
+            if existing:
+                existing.profile = profile
+                existing.updated_at = now
+            else:
+                session.add(
+                    UserProfile(
+                        user_id=user_id,
+                        profile=profile,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+        await session.commit()
+
+
+async def fetch_group_profile(chat_id: str) -> dict[str, Any] | None:
+    """获取单个群聊画像"""
+    async with AsyncSessionLocal() as session:
+        profile = await session.get(GroupProfile, chat_id)
+        return profile.profile if profile else None
+
+
+async def upsert_group_profile(
+    chat_id: str, profile: dict[str, Any] | None
+) -> None:
+    """更新/创建群聊画像"""
+    now = datetime.now()
+    async with AsyncSessionLocal() as session:
+        existing = await session.get(GroupProfile, chat_id)
+        if existing:
+            existing.profile = profile
+            existing.updated_at = now
+        else:
+            session.add(
+                GroupProfile(
+                    chat_id=chat_id,
+                    profile=profile,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+        await session.commit()

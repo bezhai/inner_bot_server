@@ -11,7 +11,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.clients.redis import AsyncRedisClient
-from app.memory.l3_memory_service import embed_text
+from app.memory.l3_memory_service import embed_text, record_profile_window_start
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
 
@@ -71,6 +71,7 @@ async def _vectorize_and_store_message(
 
 @router.post("/message")
 async def create_message(request: MessageCreateRequest):
+    create_ts = int(request.create_time)
     await create_conversation_message(
         message_id=request.message_id,
         user_id=request.user_id,
@@ -80,8 +81,11 @@ async def create_message(request: MessageCreateRequest):
         reply_message_id=request.reply_message_id,
         chat_id=request.chat_id,
         chat_type=request.chat_type,
-        create_time=int(request.create_time),
+        create_time=create_ts,
     )
+
+    if request.chat_type == "group":
+        await record_profile_window_start(request.chat_id, create_ts)
     # L2 队列入队：按 chat 维度
     redis = AsyncRedisClient.get_instance()
     queue_key = f"l2:queue:{request.chat_id}"

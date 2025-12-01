@@ -1,254 +1,100 @@
 """
-群组记忆管理API
-提供L3群组长期记忆的CRUD和更新操作
+画像管理 API
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.memory.l3_memory_service import (
-    Memory,
-    evolve_memories,
-    get_active_memories,
-    search_relevant_memories,
-)
+from app.config.config import settings
+from app.memory.l3_memory_service import ProfileUpdateResult, evolve_group_profile
+from app.orm import crud
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# ==================== 响应模型 ====================
+class ManualProfileUpdateRequest(BaseModel):
+    start_time_ms: int | None = None
+    force: bool = False
 
 
-class ManualEvolveRequest(BaseModel):
-    """记忆更新请求模型"""
-
-    start_time: str | None = None  # ISO格式: "2025-01-01T00:00:00"
-    end_time: str | None = None  # ISO格式: "2025-01-07T23:59:59"
-    days: int | None = None  # 不指定时默认为1
-    limit: int = 20000
+class ProfileUpsertRequest(BaseModel):
+    profile: dict[str, Any]
 
 
-class MemoryListResponse(BaseModel):
-    """记忆列表响应"""
-
-    success: bool = True
-    group_id: str
-    total: int
-    memories: list[Memory]
-
-
-class MemorySearchResponse(BaseModel):
-    """记忆搜索响应"""
-
-    success: bool = True
-    query: str
-    results: list[dict[str, Any]]
-
-
-# ==================== API接口 ====================
+def _serialize_profile_result(result: ProfileUpdateResult) -> dict[str, Any]:
+    return {
+        "group_id": result.group_id,
+        "updated": result.updated,
+        "message_count": result.message_count,
+        "has_bot_mention": result.has_bot_mention,
+        "reason": result.reason,
+        "agent_summary": result.agent_summary,
+        "window_start": result.window_start.isoformat()
+        if result.window_start
+        else None,
+        "window_end": result.window_end.isoformat() if result.window_end else None,
+    }
 
 
 @router.post("/memory/evolve/{group_id}")
-async def evolve_group_memories(
-    group_id: str,
-    request: ManualEvolveRequest,
-):
-    """
-    触发群组记忆更新 (支持灵活的时间范围指定)
+async def evolve_group_profile_api(group_id: str, request: ManualProfileUpdateRequest):
+    """手动触发群聊画像更新"""
+    if request.start_time_ms is not None and request.start_time_ms <= 0:
+        raise HTTPException(status_code=400, detail="start_time_ms 必须为正整数")
 
-    这个接口支持三种方式指定时间范围:
-    1. 使用 start_time + end_time: 明确指定时间范围
-    2. 使用 days: 获取最近N天的消息
-    3. 使用 start_time + days: 从start_time往后days天
+    logger.info(
+        "手动画像更新 group_id=%s force=%s start_ts_ms=%s",
+        group_id,
+        request.force,
+        request.start_time_ms,
+    )
 
-    使用场景：
-    - 历史数据回溯: 指定start_time和end_time处理历史某段时间的消息
-    - 增量处理: 每天定时处理前一天的消息
-    - 批量处理: 分段处理大量历史数据
-
-    Args:
-        group_id: 群组ID
-        request: 更新请求参数
-            - start_time: 开始时间 (ISO格式, 例如 "2025-01-01T00:00:00")
-            - end_time: 结束时间 (ISO格式, 例如 "2025-01-07T23:59:59")
-            - days: 天数 (如果start_time/end_time为空，默认为1)
-            - limit: 最多处理消息数量 (默认200)
-
-    Returns:
-        更新结果统计
-
-    Examples:
-        1. 处理2025年1月1日到7日的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "end_time": "2025-01-07T23:59:59"
-           }
-
-        2. 处理最近3天的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "days": 3
-           }
-
-        3. 处理2025年1月1日开始的5天:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "days": 5
-           }
-
-        4. 处理最近1天的消息 (使用默认值):
-           POST /memory/evolve/oc_xxx
-           {}
-    """
-    try:
-        logger.info(
-            f"收到手动更新请求: {group_id}, "
-            f"start_time={request.start_time}, end_time={request.end_time}, "
-            f"days={request.days}, limit={request.limit}"
+    if request.start_time_ms is None:
+        default_window_start = datetime.now() - timedelta(
+            minutes=settings.l3_profile_scan_interval_minutes
         )
+        start_ts_ms = int(default_window_start.timestamp() * 1000)
+    else:
+        start_ts_ms = request.start_time_ms
 
-        # 解析时间参数
-        start_dt = (
-            datetime.fromisoformat(request.start_time) if request.start_time else None
-        )
-        end_dt = datetime.fromisoformat(request.end_time) if request.end_time else None
-
-        # 调用更新函数
-        result = await evolve_memories(
-            group_id=group_id,
-            start_time=start_dt,
-            end_time=end_dt,
-            days=request.days,
-            limit=request.limit,
-        )
-
-        logger.info(
-            f"手动更新完成: {group_id} | "
-            f"kept={result.stats.get('kept', 0)}, "
-            f"updated={result.stats.get('updated', 0)}, "
-            f"created={result.stats.get('created', 0)}, "
-            f"deleted={result.stats.get('deleted', 0)}"
-        )
-
-        return result
-
-    except ValueError as e:
-        logger.error(f"时间格式错误: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
-    except Exception as e:
-        logger.error(f"更新失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+    result = await evolve_group_profile(
+        group_id,
+        start_ts_ms,
+        force=request.force,
+    )
+    logger.info(
+        "手动画像更新完成 group_id=%s updated=%s reason=%s",
+        group_id,
+        result.updated,
+        result.reason,
+    )
+    return _serialize_profile_result(result)
 
 
-@router.get("/memory/list/{group_id}", response_model=MemoryListResponse)
-async def list_group_memories(
-    group_id: str,
-    status: str = Query(default="active", regex="^(active|deprecated|all)$"),
-    limit: int = Query(default=20, ge=1, le=100),
-):
-    """
-    列出群组记忆
-
-    Args:
-        group_id: 群组ID
-        status: 记忆状态过滤 (active/deprecated/all)
-        limit: 返回数量限制
-
-    Returns:
-        记忆列表
-    """
-    try:
-        logger.info(f"查询群组记忆列表: {group_id}, status={status}, limit={limit}")
-
-        # 获取记忆
-        memories = await get_active_memories(group_id, limit)
-
-        # 根据status过滤
-        if status == "active":
-            memories = [m for m in memories if m.status == "active"]
-        elif status == "deprecated":
-            memories = [m for m in memories if m.status == "deprecated"]
-
-        return MemoryListResponse(
-            group_id=group_id, total=len(memories), memories=memories
-        )
-
-    except Exception as e:
-        logger.error(f"查询记忆列表失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}") from e
+@router.get("/memory/profile/group/{chat_id}")
+async def get_group_profile_api(chat_id: str):
+    profile = await crud.fetch_group_profile(chat_id)
+    return {"chat_id": chat_id, "profile": profile or {}}
 
 
-@router.get("/memory/search/{group_id}", response_model=MemorySearchResponse)
-async def search_group_memories(
-    group_id: str,
-    q: str = Query(..., min_length=1, description="搜索查询文本"),
-    limit: int = Query(default=5, ge=1, le=20),
-    threshold: float = Query(default=0.7, ge=0.0, le=1.0),
-):
-    """
-    语义搜索群组记忆
-
-    Args:
-        group_id: 群组ID
-        q: 搜索查询文本
-        limit: 返回数量限制
-        threshold: 相似度阈值 (0-1)
-
-    Returns:
-        搜索结果列表
-    """
-    try:
-        logger.info(
-            f"搜索群组记忆: {group_id}, query='{q}', limit={limit}, threshold={threshold}"
-        )
-
-        results = await search_relevant_memories(group_id, q, limit, threshold)
-
-        return MemorySearchResponse(query=q, results=results)
-
-    except Exception as e:
-        logger.error(f"搜索记忆失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"搜索失败: {str(e)}") from e
+@router.put("/memory/profile/group/{chat_id}")
+async def upsert_group_profile_api(chat_id: str, payload: ProfileUpsertRequest):
+    await crud.upsert_group_profile(chat_id, payload.profile)
+    return {"chat_id": chat_id, "profile": payload.profile}
 
 
-@router.get("/memory/stats/{group_id}")
-async def get_memory_stats(group_id: str):
-    """
-    获取群组记忆统计信息
+@router.get("/memory/profile/user/{user_id}")
+async def get_user_profile_api(user_id: str):
+    profiles = await crud.fetch_user_profiles([user_id])
+    return {"user_id": user_id, "profile": profiles.get(user_id) or {}}
 
-    Args:
-        group_id: 群组ID
 
-    Returns:
-        记忆统计信息
-    """
-    try:
-        memories = await get_active_memories(group_id, limit=1000)
-
-        active_count = sum(1 for m in memories if m.status == "active")
-        deprecated_count = sum(1 for m in memories if m.status == "deprecated")
-
-        # 计算平均版本号
-        avg_version = (
-            sum(m.version for m in memories) / len(memories) if memories else 0
-        )
-
-        return {
-            "success": True,
-            "group_id": group_id,
-            "total_memories": len(memories),
-            "active_memories": active_count,
-            "deprecated_memories": deprecated_count,
-            "avg_version": round(avg_version, 2),
-        }
-
-    except Exception as e:
-        logger.error(f"获取记忆统计失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取统计失败: {str(e)}") from e
+@router.put("/memory/profile/user/{user_id}")
+async def upsert_user_profile_api(user_id: str, payload: ProfileUpsertRequest):
+    await crud.upsert_user_profiles([(user_id, payload.profile)])
+    return {"user_id": user_id, "profile": payload.profile}
