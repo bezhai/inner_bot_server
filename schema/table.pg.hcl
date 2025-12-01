@@ -370,8 +370,8 @@ table "user_group_binding" {
     type    = timestamp
     default = sql("now()")
   }
-  primary_key "PK_81fe41bb29b6c985d8a0554c1f1" {
-    columns = [column.id]
+  unique "UQ_user_group_binding_user_chat" {
+    columns = [column.user_union_id, column.chat_id]
   }
 }
 table "conversation_messages" {
