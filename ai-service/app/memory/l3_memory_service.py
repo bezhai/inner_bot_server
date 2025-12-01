@@ -1,7 +1,22 @@
 """
-L3群组记忆服务
-实现基于融合更新的群组长期记忆管理
+L3群组记忆服务（已废弃）
+
+此模块已废弃，新系统使用基于画像的记忆管理。
+请使用以下模块代替：
+- app.memory.profile_service: 画像CRUD操作
+- app.memory.profile_agent: 画像更新Agent
+- app.memory.profile_tools: 画像更新工具
+
+保留此文件用于数据迁移和向后兼容。
 """
+
+import warnings
+
+warnings.warn(
+    "l3_memory_service 模块已废弃，请使用 profile_service 代替",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import asyncio
 import json

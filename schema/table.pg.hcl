@@ -563,3 +563,63 @@ table "memory_versions" {
     columns = [column.created_at]
   }
 }
+table "user_profile" {
+  schema = schema.public
+  column "user_id" {
+    null = false
+    type = character_varying(100)
+  }
+  column "profile_data" {
+    null    = false
+    type    = jsonb
+    default = "{}"
+  }
+  column "version" {
+    null    = false
+    type    = integer
+    default = 1
+  }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_user_profile" {
+    columns = [column.user_id]
+  }
+}
+table "group_profile" {
+  schema = schema.public
+  column "chat_id" {
+    null = false
+    type = character_varying(100)
+  }
+  column "profile_data" {
+    null    = false
+    type    = jsonb
+    default = "{}"
+  }
+  column "version" {
+    null    = false
+    type    = integer
+    default = 1
+  }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_group_profile" {
+    columns = [column.chat_id]
+  }
+}

@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     l2_scan_interval_minutes: int = 5
     l2_queue_max_len: int = 200
 
+    # 画像更新配置
+    profile_update_interval_hours: int = 2  # 检查间隔（小时）
+    profile_min_messages: int = 10  # 最少消息数触发更新
+    profile_max_delay_hours: int = 12  # 最长顺延时间（小时）
+
     # 长期任务配置
     long_task_batch_size: int = 5
     long_task_lock_timeout: int = 1800  # 30分钟

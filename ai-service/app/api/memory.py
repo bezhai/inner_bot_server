@@ -1,6 +1,6 @@
 """
-群组记忆管理API
-提供L3群组长期记忆的CRUD和更新操作
+记忆管理API
+提供用户画像、群聊画像的CRUD操作，以及废弃的L3记忆接口（保留用于兼容）
 """
 
 import logging
@@ -10,31 +10,295 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from app.memory.l3_memory_service import (
-    Memory,
-    evolve_memories,
-    get_active_memories,
-    search_relevant_memories,
+from app.memory.profile_agent import update_profiles_from_messages
+from app.memory.profile_service import (
+    batch_get_user_profiles,
+    batch_update_user_profiles,
+    get_group_profile,
+    get_user_profile,
+    update_group_profile,
+    update_user_profile,
 )
+from app.memory.worker import _get_messages_by_time_range
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# ==================== 响应模型 ====================
+# ==================== 请求/响应模型 ====================
+
+
+class UserProfileUpdate(BaseModel):
+    """用户画像更新请求"""
+
+    user_id: str
+    profile_data: dict[str, Any]
+
+
+class GroupProfileUpdate(BaseModel):
+    """群聊画像更新请求"""
+
+    profile_data: dict[str, Any]
+
+
+class BatchUserProfileUpdate(BaseModel):
+    """批量用户画像更新请求"""
+
+    updates: list[UserProfileUpdate]
+
+
+class ManualProfileUpdateRequest(BaseModel):
+    """手动触发画像更新请求"""
+
+    start_time: str | None = None  # ISO格式
+    end_time: str | None = None  # ISO格式
+    hours: int | None = None  # 不指定时默认2小时
+
+
+class ProfileResponse(BaseModel):
+    """画像响应"""
+
+    success: bool = True
+    data: dict[str, Any] | None = None
+    message: str | None = None
+
+
+# ==================== 用户画像API ====================
+
+
+@router.get("/profile/user/{user_id}", response_model=ProfileResponse)
+async def get_user_profile_api(user_id: str):
+    """
+    获取用户画像
+
+    Args:
+        user_id: 用户ID
+
+    Returns:
+        用户画像数据
+    """
+    try:
+        profile = await get_user_profile(user_id)
+        if profile is None:
+            return ProfileResponse(
+                success=True, data={}, message="该用户暂无画像记录"
+            )
+        return ProfileResponse(success=True, data=profile)
+    except Exception as e:
+        logger.error(f"获取用户画像失败 {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取失败: {str(e)}") from e
+
+
+@router.post("/profile/user/{user_id}", response_model=ProfileResponse)
+async def update_user_profile_api(user_id: str, request: GroupProfileUpdate):
+    """
+    更新用户画像
+
+    Args:
+        user_id: 用户ID
+        request: 画像更新数据
+
+    Returns:
+        更新结果
+    """
+    try:
+        success = await update_user_profile(user_id, request.profile_data, merge=True)
+        if success:
+            return ProfileResponse(success=True, message="用户画像更新成功")
+        else:
+            return ProfileResponse(success=False, message="用户画像更新失败")
+    except Exception as e:
+        logger.error(f"更新用户画像失败 {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+
+
+@router.post("/profile/users/batch", response_model=ProfileResponse)
+async def batch_get_user_profiles_api(user_ids: list[str]):
+    """
+    批量获取用户画像
+
+    Args:
+        user_ids: 用户ID列表
+
+    Returns:
+        用户画像字典
+    """
+    try:
+        profiles = await batch_get_user_profiles(user_ids)
+        return ProfileResponse(
+            success=True,
+            data=profiles,
+            message=f"获取到 {len(profiles)} 个用户画像",
+        )
+    except Exception as e:
+        logger.error(f"批量获取用户画像失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取失败: {str(e)}") from e
+
+
+@router.put("/profile/users/batch", response_model=ProfileResponse)
+async def batch_update_user_profiles_api(request: BatchUserProfileUpdate):
+    """
+    批量更新用户画像
+
+    Args:
+        request: 批量更新请求
+
+    Returns:
+        更新结果
+    """
+    try:
+        updates = [
+            {"user_id": u.user_id, "profile_data": u.profile_data}
+            for u in request.updates
+        ]
+        results = await batch_update_user_profiles(updates, merge=True)
+        success_count = sum(1 for v in results.values() if v)
+        return ProfileResponse(
+            success=True,
+            data=results,
+            message=f"更新完成，成功 {success_count}/{len(updates)} 个",
+        )
+    except Exception as e:
+        logger.error(f"批量更新用户画像失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+
+
+# ==================== 群聊画像API ====================
+
+
+@router.get("/profile/group/{chat_id}", response_model=ProfileResponse)
+async def get_group_profile_api(chat_id: str):
+    """
+    获取群聊画像
+
+    Args:
+        chat_id: 群聊ID
+
+    Returns:
+        群聊画像数据
+    """
+    try:
+        profile = await get_group_profile(chat_id)
+        if profile is None:
+            return ProfileResponse(
+                success=True, data={}, message="该群聊暂无画像记录"
+            )
+        return ProfileResponse(success=True, data=profile)
+    except Exception as e:
+        logger.error(f"获取群聊画像失败 {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"获取失败: {str(e)}") from e
+
+
+@router.post("/profile/group/{chat_id}", response_model=ProfileResponse)
+async def update_group_profile_api(chat_id: str, request: GroupProfileUpdate):
+    """
+    更新群聊画像
+
+    Args:
+        chat_id: 群聊ID
+        request: 画像更新数据
+
+    Returns:
+        更新结果
+    """
+    try:
+        success = await update_group_profile(chat_id, request.profile_data, merge=True)
+        if success:
+            return ProfileResponse(success=True, message="群聊画像更新成功")
+        else:
+            return ProfileResponse(success=False, message="群聊画像更新失败")
+    except Exception as e:
+        logger.error(f"更新群聊画像失败 {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+
+
+# ==================== 画像更新触发API ====================
+
+
+@router.post("/profile/update/{chat_id}", response_model=ProfileResponse)
+async def trigger_profile_update(chat_id: str, request: ManualProfileUpdateRequest):
+    """
+    手动触发画像更新
+
+    根据指定的时间范围获取消息并更新画像
+
+    Args:
+        chat_id: 群聊ID
+        request: 更新请求参数
+
+    Returns:
+        更新结果
+    """
+    try:
+        # 解析时间参数
+        if request.start_time:
+            start_dt = datetime.fromisoformat(request.start_time)
+            start_ts = int(start_dt.timestamp() * 1000)
+        else:
+            # 默认往前推hours小时
+            hours = request.hours or 2
+            start_ts = int((datetime.now().timestamp() - hours * 3600) * 1000)
+
+        if request.end_time:
+            end_dt = datetime.fromisoformat(request.end_time)
+            end_ts = int(end_dt.timestamp() * 1000)
+        else:
+            end_ts = int(datetime.now().timestamp() * 1000)
+
+        # 获取消息
+        messages = await _get_messages_by_time_range(chat_id, start_ts, end_ts)
+
+        if not messages:
+            return ProfileResponse(
+                success=True, message="指定时间范围内无消息", data={"message_count": 0}
+            )
+
+        # 执行画像更新
+        result = await update_profiles_from_messages(chat_id, messages)
+
+        return ProfileResponse(
+            success=result.get("success", False),
+            data=result,
+            message=f"处理 {len(messages)} 条消息",
+        )
+
+    except ValueError as e:
+        logger.error(f"时间格式错误: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
+    except Exception as e:
+        logger.error(f"画像更新失败 {chat_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+
+
+# ==================== 废弃的L3记忆API（保留用于兼容） ====================
 
 
 class ManualEvolveRequest(BaseModel):
-    """记忆更新请求模型"""
+    """记忆更新请求模型（已废弃）"""
 
-    start_time: str | None = None  # ISO格式: "2025-01-01T00:00:00"
-    end_time: str | None = None  # ISO格式: "2025-01-07T23:59:59"
-    days: int | None = None  # 不指定时默认为1
+    start_time: str | None = None
+    end_time: str | None = None
+    days: int | None = None
     limit: int = 20000
 
 
+class Memory(BaseModel):
+    """群组记忆模型（已废弃）"""
+
+    memory_id: str
+    group_id: str
+    statement: str
+    version: int
+    created_at: str
+    updated_at: str
+    parent_id: str | None = None
+    change_summary: str | None = None
+    status: str = "active"
+    strength: float = 0.8
+
+
 class MemoryListResponse(BaseModel):
-    """记忆列表响应"""
+    """记忆列表响应（已废弃）"""
 
     success: bool = True
     group_id: str
@@ -43,146 +307,63 @@ class MemoryListResponse(BaseModel):
 
 
 class MemorySearchResponse(BaseModel):
-    """记忆搜索响应"""
+    """记忆搜索响应（已废弃）"""
 
     success: bool = True
     query: str
     results: list[dict[str, Any]]
 
 
-# ==================== API接口 ====================
-
-
 @router.post("/memory/evolve/{group_id}")
-async def evolve_group_memories(
-    group_id: str,
-    request: ManualEvolveRequest,
-):
+async def evolve_group_memories(group_id: str, request: ManualEvolveRequest):
     """
-    触发群组记忆更新 (支持灵活的时间范围指定)
+    触发群组记忆更新（已废弃）
 
-    这个接口支持三种方式指定时间范围:
-    1. 使用 start_time + end_time: 明确指定时间范围
-    2. 使用 days: 获取最近N天的消息
-    3. 使用 start_time + days: 从start_time往后days天
-
-    使用场景：
-    - 历史数据回溯: 指定start_time和end_time处理历史某段时间的消息
-    - 增量处理: 每天定时处理前一天的消息
-    - 批量处理: 分段处理大量历史数据
+    此接口已废弃，请使用 /profile/update/{chat_id} 代替
 
     Args:
         group_id: 群组ID
         request: 更新请求参数
-            - start_time: 开始时间 (ISO格式, 例如 "2025-01-01T00:00:00")
-            - end_time: 结束时间 (ISO格式, 例如 "2025-01-07T23:59:59")
-            - days: 天数 (如果start_time/end_time为空，默认为1)
-            - limit: 最多处理消息数量 (默认200)
 
     Returns:
-        更新结果统计
-
-    Examples:
-        1. 处理2025年1月1日到7日的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "end_time": "2025-01-07T23:59:59"
-           }
-
-        2. 处理最近3天的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "days": 3
-           }
-
-        3. 处理2025年1月1日开始的5天:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "days": 5
-           }
-
-        4. 处理最近1天的消息 (使用默认值):
-           POST /memory/evolve/oc_xxx
-           {}
+        提示使用新接口
     """
-    try:
-        logger.info(
-            f"收到手动更新请求: {group_id}, "
-            f"start_time={request.start_time}, end_time={request.end_time}, "
-            f"days={request.days}, limit={request.limit}"
-        )
+    logger.warning(f"调用了废弃的evolve_group_memories接口: {group_id}")
 
-        # 解析时间参数
-        start_dt = (
-            datetime.fromisoformat(request.start_time) if request.start_time else None
-        )
-        end_dt = datetime.fromisoformat(request.end_time) if request.end_time else None
-
-        # 调用更新函数
-        result = await evolve_memories(
-            group_id=group_id,
-            start_time=start_dt,
-            end_time=end_dt,
-            days=request.days,
-            limit=request.limit,
-        )
-
-        logger.info(
-            f"手动更新完成: {group_id} | "
-            f"kept={result.stats.get('kept', 0)}, "
-            f"updated={result.stats.get('updated', 0)}, "
-            f"created={result.stats.get('created', 0)}, "
-            f"deleted={result.stats.get('deleted', 0)}"
-        )
-
-        return result
-
-    except ValueError as e:
-        logger.error(f"时间格式错误: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
-    except Exception as e:
-        logger.error(f"更新失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
+    return {
+        "success": False,
+        "message": "此接口已废弃，请使用 POST /profile/update/{chat_id} 代替",
+        "new_endpoint": f"/profile/update/{group_id}",
+    }
 
 
 @router.get("/memory/list/{group_id}", response_model=MemoryListResponse)
 async def list_group_memories(
     group_id: str,
-    status: str = Query(default="active", regex="^(active|deprecated|all)$"),
+    status: str = Query(default="active", pattern="^(active|deprecated|all)$"),
     limit: int = Query(default=20, ge=1, le=100),
 ):
     """
-    列出群组记忆
+    列出群组记忆（已废弃）
+
+    此接口已废弃，请使用 /profile/group/{chat_id} 代替
 
     Args:
         group_id: 群组ID
-        status: 记忆状态过滤 (active/deprecated/all)
+        status: 记忆状态过滤
         limit: 返回数量限制
 
     Returns:
-        记忆列表
+        空列表和废弃提示
     """
-    try:
-        logger.info(f"查询群组记忆列表: {group_id}, status={status}, limit={limit}")
+    logger.warning(f"调用了废弃的list_group_memories接口: {group_id}")
 
-        # 获取记忆
-        memories = await get_active_memories(group_id, limit)
-
-        # 根据status过滤
-        if status == "active":
-            memories = [m for m in memories if m.status == "active"]
-        elif status == "deprecated":
-            memories = [m for m in memories if m.status == "deprecated"]
-
-        return MemoryListResponse(
-            group_id=group_id, total=len(memories), memories=memories
-        )
-
-    except Exception as e:
-        logger.error(f"查询记忆列表失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}") from e
+    return MemoryListResponse(
+        success=True,
+        group_id=group_id,
+        total=0,
+        memories=[],
+    )
 
 
 @router.get("/memory/search/{group_id}", response_model=MemorySearchResponse)
@@ -193,62 +374,49 @@ async def search_group_memories(
     threshold: float = Query(default=0.7, ge=0.0, le=1.0),
 ):
     """
-    语义搜索群组记忆
+    语义搜索群组记忆（已废弃）
+
+    此接口已废弃，新系统不再支持向量搜索
 
     Args:
         group_id: 群组ID
         q: 搜索查询文本
         limit: 返回数量限制
-        threshold: 相似度阈值 (0-1)
+        threshold: 相似度阈值
 
     Returns:
-        搜索结果列表
+        空结果和废弃提示
     """
-    try:
-        logger.info(
-            f"搜索群组记忆: {group_id}, query='{q}', limit={limit}, threshold={threshold}"
-        )
+    logger.warning(f"调用了废弃的search_group_memories接口: {group_id}")
 
-        results = await search_relevant_memories(group_id, q, limit, threshold)
-
-        return MemorySearchResponse(query=q, results=results)
-
-    except Exception as e:
-        logger.error(f"搜索记忆失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"搜索失败: {str(e)}") from e
+    return MemorySearchResponse(
+        success=True,
+        query=q,
+        results=[],
+    )
 
 
 @router.get("/memory/stats/{group_id}")
 async def get_memory_stats(group_id: str):
     """
-    获取群组记忆统计信息
+    获取群组记忆统计信息（已废弃）
+
+    此接口已废弃，请使用 /profile/group/{chat_id} 代替
 
     Args:
         group_id: 群组ID
 
     Returns:
-        记忆统计信息
+        废弃提示
     """
-    try:
-        memories = await get_active_memories(group_id, limit=1000)
+    logger.warning(f"调用了废弃的get_memory_stats接口: {group_id}")
 
-        active_count = sum(1 for m in memories if m.status == "active")
-        deprecated_count = sum(1 for m in memories if m.status == "deprecated")
+    # 返回新系统的画像数据
+    profile = await get_group_profile(group_id)
 
-        # 计算平均版本号
-        avg_version = (
-            sum(m.version for m in memories) / len(memories) if memories else 0
-        )
-
-        return {
-            "success": True,
-            "group_id": group_id,
-            "total_memories": len(memories),
-            "active_memories": active_count,
-            "deprecated_memories": deprecated_count,
-            "avg_version": round(avg_version, 2),
-        }
-
-    except Exception as e:
-        logger.error(f"获取记忆统计失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取统计失败: {str(e)}") from e
+    return {
+        "success": True,
+        "group_id": group_id,
+        "message": "此接口已废弃，返回新系统画像数据",
+        "profile": profile or {},
+    }

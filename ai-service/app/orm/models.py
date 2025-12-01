@@ -1,7 +1,9 @@
 from datetime import datetime
+from typing import Any
 from uuid import UUID as PyUUID
 
 from sqlalchemy import UUID, BigInteger, Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -68,7 +70,7 @@ class TopicMemory(Base):
 
 
 class MemoryVersion(Base):
-    """记忆版本快照"""
+    """记忆版本快照 (已废弃，保留用于数据迁移)"""
 
     __tablename__ = "memory_versions"
 
@@ -88,3 +90,27 @@ class MemoryVersion(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     deprecated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class UserProfile(Base):
+    """用户画像 - 存储长期稳固的用户信息"""
+
+    __tablename__ = "user_profile"
+
+    user_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    profile_data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
+class GroupProfile(Base):
+    """群聊画像 - 存储群聊维度的画像数据"""
+
+    __tablename__ = "group_profile"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    profile_data: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

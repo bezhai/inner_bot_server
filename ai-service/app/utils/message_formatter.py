@@ -124,3 +124,121 @@ def format_messages_to_strings(
         formatted_messages.append(formatted)
 
     return formatted_messages
+
+
+def format_message_with_user_id(
+    content: str,
+    role: str,
+    index: int,
+    user_id: str,
+    username: str | None = None,
+    create_time: datetime | None = None,
+    reply_index: int | None = None,
+    include_timestamp: bool = True,
+) -> str:
+    """
+    将单条消息格式化为包含user_id的字符串
+
+    Args:
+        content: 消息内容
+        role: 角色（user/assistant）
+        index: 消息索引
+        user_id: 用户ID
+        username: 用户名
+        create_time: 消息创建时间
+        reply_index: 回复的消息索引
+        include_timestamp: 是否包含时间戳
+
+    Returns:
+        格式化的消息字符串
+
+    Examples:
+        >>> format_message_with_user_id("你好", "user", 1, "uid_123", "张三", datetime(...))
+        '[2025-01-24 10:30:15] [User: 张三 | ID: uid_123] [消息1]: 你好'
+    """
+    parts = []
+
+    # 添加时间戳
+    if include_timestamp and create_time:
+        time_str = create_time.strftime("%Y-%m-%d %H:%M:%S")
+        parts.append(f"[{time_str}]")
+
+    # 添加角色、用户名和user_id
+    if role == "user":
+        user_display = username or "未知用户"
+        parts.append(f"[User: {user_display} | ID: {user_id}]")
+    else:
+        parts.append("[Assistant: 赤尾]")
+
+    parts.append(f"[消息{index}]")
+
+    # 添加回复标记
+    if reply_index is not None:
+        parts.append(f"[↪️回复消息{reply_index}]")
+
+    # 添加消息内容
+    formatted = " ".join(parts) + f": {content}"
+
+    return formatted
+
+
+def format_messages_with_user_ids(
+    messages: list,
+    include_timestamp: bool = True,
+) -> tuple[list[str], list[str]]:
+    """
+    批量格式化消息列表为包含user_id的字符串列表
+
+    Args:
+        messages: 消息对象列表，每个对象需要有以下属性：
+            - message_id: str
+            - content: str
+            - role: str
+            - user_id: str
+            - username: str | None
+            - create_time: datetime
+            - reply_message_id: str | None
+        include_timestamp: 是否包含时间戳
+
+    Returns:
+        (格式化的消息字符串列表, 去重的user_id列表)
+
+    Examples:
+        >>> messages = [...]
+        >>> formatted, user_ids = format_messages_with_user_ids(messages)
+    """
+    if not messages:
+        return [], []
+
+    # 构建消息ID到索引的映射（1-based）
+    message_id_map = {msg.message_id: idx + 1 for idx, msg in enumerate(messages)}
+
+    formatted_messages = []
+    user_ids_set: set[str] = set()
+
+    for msg in messages:
+        user_id = getattr(msg, "user_id", "unknown")
+
+        # 收集user角色的user_id
+        if msg.role == "user" and user_id:
+            user_ids_set.add(user_id)
+
+        # 确定回复索引
+        reply_index = None
+        if hasattr(msg, "reply_message_id") and msg.reply_message_id:
+            reply_index = message_id_map.get(msg.reply_message_id)
+
+        # 格式化消息
+        formatted = format_message_with_user_id(
+            content=msg.content,
+            role=msg.role,
+            index=message_id_map.get(msg.message_id, 0),
+            user_id=user_id,
+            username=getattr(msg, "username", None),
+            create_time=getattr(msg, "create_time", None),
+            reply_index=reply_index,
+            include_timestamp=include_timestamp,
+        )
+        formatted_messages.append(formatted)
+
+    return formatted_messages, list(user_ids_set)
