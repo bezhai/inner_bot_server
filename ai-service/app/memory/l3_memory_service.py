@@ -4,16 +4,15 @@ L3画像 orchestrator
 基于 LangChain Tool & PG 的用户/群聊画像维护
 """
 
-import asyncio
 import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+
 from langchain.messages import HumanMessage
 from sqlalchemy import select
 
 from app.agents.basic import ChatAgent
-from app.agents.basic.origin_client import OpenAIClient
 from app.agents.memory.tools import PROFILE_TOOLS
 from app.clients.redis import AsyncRedisClient
 from app.config.config import settings
@@ -200,35 +199,6 @@ async def evolve_group_profile(
         window_start=window_start,
         window_end=window_end,
     )
-
-
-# ==================== 向量化工具（保留给其他模块使用） ====================
-
-
-async def embed_text(text: str) -> list[float]:
-    """文本向量化"""
-    async with OpenAIClient("text-embedding-3-small") as ec:
-        return await ec.embed(text)
-
-
-async def embed_texts_concurrent(
-    texts: list[str], max_concurrency: int = 3
-) -> list[list[float]]:
-    """并发文本向量化（限制并发数）"""
-    if not texts:
-        return []
-
-    semaphore = asyncio.Semaphore(max_concurrency)
-
-    async def embed_with_semaphore(text: str, index: int) -> tuple[int, list[float]]:
-        async with semaphore:
-            vector = await embed_text(text)
-            return index, vector
-
-    tasks = [embed_with_semaphore(text, i) for i, text in enumerate(texts)]
-    results = await asyncio.gather(*tasks)
-    sorted_results = sorted(results, key=lambda x: x[0])
-    return [vector for _, vector in sorted_results]
 
 
 # ==================== Redis 辅助 ====================
