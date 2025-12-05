@@ -14,7 +14,6 @@ from sqlalchemy import select
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.memory.tools import PROFILE_TOOLS
-from app.config.config import settings
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkUser
 from app.services.quick_search import QuickSearchResult
@@ -23,11 +22,6 @@ from app.utils.message_formatter import format_messages_to_strings
 logger = logging.getLogger(__name__)
 
 PROFILE_PROMPT_ID = "memory_profile_update"
-PROFILE_KEY_PREFIX = settings.l3_profile_redis_prefix
-
-
-def _profile_key(chat_id: str) -> str:
-    return f"{PROFILE_KEY_PREFIX}:{chat_id}"
 
 
 @dataclass

@@ -4,7 +4,6 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     redis_host: str | None = None
     redis_password: str | None = None
-    stream_timeout: int = 300  # 流式请求超时时间，默认5分钟（300秒）
 
     # 数据库配置
     postgres_host: str | None = None
@@ -39,10 +38,6 @@ class Settings(BaseSettings):
     l2_queue_max_len: int = 200
 
     # L3 画像刷新策略
-    l3_profile_min_messages: int = 10
-    l3_profile_scan_interval_minutes: int = 120
-    l3_profile_force_after_hours: int = 12
-    l3_profile_message_limit: int = 3000
     l3_profile_redis_prefix: str = "l3:profile"
 
     # 长期任务配置

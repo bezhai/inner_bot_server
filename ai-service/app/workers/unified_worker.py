@@ -27,10 +27,6 @@ async def task_executor_job(ctx) -> None:
     await poll_and_execute_tasks(batch_size=5, lock_timeout_seconds=1800)
 
 
-# ==================== Worker 配置 ====================
-PROFILE_SCAN_MINUTES = settings.l3_profile_scan_interval_minutes
-
-
 class UnifiedWorkerSettings:
     """
     统一的 Worker 配置
