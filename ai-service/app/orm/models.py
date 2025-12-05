@@ -1,7 +1,17 @@
 from datetime import datetime
 from uuid import UUID as PyUUID
 
-from sqlalchemy import UUID, BigInteger, Boolean, DateTime, Float, Integer, String, Text
+from sqlalchemy import (
+    UUID,
+    BigInteger,
+    Boolean,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -88,3 +98,37 @@ class MemoryVersion(Base):
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     deprecated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class UserProfile(Base):
+    """用户画像：全局唯一"""
+
+    __tablename__ = "user_profiles"
+
+    user_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+
+    # 修改处：
+    # 1. 类型注解改为 str | None
+    # 2. 数据库类型改为 Text (支持长文本)
+    profile: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+
+
+class GroupProfile(Base):
+    """群聊画像：每个群唯一"""
+
+    __tablename__ = "group_profiles"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+
+    # 修改处：同上
+    profile: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )

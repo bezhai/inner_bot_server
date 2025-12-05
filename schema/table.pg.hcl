@@ -492,74 +492,53 @@ table "lark_emoji" {
     columns = [column.key]
   }
 }
-table "memory_versions" {
+
+table "user_profiles" {
   schema = schema.public
-  column "id" {
-    null = false
-    type = serial
-  }
-  column "memory_id" {
+  column "user_id" {
     null = false
     type = character_varying(100)
   }
-  column "group_id" {
-    null = false
-    type = character_varying(100)
-  }
-  column "version" {
-    null = false
-    type = integer
-  }
-  column "statement" {
-    null = false
-    type = text
-  }
-  column "parent_id" {
-    null = true
-    type = character_varying(100)
-  }
-  column "change_summary" {
+  column "profile" {
     null = true
     type = text
-  }
-  column "status" {
-    null    = false
-    type    = character_varying(20)
-    default = "active"
-  }
-  column "strength" {
-    null    = false
-    type    = double_precision
-    default = 0.8
   }
   column "created_at" {
     null    = false
     type    = timestamp
     default = sql("now()")
   }
-  column "deprecated_at" {
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_user_profiles" {
+    columns = [column.user_id]
+  }
+}
+
+table "group_profiles" {
+  schema = schema.public
+  column "chat_id" {
+    null = false
+    type = character_varying(100)
+  }
+  column "profile" {
     null = true
-    type = timestamp
+    type = text
   }
-  primary_key "PK_memory_versions" {
-    columns = [column.id]
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
   }
-  index "idx_memory_versions_memory_id" {
-    columns = [column.memory_id]
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
   }
-  index "idx_memory_versions_group_id" {
-    columns = [column.group_id]
-  }
-  index "idx_memory_versions_status" {
-    columns = [column.status]
-  }
-  index "idx_memory_versions_parent_id" {
-    columns = [column.parent_id]
-  }
-  index "idx_memory_versions_group_status" {
-    columns = [column.group_id, column.status]
-  }
-  index "idx_memory_versions_created_at" {
-    columns = [column.created_at]
+  primary_key "PK_group_profiles" {
+    columns = [column.chat_id]
   }
 }

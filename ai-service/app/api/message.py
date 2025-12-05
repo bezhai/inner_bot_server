@@ -10,8 +10,8 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
+from app.agents.basic.origin_client import OpenAIClient
 from app.clients.redis import AsyncRedisClient
-from app.memory.l3_memory_service import embed_text
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
 
@@ -31,6 +31,11 @@ class MessageCreateRequest(BaseModel):
     create_time: str
 
 
+async def _embed_text(text: str) -> list[float]:
+    async with OpenAIClient("text-embedding-3-small") as client:
+        return await client.embed(text)
+
+
 async def _vectorize_and_store_message(
     message_id: str,
     user_id: str,
@@ -42,8 +47,7 @@ async def _vectorize_and_store_message(
 ) -> None:
     """异步向量化消息内容并写入 Qdrant 向量库"""
     try:
-        # 生成向量
-        vector = await embed_text(content)
+        vector = await _embed_text(content)
 
         # 生成确定性 UUID（相同 message_id 总是生成相同 UUID，保证幂等性）
         vector_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, message_id))
@@ -71,6 +75,7 @@ async def _vectorize_and_store_message(
 
 @router.post("/message")
 async def create_message(request: MessageCreateRequest):
+    create_ts = int(request.create_time)
     await create_conversation_message(
         message_id=request.message_id,
         user_id=request.user_id,
@@ -80,8 +85,9 @@ async def create_message(request: MessageCreateRequest):
         reply_message_id=request.reply_message_id,
         chat_id=request.chat_id,
         chat_type=request.chat_type,
-        create_time=int(request.create_time),
+        create_time=create_ts,
     )
+
     # L2 队列入队：按 chat 维度
     redis = AsyncRedisClient.get_instance()
     queue_key = f"l2:queue:{request.chat_id}"

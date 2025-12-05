@@ -1,9 +1,17 @@
 from datetime import datetime, timedelta
 
+from sqlalchemy import func
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.future import select
 
 from .base import AsyncSessionLocal
-from .models import ConversationMessage, ModelProvider, TopicMemory
+from .models import (
+    ConversationMessage,
+    GroupProfile,
+    ModelProvider,
+    TopicMemory,
+    UserProfile,
+)
 
 
 def parse_model_id(model_id: str) -> tuple[str, str]:
@@ -144,3 +152,64 @@ async def upsert_topic(
         topic = await session.merge(topic)
         await session.commit()
         return topic
+
+
+# =========================
+# Profile CRUD
+# =========================
+
+
+async def fetch_user_profiles(user_ids: list[str]) -> dict[str, str | None]:
+    """批量获取用户画像"""
+    if not user_ids:
+        return {}
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(UserProfile).where(UserProfile.user_id.in_(user_ids))
+        )
+        return {profile.user_id: profile.profile for profile in result.scalars()}
+
+
+async def upsert_user_profiles(
+    updates: list[tuple[str, str | None]],
+) -> None:
+    """批量更新/创建用户画像"""
+    if not updates:
+        return
+
+    values_list = [{"user_id": uid, "profile": profile} for uid, profile in updates]
+    async with AsyncSessionLocal.begin() as session:
+        stmt = insert(UserProfile).values(values_list)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["user_id"],
+            set_={
+                "profile": stmt.excluded.profile,
+                "updated_at": func.now(),
+            },
+        )
+        await session.execute(stmt)
+
+
+async def fetch_group_profile(chat_id: str) -> str | None:
+    """获取单个群聊画像"""
+    async with AsyncSessionLocal() as session:
+        profile = await session.get(GroupProfile, chat_id)
+        return profile.profile if profile else None
+
+
+async def upsert_group_profile(chat_id: str, profile: str | None) -> None:
+    """更新/创建群聊画像"""
+
+    async with AsyncSessionLocal.begin() as session:
+        stmt = insert(GroupProfile).values(chat_id=chat_id, profile=profile)
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["chat_id"],
+            set_={
+                "profile": stmt.excluded.profile,
+                "updated_at": func.now(),
+            },
+        )
+
+        await session.execute(stmt)

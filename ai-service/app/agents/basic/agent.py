@@ -60,9 +60,16 @@ class ChatAgent:
         ):
             yield token  # type: ignore
 
-    async def run(self, messages: list, prompt_vars: dict | None = None) -> AIMessage:
+    async def run(
+        self,
+        messages: list,
+        context: ContextSchema | None = None,
+        prompt_vars: dict | None = None,
+    ) -> AIMessage:
         await self._init_agent(**(prompt_vars or {}))
         all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
-            {"messages": messages}, config={"callbacks": [self._langfuse_handler]}
+            {"messages": messages},
+            context=context,
+            config={"callbacks": [self._langfuse_handler]},
         )
         return all_message["messages"][-1]

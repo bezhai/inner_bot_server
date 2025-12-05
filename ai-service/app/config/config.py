@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     l2_scan_interval_minutes: int = 5
     l2_queue_max_len: int = 200
 
+    # L3 画像刷新策略
+    l3_profile_min_messages: int = 10
+    l3_profile_scan_interval_minutes: int = 120
+    l3_profile_force_after_hours: int = 12
+    l3_profile_message_limit: int = 3000
+    l3_profile_redis_prefix: str = "l3:profile"
+
     # 长期任务配置
     long_task_batch_size: int = 5
     long_task_lock_timeout: int = 1800  # 30分钟

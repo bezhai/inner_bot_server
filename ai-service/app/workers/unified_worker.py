@@ -16,9 +16,7 @@ from app.long_tasks.executor import poll_and_execute_tasks
 
 # 导入记忆系统相关
 from app.memory.worker import (
-    # cron_5m_scan_queues,
-    # cron_daily_memory_evolve,
-    task_evolve_memory,
+    cron_profile_scan,
     task_update_topic_memory,
 )
 
@@ -30,6 +28,9 @@ async def task_executor_job(ctx) -> None:
 
 
 # ==================== Worker 配置 ====================
+PROFILE_SCAN_MINUTES = settings.l3_profile_scan_interval_minutes
+
+
 class UnifiedWorkerSettings:
     """
     统一的 Worker 配置
@@ -48,17 +49,18 @@ class UnifiedWorkerSettings:
 
     # 所有任务函数
     functions = [
-        # 记忆系统任务
         task_update_topic_memory,
-        task_evolve_memory,
     ]
 
     # 所有定时任务
     cron_jobs = [
-        # 长期任务：每分钟执行一次
-        cron(task_executor_job, minute=set(range(60))),
-        # 记忆系统：每5分钟扫描L2队列
-        # cron(cron_5m_scan_queues, minute=f"*/{settings.l2_scan_interval_minutes}"),
-        # 记忆系统：每天凌晨2点执行记忆更新
-        # cron(cron_daily_memory_evolve, hour=2, minute=0),
+        # 1. 长期任务：每分钟执行一次
+        cron(task_executor_job, minute=None),
+        # 2. 队列扫描
+        # cron(
+        #     cron_5m_scan_queues,
+        #     minute=set(range(0, 60, settings.l2_scan_interval_minutes)),
+        # ),
+        # 3. 画像扫描：每 30 分钟一次 (0分, 30分)
+        cron(cron_profile_scan, minute={0, 30}),
     ]

@@ -1,254 +1,59 @@
 """
-群组记忆管理API
-提供L3群组长期记忆的CRUD和更新操作
+画像管理 API
 """
 
 import logging
-from datetime import datetime
-from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
 
-from app.memory.l3_memory_service import (
-    Memory,
-    evolve_memories,
-    get_active_memories,
-    search_relevant_memories,
-)
+from app.memory.l3_memory_service import evolve_group_profile
+from app.utils.time_parser import TimeRangeParser
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-# ==================== 响应模型 ====================
+class ManualProfileUpdateRequest(BaseModel):
+    """画像更新请求（支持新旧两种方式）"""
 
+    # 新增：灵活的时间范围表达
+    start_time: str = Field(
+        description="开始时间，支持格式：'YYYY-MM-DD' 或 'YYYY-MM-DD HH:mm'",
+        examples=["2024-01-01", "2024-01-01 14:30"],
+    )
+    end_time: str | None = Field(
+        None,
+        description="结束时间（可选，默认为当前时间），格式同 start_time",
+        examples=["2024-01-31", "2024-01-31 23:59"],
+    )
 
-class ManualEvolveRequest(BaseModel):
-    """记忆更新请求模型"""
+    force: bool = Field(False, description="是否强制更新")
 
-    start_time: str | None = None  # ISO格式: "2025-01-01T00:00:00"
-    end_time: str | None = None  # ISO格式: "2025-01-07T23:59:59"
-    days: int | None = None  # 不指定时默认为1
-    limit: int = 20000
-
-
-class MemoryListResponse(BaseModel):
-    """记忆列表响应"""
-
-    success: bool = True
-    group_id: str
-    total: int
-    memories: list[Memory]
-
-
-class MemorySearchResponse(BaseModel):
-    """记忆搜索响应"""
-
-    success: bool = True
-    query: str
-    results: list[dict[str, Any]]
-
-
-# ==================== API接口 ====================
+    split_cnt: int | None = Field(
+        None,
+        description="分割消息数量阈值",
+        examples=[100],
+    )
 
 
 @router.post("/memory/evolve/{group_id}")
-async def evolve_group_memories(
-    group_id: str,
-    request: ManualEvolveRequest,
-):
+async def evolve_group_profile_api(group_id: str, request: ManualProfileUpdateRequest):
     """
-    触发群组记忆更新 (支持灵活的时间范围指定)
-
-    这个接口支持三种方式指定时间范围:
-    1. 使用 start_time + end_time: 明确指定时间范围
-    2. 使用 days: 获取最近N天的消息
-    3. 使用 start_time + days: 从start_time往后days天
-
-    使用场景：
-    - 历史数据回溯: 指定start_time和end_time处理历史某段时间的消息
-    - 增量处理: 每天定时处理前一天的消息
-    - 批量处理: 分段处理大量历史数据
-
-    Args:
-        group_id: 群组ID
-        request: 更新请求参数
-            - start_time: 开始时间 (ISO格式, 例如 "2025-01-01T00:00:00")
-            - end_time: 结束时间 (ISO格式, 例如 "2025-01-07T23:59:59")
-            - days: 天数 (如果start_time/end_time为空，默认为1)
-            - limit: 最多处理消息数量 (默认200)
-
-    Returns:
-        更新结果统计
-
-    Examples:
-        1. 处理2025年1月1日到7日的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "end_time": "2025-01-07T23:59:59"
-           }
-
-        2. 处理最近3天的消息:
-           POST /memory/evolve/oc_xxx
-           {
-             "days": 3
-           }
-
-        3. 处理2025年1月1日开始的5天:
-           POST /memory/evolve/oc_xxx
-           {
-             "start_time": "2025-01-01T00:00:00",
-             "days": 5
-           }
-
-        4. 处理最近1天的消息 (使用默认值):
-           POST /memory/evolve/oc_xxx
-           {}
+    手动触发群聊画像更新
     """
-    try:
-        logger.info(
-            f"收到手动更新请求: {group_id}, "
-            f"start_time={request.start_time}, end_time={request.end_time}, "
-            f"days={request.days}, limit={request.limit}"
-        )
 
-        # 解析时间参数
-        start_dt = (
-            datetime.fromisoformat(request.start_time) if request.start_time else None
-        )
-        end_dt = datetime.fromisoformat(request.end_time) if request.end_time else None
+    start_dt = TimeRangeParser.parse_time_input(
+        request.start_time, default_to_now=False
+    )
+    end_dt = TimeRangeParser.parse_time_input(request.end_time, default_to_now=True)
 
-        # 调用更新函数
-        result = await evolve_memories(
-            group_id=group_id,
-            start_time=start_dt,
-            end_time=end_dt,
-            days=request.days,
-            limit=request.limit,
-        )
+    if start_dt >= end_dt:
+        raise ValueError(f"开始时间必须早于结束时间: start={start_dt}, end={end_dt}")
 
-        logger.info(
-            f"手动更新完成: {group_id} | "
-            f"kept={result.stats.get('kept', 0)}, "
-            f"updated={result.stats.get('updated', 0)}, "
-            f"created={result.stats.get('created', 0)}, "
-            f"deleted={result.stats.get('deleted', 0)}"
-        )
-
-        return result
-
-    except ValueError as e:
-        logger.error(f"时间格式错误: {str(e)}")
-        raise HTTPException(status_code=400, detail=f"时间格式错误: {str(e)}") from e
-    except Exception as e:
-        logger.error(f"更新失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}") from e
-
-
-@router.get("/memory/list/{group_id}", response_model=MemoryListResponse)
-async def list_group_memories(
-    group_id: str,
-    status: str = Query(default="active", regex="^(active|deprecated|all)$"),
-    limit: int = Query(default=20, ge=1, le=100),
-):
-    """
-    列出群组记忆
-
-    Args:
-        group_id: 群组ID
-        status: 记忆状态过滤 (active/deprecated/all)
-        limit: 返回数量限制
-
-    Returns:
-        记忆列表
-    """
-    try:
-        logger.info(f"查询群组记忆列表: {group_id}, status={status}, limit={limit}")
-
-        # 获取记忆
-        memories = await get_active_memories(group_id, limit)
-
-        # 根据status过滤
-        if status == "active":
-            memories = [m for m in memories if m.status == "active"]
-        elif status == "deprecated":
-            memories = [m for m in memories if m.status == "deprecated"]
-
-        return MemoryListResponse(
-            group_id=group_id, total=len(memories), memories=memories
-        )
-
-    except Exception as e:
-        logger.error(f"查询记忆列表失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"查询失败: {str(e)}") from e
-
-
-@router.get("/memory/search/{group_id}", response_model=MemorySearchResponse)
-async def search_group_memories(
-    group_id: str,
-    q: str = Query(..., min_length=1, description="搜索查询文本"),
-    limit: int = Query(default=5, ge=1, le=20),
-    threshold: float = Query(default=0.7, ge=0.0, le=1.0),
-):
-    """
-    语义搜索群组记忆
-
-    Args:
-        group_id: 群组ID
-        q: 搜索查询文本
-        limit: 返回数量限制
-        threshold: 相似度阈值 (0-1)
-
-    Returns:
-        搜索结果列表
-    """
-    try:
-        logger.info(
-            f"搜索群组记忆: {group_id}, query='{q}', limit={limit}, threshold={threshold}"
-        )
-
-        results = await search_relevant_memories(group_id, q, limit, threshold)
-
-        return MemorySearchResponse(query=q, results=results)
-
-    except Exception as e:
-        logger.error(f"搜索记忆失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"搜索失败: {str(e)}") from e
-
-
-@router.get("/memory/stats/{group_id}")
-async def get_memory_stats(group_id: str):
-    """
-    获取群组记忆统计信息
-
-    Args:
-        group_id: 群组ID
-
-    Returns:
-        记忆统计信息
-    """
-    try:
-        memories = await get_active_memories(group_id, limit=1000)
-
-        active_count = sum(1 for m in memories if m.status == "active")
-        deprecated_count = sum(1 for m in memories if m.status == "deprecated")
-
-        # 计算平均版本号
-        avg_version = (
-            sum(m.version for m in memories) / len(memories) if memories else 0
-        )
-
-        return {
-            "success": True,
-            "group_id": group_id,
-            "total_memories": len(memories),
-            "active_memories": active_count,
-            "deprecated_memories": deprecated_count,
-            "avg_version": round(avg_version, 2),
-        }
-
-    except Exception as e:
-        logger.error(f"获取记忆统计失败 {group_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"获取统计失败: {str(e)}") from e
+    await evolve_group_profile(
+        group_id,
+        TimeRangeParser.to_milliseconds(start_dt),
+        TimeRangeParser.to_milliseconds(end_dt),
+        split_cnt=request.split_cnt,
+    )

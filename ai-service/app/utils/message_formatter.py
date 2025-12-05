@@ -7,6 +7,10 @@
 
 from datetime import datetime
 
+from bidict import bidict
+
+from app.services.quick_search import QuickSearchResult
+
 
 def format_message_to_str(
     content: str,
@@ -16,6 +20,7 @@ def format_message_to_str(
     create_time: datetime | None = None,
     reply_index: int | None = None,
     include_timestamp: bool = True,
+    user_id: str | None = None,
 ) -> str:
     """
     将单条消息格式化为字符串
@@ -27,6 +32,7 @@ def format_message_to_str(
         create_time: 消息创建时间
         reply_index: 回复的消息索引（如果是回复消息）
         include_timestamp: 是否包含时间戳
+        user_id: 用户 id
 
     Returns:
         格式化的消息字符串
@@ -52,6 +58,7 @@ def format_message_to_str(
     if role == "user":
         user_display = username or "未知用户"
         parts.append(f"[User: {user_display}]")
+        parts.append(f"[UserID: {user_id}]")
     else:
         parts.append("[Assistant: 赤尾]")
 
@@ -68,9 +75,9 @@ def format_message_to_str(
 
 
 def format_messages_to_strings(
-    messages: list,
+    messages: list[QuickSearchResult],
     include_timestamp: bool = True,
-) -> list[str]:
+) -> tuple[list[str], bidict[str, str]]:
     """
     批量格式化消息列表为字符串列表
 
@@ -99,10 +106,18 @@ def format_messages_to_strings(
          '[2025-01-24 10:30:20] [User: 李四] [↪️回复消息1]: 你好啊']
     """
     if not messages:
-        return []
+        return [], bidict()
 
     # 构建消息ID到索引的映射（1-based）
     message_id_map = {msg.message_id: idx + 1 for idx, msg in enumerate(messages)}
+    user_id_map = bidict(
+        {
+            user_id: f"user_{idx + 1}"
+            for idx, user_id in enumerate(
+                {msg.user_id for msg in messages if msg.user_id and msg.role == "user"}
+            )
+        }
+    )
 
     formatted_messages = []
     for msg in messages:
@@ -116,11 +131,12 @@ def format_messages_to_strings(
             content=msg.content,
             role=msg.role,
             index=message_id_map.get(msg.message_id, 0),
-            username=getattr(msg, "username", None),
-            create_time=getattr(msg, "create_time", None),
+            username=msg.username,
+            create_time=msg.create_time,
             reply_index=reply_index,
             include_timestamp=include_timestamp,
+            user_id=user_id_map.get(msg.user_id),
         )
         formatted_messages.append(formatted)
 
-    return formatted_messages
+    return formatted_messages, user_id_map
