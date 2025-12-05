@@ -24,6 +24,7 @@ class QuickSearchResult:
         chat_type: str | None = None,
         chat_name: str | None = None,
         reply_message_id: str | None = None,
+        chat_id: str | None = None,
     ):
         self.message_id = message_id
         self.content = content
@@ -34,6 +35,7 @@ class QuickSearchResult:
         self.chat_type = chat_type
         self.chat_name = chat_name
         self.reply_message_id = reply_message_id
+        self.chat_id = chat_id
 
 
 async def quick_search(
@@ -84,7 +86,9 @@ async def quick_search(
             .order_by(ConversationMessage.create_time.asc())
         )
         root_rows = root_result.all()
-        root_messages = [(row[0], row[1], row[2]) for row in root_rows]
+        root_messages: list[tuple[ConversationMessage, str | None, str | None]] = [
+            (row[0], row[1], row[2]) for row in root_rows
+        ]
 
         # 3. 如果数量不足，补充同一chat_id的其他消息
         if len(root_messages) < limit:
@@ -135,9 +139,10 @@ async def quick_search(
                     username=username if msg.role == "user" else "赤尾",
                     chat_type=str(msg.chat_type),
                     chat_name=chat_name,
-                    reply_message_id=str(msg.reply_message_id)
-                    if msg.reply_message_id
-                    else None,
+                    reply_message_id=(
+                        str(msg.reply_message_id) if msg.reply_message_id else None
+                    ),
+                    chat_id=msg.chat_id,
                 )
             )
 

@@ -12,6 +12,7 @@ from langchain.messages import AIMessage, HumanMessage
 
 from app.agents.basic.langfuse import get_prompt
 from app.clients.image_client import image_client
+from app.orm.crud import fetch_group_profile, fetch_user_profiles
 from app.services.quick_search import QuickSearchResult, quick_search
 
 logger = logging.getLogger(__name__)
@@ -107,6 +108,8 @@ async def _build_group_messages(
         chat_history=context.chat_history,
         trigger_content=context.trigger_content,
         trigger_username=context.trigger_username,
+        group_profile=context.group_profile,
+        user_profiles=context.user_profiles,
     )
 
     # 构建多模态消息
@@ -233,14 +236,14 @@ class ChatContext:
         trigger_username: 触发用户的用户名
         chat_type: 聊天类型（p2p/group）
         chat_name: 群聊名称（私聊时为None）
-        image_urls: 图片URL列表
     """
 
     chat_history: str
     trigger_content: str
     trigger_username: str
     chat_name: str | None
-    image_urls: list[str]
+    group_profile: str | None = None
+    user_profiles: str | None = None
 
 
 def _build_message_id_map(messages: list[QuickSearchResult]) -> dict[str, int]:
@@ -314,6 +317,8 @@ async def _build_context_from_messages(
     trigger_username = "未知用户"
     trigger_formatted = "（未找到触发消息）"
     chat_name = None
+    chat_id = None
+    user_ids = {}
 
     # 初始化图片计数器（用于【图片N】标记）
     image_counter = {"count": 0}
@@ -327,9 +332,13 @@ async def _build_context_from_messages(
             msg, image_counter, message_index, message_id_map
         )
 
+        if msg.role == "user":
+            user_ids[str(msg.user_id)] = msg.username
+
         if msg.message_id == trigger_id:
             trigger_username = msg.username or "未知用户"
             chat_name = msg.chat_name
+            chat_id = msg.chat_id
             trigger_formatted = formatted_text
         else:
             history_messages.append(formatted_text)
@@ -338,12 +347,28 @@ async def _build_context_from_messages(
         "\n".join(history_messages) if history_messages else "（暂无历史记录）"
     )
 
-    # 注意：图片URL的获取已在外层 build_chat_context 中处理
-    # 这里只负责构建格式化的文本上下文
+    group_profile = await fetch_group_profile(chat_id) if chat_id else None
+    user_profiles = (
+        await fetch_user_profiles(list(user_ids.keys())) if user_ids else None
+    )
+
+    after_reduce_user_profiles = (
+        "\n".join(
+            [
+                f"{user_ids[user_id]}: {profile}"
+                for user_id, profile in user_profiles.items()
+                if profile
+            ]
+        )
+        if user_profiles
+        else None
+    )
+
     return ChatContext(
         chat_history=chat_history,
         trigger_content=trigger_formatted,
         trigger_username=trigger_username,
         chat_name=chat_name,
-        image_urls=[],  # 不再在此处处理图片
+        group_profile=group_profile,
+        user_profiles=after_reduce_user_profiles,
     )
