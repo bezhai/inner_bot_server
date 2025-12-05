@@ -60,7 +60,7 @@ async function sendAuthenticatedRequest<T>(url: string, reqBody: Record<string, 
 
 export async function getPixivImages(params: ListPixivImageDto): Promise<ImageForLark[]> {
     try {
-        const url = `${process.env.PROXY_HOST}/api/v2/image-store/token-auth-list`;
+        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/image-store/token-auth-list`;
 
         // 发送带有身份认证的请求
         const response = await sendAuthenticatedRequest<
@@ -83,7 +83,7 @@ export async function getLarkFileTransferUrl(
     params: LarkFileTransferRequest,
 ): Promise<LarkFileTransferInfo> {
     try {
-        const url = `${process.env.PROXY_HOST}/api/v2/lark-file-transfer`;
+        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/lark-file-transfer`;
 
         // 发送带有身份认证的请求
         const response = await sendAuthenticatedRequest<BaseResponse<LarkFileTransferResponse>>(
@@ -108,7 +108,7 @@ export async function getLarkFileTransferUrl(
 
 export async function uploadToLark(params: UploadImageToLarkDto): Promise<UploadLarkResp> {
     try {
-        const url = `${process.env.PROXY_HOST}/api/v2/image-store/upload-lark`;
+        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/image-store/upload-lark`;
 
         // 发送带有身份认证的请求
         const response = await sendAuthenticatedRequest<BaseResponse<UploadLarkResp>>(url, params);

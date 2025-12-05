@@ -13,7 +13,7 @@ declare namespace NodeJS {
         POSTGRES_HOST: string;
         NEED_INIT: string; // true or false
         PROXY_HTTP_SECRET: string;
-        PROXY_HOST: string;
+        PIXIV_PROXY_HOST: string;
         MEME_HOST: string;
         MEME_PORT: string;
         ENABLE_FILE_LOGGING: string; // true or false
