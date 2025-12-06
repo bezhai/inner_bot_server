@@ -1,7 +1,7 @@
 import { DatabaseManager } from './database';
 import { HttpServerManager, ServerConfig } from './server';
 import { multiBotManager } from '../utils/bot/multi-bot-manager';
-import { botInitialization } from '../services/initialize/main';
+import { botInitialization } from './initializers/bot';
 import { initializeLarkClients } from '../services/integrations/lark-client';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
 import { initializeCrontabs } from '../services/crontab';
