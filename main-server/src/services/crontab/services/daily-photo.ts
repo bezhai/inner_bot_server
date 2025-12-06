@@ -19,7 +19,7 @@ export class DailyPhotoService {
      * 发图给订阅群聊
      * 每天 18:00 执行
      */
-    @Crontab('29 18 * * *', { taskName: 'daily-photo', botName: 'bytedance' })
+    @Crontab('0 18 * * *', { taskName: 'daily-photo', botName: 'bytedance' })
     async sendDailyPhoto(): Promise<void> {
         let images = await fetchUploadedImages({
             status: StatusMode.VISIBLE,
@@ -43,7 +43,7 @@ export class DailyPhotoService {
      * 发新图给特定群聊
      * 每天 19:30 执行
      */
-    @Crontab('33 10 * * *', { taskName: 'daily-new-photo', botName: 'bytedance' })
+    @Crontab('30 19 * * *', { taskName: 'daily-new-photo', botName: 'bytedance' })
     async dailySendNewPhoto(): Promise<void> {
         let images = await fetchUploadedImages({
             status: StatusMode.NOT_DELETE,

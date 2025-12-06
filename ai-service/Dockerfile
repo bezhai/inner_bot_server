@@ -1,33 +1,32 @@
 FROM python:3.11-slim
 
+ENV TZ=Asia/Shanghai \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app
+
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd -r appuser && useradd -r -g appuser -m appuser
 
 WORKDIR /app
 
-# 配置pip使用阿里云镜像源
-RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip config set global.trusted-host mirrors.aliyun.com
+RUN pip install uv -i https://mirrors.aliyun.com/pypi/simple/
 
-# 安装uv
-RUN pip install uv
-
-# 复制项目配置文件
 COPY pyproject.toml uv.lock uv.toml ./
 
-# 配置uv使用阿里云镜像源并同步依赖
-RUN uv sync --index-url https://mirrors.aliyun.com/pypi/simple/ --extra-index-url https://mirrors.aliyun.com/pypi/simple/ --allow-insecure-host mirrors.aliyun.com
+RUN uv sync --frozen \
+    --index-url https://mirrors.aliyun.com/pypi/simple/ \
+    --extra-index-url https://mirrors.aliyun.com/pypi/simple/
 
-# 复制应用代码
-COPY ./app /app/app
 
-# 设置时区为东八区
-ENV TZ=Asia/Shanghai
-ENV PYTHONPATH=/app
-ENV UV_CACHE_DIR=/tmp/uv-cache
-
+# 8. 日志目录
 RUN mkdir -p /logs/ai-service && chown -R appuser:appuser /logs
-
-RUN chown -R appuser:appuser /app
 
 USER appuser
 
