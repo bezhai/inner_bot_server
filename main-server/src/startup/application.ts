@@ -4,8 +4,7 @@ import { multiBotManager } from '../utils/bot/multi-bot-manager';
 import { botInitialization } from '../services/initialize/main';
 import { initializeLarkClients } from '../services/integrations/lark-client';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
-import { emojiScheduler } from '../services/crontab/emoji';
-import { dailyPhotoScheduler } from 'services/crontab/daily-photo';
+import { initializeCrontabs } from '../services/crontab';
 
 /**
  * 应用程序配置
@@ -47,10 +46,9 @@ export class ApplicationManager {
         await botInitialization();
         console.info('Bot initialized successfully!');
 
-        // 5. 启动emoji定时任务
-        emojiScheduler.start();
-        dailyPhotoScheduler.start();
-        console.info('Emoji scheduler started!');
+        // 5. 启动所有定时任务
+        initializeCrontabs();
+        console.info('All crontab tasks initialized!');
 
         // 6. 显示当前加载的机器人配置
         this.logBotConfigurations();

@@ -1,6 +1,6 @@
 import { PostContent } from 'types/content-types';
 import { PostNode, TextPostNode, AtPostNode, EmotionNode } from 'types/post-node-types';
-import { emojiService } from 'services/crontab/emoji/service';
+import { emojiService } from 'services/crontab/services/emoji';
 
 /**
  * 从文本中提取形如 [xxx] 的子串

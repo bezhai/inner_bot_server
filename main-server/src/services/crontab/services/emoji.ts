@@ -1,6 +1,7 @@
 import http from '../../http';
 import { LarkEmoji } from '../../../dal/entities/lark-emoji';
 import { larkEmojiRepository } from '../../../dal/repositories/lark-emoji-repository';
+import { Crontab, registerCrontabService } from '../decorators';
 
 export interface EmojiDataResponse {
     emojiData: {
@@ -57,7 +58,9 @@ export class EmojiService {
 
     /**
      * 同步emoji数据到数据库
+     * 每小时执行一次
      */
+    @Crontab('0 * * * *', { taskName: 'emoji-sync', botName: 'bytedance' })
     async syncEmojiData(): Promise<void> {
         try {
             console.info('Starting emoji data sync...');
@@ -113,4 +116,7 @@ export class EmojiService {
 }
 
 export const emojiService = new EmojiService();
+
+// 注册定时任务
+registerCrontabService(emojiService);
 
