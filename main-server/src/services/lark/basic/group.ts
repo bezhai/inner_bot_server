@@ -62,6 +62,8 @@ export async function searchLarkChatInfo(chat_id: string) {
             chat_id,
             union_id: chatInfo.owner_id!,
             is_owner: true,
+            created_at: new Date(),
+            updated_at: new Date(),
         },
     ];
 
@@ -70,6 +72,8 @@ export async function searchLarkChatInfo(chat_id: string) {
             chat_id,
             union_id,
             is_manager: true,
+            created_at: new Date(),
+            updated_at: new Date(),
         })),
     );
 
@@ -93,6 +97,8 @@ export async function searchLarkChatMember(chat_id: string) {
                 ...res.items.map((item) => ({
                     chat_id,
                     union_id: item.member_id!,
+                    created_at: new Date(),
+                    updated_at: new Date(),
                 })),
             );
             users.push(

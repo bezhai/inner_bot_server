@@ -16,4 +16,14 @@ export class LarkGroupMember {
 
     @Column({ type: 'boolean', default: false })
     is_leave?: boolean; // 是否是离开群聊
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at?: Date; // 创建时间
+
+    @Column({
+        type: 'timestamp',
+        default: () => 'CURRENT_TIMESTAMP',
+        onUpdate: 'CURRENT_TIMESTAMP',
+    })
+    updated_at!: Date; // 更新时间
 }

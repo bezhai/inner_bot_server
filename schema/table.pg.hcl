@@ -187,6 +187,16 @@ table "lark_group_member" {
     type    = boolean
     default = false
   }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  column "updated_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
   primary_key "PK_5b7ac116dc153f41440eba50d6b" {
     columns = [column.chat_id, column.union_id]
   }
@@ -301,44 +311,6 @@ table "response_feedback" {
   }
   primary_key "PK_1b8e3b99afad48f1574fdd8585b" {
     columns = [column.id]
-  }
-}
-table "user_chat_mapping" {
-  schema = schema.public
-  column "mapping_id" {
-    null    = false
-    type    = uuid
-    default = sql("gen_random_uuid()")
-  }
-  column "chat_id" {
-    null = false
-    type = character_varying
-  }
-  column "union_id" {
-    null = false
-    type = character_varying
-  }
-  column "created_at" {
-    null    = false
-    type    = timestamp
-    default = sql("now()")
-  }
-  column "updated_at" {
-    null    = false
-    type    = timestamp
-    default = sql("now()")
-  }
-  primary_key "PK_4c34d15df64ae5c40e4fff0b444" {
-    columns = [column.mapping_id]
-  }
-  foreign_key "FK_93a060d7b2362b94c7258449686" {
-    columns     = [column.chat_id]
-    ref_columns = [table.lark_base_chat_info.column.chat_id]
-    on_update   = NO_ACTION
-    on_delete   = NO_ACTION
-  }
-  unique "REL_93a060d7b2362b94c725844968" {
-    columns = [column.chat_id]
   }
 }
 table "user_group_binding" {

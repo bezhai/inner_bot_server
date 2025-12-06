@@ -33,7 +33,7 @@ import {
 import { getBotAppId } from 'utils/bot/bot-var';
 import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark-basic/group';
 import { LarkEnterChatEvent } from 'types/lark';
-import { LarkBaseChatInfo, UserChatMapping } from 'dal/entities';
+import { LarkBaseChatInfo } from 'dal/entities';
 import AppDataSource from 'ormconfig';
 import { ImageProcessorService } from '@media/image-processor';
 
@@ -137,6 +137,8 @@ export class LarkEventHandlers {
                     union_id: user.user_id?.union_id!,
                     chat_id: data.chat_id!,
                     is_leave: false,
+                    created_at: new Date(),
+                    updated_at: new Date(),
                 };
             }) || [];
         const users: LarkUser[] =
@@ -175,6 +177,7 @@ export class LarkEventHandlers {
                     union_id: user.user_id?.union_id!,
                     chat_id: data.chat_id!,
                     is_leave: true,
+                    updated_at: new Date(),
                 };
             }) || [];
 
@@ -247,7 +250,7 @@ export class LarkEventHandlers {
     async handlerEnterChat(data: LarkEnterChatEvent): Promise<void> {
         await AppDataSource.transaction(async (manager) => {
             const baseChatInfoRepository = manager.getRepository(LarkBaseChatInfo);
-            const userChatMappingRepository = manager.getRepository(UserChatMapping);
+            const groupMemberRepository = manager.getRepository(LarkGroupMember);
             const userRepository = manager.getRepository(LarkUser);
 
             const unionId = data.operator_id!.union_id!;
@@ -258,20 +261,24 @@ export class LarkEventHandlers {
                     const baseChatInfo = await baseChatInfoRepository.findOne({
                         where: { chat_id: data.chat_id },
                     });
-                    if (baseChatInfo) {
-                        return;
-                    }
-                    // 1. 创建基础聊天信息
-                    userChatMappingRepository.save({
-                        chat_id: data.chat_id!,
-                        union_id: unionId,
-                        chatInfo: {
+                    if (!baseChatInfo) {
+                        // 1. 创建基础聊天信息
+                        await baseChatInfoRepository.save({
                             chat_id: data.chat_id!,
                             chat_mode: 'p2p',
-                        },
+                        });
+                    }
+
+                    // 2. 创建用户与聊天的关联关系（使用 lark_group_member 表）
+                    await groupMemberRepository.save({
+                        chat_id: data.chat_id!,
+                        union_id: unionId,
+                        is_owner: false,
+                        is_manager: false,
+                        is_leave: false,
                     });
                 })(),
-                // 2. 检查并创建用户信息
+                // 3. 检查并创建用户信息
                 (async () => {
                     const existingUser = await userRepository.findOne({
                         where: { union_id: unionId },
