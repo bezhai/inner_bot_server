@@ -7,8 +7,4 @@ export async function botInitialization() {
 
     // 初始化聊天信息
     await upsertAllChatInfo();
-
-    // 初始化AI模型和提示词
-    // await initializeAIModels();
-    // await initializeAIPrompts();
 }

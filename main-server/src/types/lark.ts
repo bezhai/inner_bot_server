@@ -148,11 +148,9 @@ export interface LarkHistoryMessageResp {
 export const UpdatePhotoCard = 'update-photo-card';
 export const FetchPhotoDetails = 'fetch-photo-details';
 export const UpdateDailyPhotoCard = 'update-daily-photo-card';
-export const AuthorDownloadRequest = 'author_download';
 export const LarkCardThumbsUp = 'lark_card_thumbs_up';
 export const LarkCardThumbsDown = 'lark_card_thumbs_down';
 export const LarkCardRetry = 'lark_card_retry';
-export const SetLLMConfig = 'set_llm_config';
 
 export interface UpdatePhotoCardCallback {
     type: typeof UpdatePhotoCard;
@@ -167,10 +165,6 @@ export interface UpdateDailyPhotoCardCallback {
 export interface FetchPhotoDetailsCallback {
     type: typeof FetchPhotoDetails;
     images: string[];
-}
-
-export interface AuthorDownloadRequestCallback {
-    type: typeof AuthorDownloadRequest;
 }
 
 export interface LarkCardThumbsUpCallback {
@@ -198,38 +192,20 @@ export interface LarkCardRetryCallback {
     parent_message_id: string;
 }
 
-export interface SetLLMConfigCallback {
-    type: typeof SetLLMConfig;
-}
-
 type LarkCallbackValue =
     | UpdatePhotoCardCallback
     | FetchPhotoDetailsCallback
     | UpdateDailyPhotoCardCallback
-    | AuthorDownloadRequestCallback
     | LarkCardThumbsUpCallback
     | LarkCardThumbsDownCallback
-    | LarkCardRetryCallback
-    | SetLLMConfigCallback;
-
-export interface AuthorDownloadFormValue {
-    author_id: string;
-    start_index?: string;
-    end_index?: string;
-}
-
-export interface SetLLMConfigFormValue {
-    select_model: string;
-    select_prompt: string;
-    enable_search: string;
-}
+    | LarkCardRetryCallback;
 
 export interface LarkCallbackInfo {
     action: {
         tag: string; // 交互组件的标签
         value?: LarkCallbackValue;
         name?: string; // 组件的自定义唯一标识，用于识别内嵌在表单容器中的某个组件
-        form_value?: AuthorDownloadFormValue | SetLLMConfigFormValue; // 表单容器内用户提交的数据
+        form_value?: { [key: string]: any }; // 表单容器内用户提交的数据
         input_value?: string; // 当输入框组件未内嵌在表单容器中时，用户在输入框中提交的数据
         option?: string; // 当折叠按钮组、下拉选择-单选、人员选择-单选、日期选择器、时间选择器、日期时间选择器组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值
         options?: string[]; // 当下拉选择-多选组件和人员选择-多选组件未内嵌在表单容器中时，用户选择该类组件某个选项时，组件返回的选项回调值

@@ -1,12 +1,11 @@
 import { Message } from 'models/message';
-import { replyMessage, replyTemplate } from '@lark-basic/message';
+import { replyTemplate } from '@lark-basic/message';
 import { CommandHandler, CommandRule } from './rules/admin/command-handler';
 import { deleteBotMessage } from './rules/admin/delete-message';
 import { genHistoryCard } from './rules/general/gen-history';
 import { checkMeme, genMeme } from 'services/media/meme/meme';
 import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message';
 import {
-    ContainKeyword,
     EqualText,
     NeedNotRobotMention,
     NeedRobotMention,
@@ -18,7 +17,6 @@ import {
     IsAdmin,
 } from './rules/rule';
 import { sendPhoto } from 'services/media/photo/send-photo';
-import { checkDuplicate } from './rules/general/check-duplicate';
 import { makeCardReply } from 'services/ai/reply';
 import { sendBalance } from './rules/admin/balance';
 
@@ -92,17 +90,6 @@ const chatRules: RuleConfig[] = [
     {
         rules: [EqualText('关闭复读'), TextMessageLimit, NeedRobotMention, OnlyGroup],
         handler: changeRepeatStatus(false),
-    },
-    {
-        rules: [EqualText('模型配置'), TextMessageLimit, NeedRobotMention],
-        handler: async (message) => {
-            replyMessage(message.messageId, '功能已下线');
-        },
-    },
-    {
-        rules: [EqualText('查重'), TextMessageLimit, NeedRobotMention],
-        handler: checkDuplicate,
-        comment: '消息查重功能',
     },
     {
         rules: [CommandRule, TextMessageLimit, NeedRobotMention],

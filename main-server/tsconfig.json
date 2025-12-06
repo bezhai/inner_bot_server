@@ -12,6 +12,7 @@
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
+        "resolveJsonModule": true,
         "baseUrl": "src",
         "paths": {
             "@entities": ["dal/entities"],

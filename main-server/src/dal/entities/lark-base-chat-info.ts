@@ -19,11 +19,4 @@ export class LarkBaseChatInfo {
         new_permission?: boolean;
         is_canary?: boolean;
     }; // 权限配置，包含所有权限相关设置
-
-    // 已废弃字段 - 保留用于数据库兼容性，但不再使用
-    // @Column({ type: 'boolean', nullable: true })
-    // has_main_bot?: boolean; // 是否包含主机器人 - 已废弃，使用多机器人配置表替代
-
-    // @Column({ type: 'boolean', nullable: true })
-    // has_dev_bot?: boolean; // 是否包含开发机器人 - 已废弃，使用多机器人配置表替代
 }
