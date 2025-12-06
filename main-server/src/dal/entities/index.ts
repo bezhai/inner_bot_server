@@ -8,5 +8,4 @@ export * from './user-chat-mapping';
 export * from './user-group-binding';
 export * from './lark-user-open-id';
 export * from './response-feedback';
-export * from './prompt';
 export * from './bot-config';

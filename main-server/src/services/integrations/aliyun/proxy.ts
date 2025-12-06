@@ -5,14 +5,8 @@ import {
     ImageForLark,
     BaseResponse,
     PaginationResponse,
-    UploadImageToLarkDto,
-    UploadLarkResp,
+    ReportLarkUploadDto,
 } from 'types/pixiv';
-import {
-    LarkFileTransferInfo,
-    LarkFileTransferRequest,
-    LarkFileTransferResponse,
-} from 'types/aliyun';
 import http from '../../../services/http';
 
 // 生成盐
@@ -79,48 +73,20 @@ export async function getPixivImages(params: ListPixivImageDto): Promise<ImageFo
     }
 }
 
-export async function getLarkFileTransferUrl(
-    params: LarkFileTransferRequest,
-): Promise<LarkFileTransferInfo> {
+export async function reportLarkUpload(params: ReportLarkUploadDto): Promise<void> {
     try {
-        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/lark-file-transfer`;
+        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/image-store/report-lark-upload`;
 
         // 发送带有身份认证的请求
-        const response = await sendAuthenticatedRequest<BaseResponse<LarkFileTransferResponse>>(
-            url,
-            params,
-        );
+        const response = await sendAuthenticatedRequest<BaseResponse<void>>(url, params);
 
         // 检查响应的 code 字段
         if (response.code !== 0) {
             throw new Error(response.msg);
         }
 
-        return {
-            file_key: params.file_key,
-            url: response.data.url,
-        };
     } catch (error: any) {
-        console.error('Error in getLarkFileTransferUrl:', error);
-        throw new Error(error.message || 'Unknown error');
-    }
-}
-
-export async function uploadToLark(params: UploadImageToLarkDto): Promise<UploadLarkResp> {
-    try {
-        const url = `${process.env.PIXIV_PROXY_HOST}/api/v2/image-store/upload-lark`;
-
-        // 发送带有身份认证的请求
-        const response = await sendAuthenticatedRequest<BaseResponse<UploadLarkResp>>(url, params);
-
-        // 检查响应的 code 字段
-        if (response.code !== 0) {
-            throw new Error(response.msg);
-        }
-
-        return response.data;
-    } catch (error: any) {
-        console.error('Error in getPixivImages:', error);
+        console.error('Error in reportLarkUpload:', error);
         throw new Error(error.message || 'Unknown error');
     }
 }

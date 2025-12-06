@@ -1,6 +1,6 @@
-import http from './http';
-import { LarkEmoji } from '../dal/entities/lark-emoji';
-import { larkEmojiRepository } from '../dal/repositories/lark-emoji-repository';
+import http from '../../http';
+import { LarkEmoji } from '../../../dal/entities/lark-emoji';
+import { larkEmojiRepository } from '../../../dal/repositories/lark-emoji-repository';
 
 export interface EmojiDataResponse {
     emojiData: {

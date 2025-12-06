@@ -80,6 +80,7 @@ export interface ImageForLark {
     width?: number;
     height?: number;
     multi_tags?: MultiTag[];
+    tos_file_name: string;
 }
 
 export interface BaseResponse<T> {
@@ -107,8 +108,11 @@ export interface ListPixivImageDto {
     tag_and_author?: string[];
 }
 
-export interface UploadImageToLarkDto {
-    pixiv_addr: string;
+export interface ReportLarkUploadDto {
+  pixiv_addr: string;
+  image_key: string;
+  width: number;
+  height: number;
 }
 
 export interface UploadLarkResp {

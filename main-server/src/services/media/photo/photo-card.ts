@@ -10,10 +10,10 @@ import {
 import { UpdatePhotoCard, FetchPhotoDetails, UpdateDailyPhotoCard } from 'types/lark';
 import { StatusMode } from 'types/pixiv';
 import { calcBestChunks } from '../../../services/media/photo/calc-photo';
-import { getPixivImages, uploadToLark } from 'services/integrations/aliyun/proxy';
+import { fetchUploadedImages } from './upload';
 
 export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_photo?: boolean) {
-    let images = await getPixivImages({
+    let images = await fetchUploadedImages({
         status: allow_send_limit_photo ? StatusMode.NOT_DELETE : StatusMode.VISIBLE,
         page: 1,
         page_size: 6,
@@ -23,20 +23,6 @@ export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_p
 
     if (images.length <= 0) {
         throw new Error('没有找到图片');
-    }
-
-    images = await Promise.all(
-        images.map(async (image) => {
-            if (!image.image_key) {
-                const uploadResp = await uploadToLark({ pixiv_addr: image.pixiv_addr });
-                return { ...image, ...uploadResp };
-            }
-            return image;
-        }),
-    );
-
-    if (images.length <= 0) {
-        throw new Error('图片处理失败');
     }
 
     const { chunks, weights } = calcBestChunks(images);
@@ -81,7 +67,7 @@ export async function searchAndBuildPhotoCard(tags: string[], allow_send_limit_p
 }
 
 export async function getPhotoDetailCard(pixivAddrs: string[]) {
-    let images = await getPixivImages({
+    let images = await fetchUploadedImages({
         status: StatusMode.ALL,
         page: 1,
         page_size: 6,
@@ -127,7 +113,7 @@ export async function searchAndBuildDailyPhotoCard(
     start_time: number,
     allow_send_limit_photo?: boolean,
 ) {
-    let images = await getPixivImages({
+    let images = await fetchUploadedImages({
         status: allow_send_limit_photo ? StatusMode.NOT_DELETE : StatusMode.VISIBLE,
         page: 1,
         page_size: 6,
@@ -137,20 +123,6 @@ export async function searchAndBuildDailyPhotoCard(
 
     if (images.length <= 0) {
         throw new Error('没有找到图片');
-    }
-
-    images = await Promise.all(
-        images.map(async (image) => {
-            if (!image.image_key) {
-                const uploadResp = await uploadToLark({ pixiv_addr: image.pixiv_addr });
-                return { ...image, ...uploadResp };
-            }
-            return image;
-        }),
-    );
-
-    if (images.length <= 0) {
-        throw new Error('图片处理失败');
     }
 
     const { chunks, weights } = calcBestChunks(images);

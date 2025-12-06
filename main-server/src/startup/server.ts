@@ -4,7 +4,6 @@ import koaBody from 'koa-body';
 import cors from '@koa/cors';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
-import promptRoutes from '../handlers/prompts';
 import imageProcessRoutes from '../handlers/image-process';
 import { multiBotManager } from '../utils/bot/multi-bot-manager';
 import { StartupStrategyManager } from '../services/lark/startup-strategy';
@@ -132,7 +131,6 @@ export class HttpServerManager {
         // 注册健康检查和其他路由
         this.registerHealthCheck();
         this.app.use(this.router.routes());
-        this.app.use(promptRoutes.routes());
         this.app.use(imageProcessRoutes.routes());
 
         // 启动服务器

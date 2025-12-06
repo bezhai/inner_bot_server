@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { emojiService } from './emoji-service';
+import { emojiService } from './service';
 
 export class EmojiScheduler {
     private syncJob: cron.ScheduledTask | null = null;
