@@ -7,7 +7,7 @@ import {
     PaginationResponse,
     ReportLarkUploadDto,
 } from 'types/pixiv';
-import http from '../../../services/http';
+import http from '@http/client';
 
 // 生成盐
 const generateSalt = (length: number): string => {

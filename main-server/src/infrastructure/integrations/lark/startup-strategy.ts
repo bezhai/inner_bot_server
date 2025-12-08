@@ -1,4 +1,4 @@
-import { BotConfig } from '../../../dal/entities/bot-config';
+import { BotConfig } from '@entities/bot-config';
 import { HttpRouterManager, HttpRouterConfig } from './router';
 import { WebSocketManager } from './websocket';
 

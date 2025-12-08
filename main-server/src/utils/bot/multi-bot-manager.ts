@@ -1,5 +1,5 @@
-import { BotConfig } from '../../dal/entities/bot-config';
-import { botConfigRepository } from '../../dal/repositories/bot-config-repository';
+import { BotConfig } from '@entities/bot-config';
+import { botConfigRepository } from '@repositories/bot-config-repository';
 
 export class MultiBotManager {
     private static instance: MultiBotManager;

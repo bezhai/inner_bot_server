@@ -2,12 +2,12 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import koaBody from 'koa-body';
 import cors from '@koa/cors';
-import { traceMiddleware } from '../middleware/trace';
-import { botContextMiddleware } from '../middleware/bot-context';
-import imageProcessRoutes from '../api/routes/image.route';
-import { multiBotManager } from '../utils/bot/multi-bot-manager';
-import { StartupStrategyManager } from '../infrastructure/integrations/lark/startup-strategy';
-import { HttpRouterConfig } from '../infrastructure/integrations/lark/router';
+import { traceMiddleware } from '@middleware/trace';
+import { botContextMiddleware } from '@middleware/bot-context';
+import imageProcessRoutes from '@api/routes/image.route';
+import { multiBotManager } from '@utils/bot/multi-bot-manager';
+import { StartupStrategyManager } from '@lark/startup-strategy';
+import { HttpRouterConfig } from '@lark/router';
 
 /**
  * 路由配置接口

@@ -1,5 +1,5 @@
-import { mongoInitPromise } from '../dal/mongo/client';
-import AppDataSource from '../ormconfig';
+import { mongoInitPromise } from '@dal/mongo/client';
+import AppDataSource from '@ormconfig';
 
 /**
  * 数据库初始化管理器
@@ -25,7 +25,7 @@ export class DatabaseManager {
             }
 
             // 关闭 Redis 连接
-            const { close } = await import('../infrastructure/cache/redis-client');
+            const { close } = await import('@cache/redis-client');
             await close();
             console.info('Redis connections closed');
         } catch (error) {

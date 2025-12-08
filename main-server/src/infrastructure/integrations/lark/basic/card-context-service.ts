@@ -1,5 +1,5 @@
 
-import { CardContextRepository } from 'dal/repositories/repositories';
+import { CardContextRepository } from 'infrastructure/dal/repositories/repositories';
 
 export interface CardContext {
     card_id: string;

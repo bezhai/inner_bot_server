@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // 初始化日志系统
-import { LoggerFactory } from './services/logger';
+import { LoggerFactory } from './infrastructure/logger';
 
 // 初始化日志系统
 LoggerFactory.getInstance();

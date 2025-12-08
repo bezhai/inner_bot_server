@@ -1,8 +1,8 @@
-import { Message } from 'models/message';
+import { Message } from 'core/models/message';
 import { TextContent, ImageContent, StickerContent, PostContent } from 'types/content-types';
 import { LarkReceiveMessage } from 'types/lark';
-import { ContentType, ContentItem } from 'models/message-content';
-import { MentionUtils } from '../../lark/utils/mention-utils';
+import { ContentType, ContentItem } from 'core/models/message-content';
+import { MentionUtils } from '@lark/utils/mention-utils';
 
 export class MessageTransferer {
     // 临时先将getContentFactory改为public, 方便调用, 后面看怎么封装起来

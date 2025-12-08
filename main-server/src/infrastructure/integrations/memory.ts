@@ -1,4 +1,4 @@
-import http from '../../services/http';
+import http from '@http/client';
 import { ChatMessage } from 'types/chat';
 import { AxiosError } from 'axios';
 

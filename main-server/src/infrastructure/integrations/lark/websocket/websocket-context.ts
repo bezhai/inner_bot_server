@@ -1,5 +1,5 @@
-import { context } from '../../../../middleware/context';
-import { BotConfig } from '../../../../dal/entities/bot-config';
+import { context } from '@middleware/context';
+import { BotConfig } from '@entities/bot-config';
 
 /**
  * WebSocket事件处理的上下文注入装饰器

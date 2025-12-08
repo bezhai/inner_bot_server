@@ -5,7 +5,7 @@ import {
     LarkGroupChangeInfo,
 } from 'types/lark';
 import { EventHandler } from './event-registry';
-import { runRules } from 'services/rules/engine';
+import { runRules } from 'core/rules/engine';
 import { MessageTransferer } from './factory';
 import { storeMessage } from 'infrastructure/integrations/memory';
 import {
@@ -16,12 +16,12 @@ import {
     LarkCardThumbsDown,
     LarkCardThumbsUp,
 } from 'types/lark';
-import { fetchAndSendPhotoDetail } from '@callback/fetch-photo-detail';
-import { handleUpdatePhotoCard, handleUpdateDailyPhotoCard } from '@callback/update-card';
-import { handleRetryCard } from '@callback/retry-card';
-import { handleFeedback } from '@callback/feedback';
-import { LarkGroupMember, LarkUser } from 'dal/entities';
-import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
+import { fetchAndSendPhotoDetail } from '@core/services/callback/fetch-photo-detail';
+import { handleUpdatePhotoCard, handleUpdateDailyPhotoCard } from '@core/services/callback/update-card';
+import { handleRetryCard } from '@core/services/callback/retry-card';
+import { handleFeedback } from '@core/services/callback/feedback';
+import { LarkGroupMember, LarkUser } from 'infrastructure/dal/entities';
+import { LarkUserOpenId } from 'infrastructure/dal/entities/lark-user-open-id';
 import { getUserInfo } from 'infrastructure/integrations/lark-client';
 import {
     GroupMemberRepository,
@@ -29,13 +29,13 @@ import {
     LarkUserOpenIdRepository,
     GroupChatInfoRepository,
     UserGroupBindingRepository,
-} from 'dal/repositories/repositories';
+} from 'infrastructure/dal/repositories/repositories';
 import { getBotAppId } from 'utils/bot/bot-var';
-import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark-basic/group';
+import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark/basic/group';
 import { LarkEnterChatEvent } from 'types/lark';
-import { LarkBaseChatInfo } from 'dal/entities';
+import { LarkBaseChatInfo } from 'infrastructure/dal/entities';
 import AppDataSource from 'ormconfig';
-import { ImageProcessorService } from '@media/image-processor';
+import { ImageProcessorService } from '@core/services/media/image-processor';
 
 /**
  * Lark事件处理器类

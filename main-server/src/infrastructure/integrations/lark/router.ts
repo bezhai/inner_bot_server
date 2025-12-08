@@ -1,5 +1,5 @@
 import * as Lark from '@larksuiteoapi/node-sdk';
-import { BotConfig } from '../../../dal/entities/bot-config';
+import { BotConfig } from '@entities/bot-config';
 import { EventDecoratorFactory } from './events/decorator-factory';
 import { EventRegistry, registerEventHandlerInstance } from './events/event-registry';
 import { larkEventHandlers } from './events/handlers';

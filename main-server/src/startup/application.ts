@@ -1,10 +1,10 @@
 import { DatabaseManager } from './database';
 import { HttpServerManager, ServerConfig } from './server';
-import { multiBotManager } from '../utils/bot/multi-bot-manager';
+import { multiBotManager } from '@utils/bot/multi-bot-manager';
 import { botInitialization } from './initializers/bot';
-import { initializeLarkClients } from '../infrastructure/integrations/lark-client';
-import { StartupStrategyManager } from '../infrastructure/integrations/lark/startup-strategy';
-import { initializeCrontabs } from '../services/crontab';
+import { initializeLarkClients } from '@integrations/lark-client';
+import { StartupStrategyManager } from '@lark/startup-strategy';
+import { initializeCrontabs } from '@crontab/index';
 
 /**
  * 应用程序配置

@@ -1,5 +1,5 @@
 import { AIKeyInfo, AIKeyInfoResponse, BalanceResponse } from 'types/admin';
-import http from '../../services/http';
+import http from '@http/client';
 
 const BASE_ADMIN_URL = 'https://api.302.ai';
 

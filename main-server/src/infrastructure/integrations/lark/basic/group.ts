@@ -1,5 +1,5 @@
-import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from 'dal/entities';
-import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
+import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from 'infrastructure/dal/entities';
+import { LarkUserOpenId } from 'infrastructure/dal/entities/lark-user-open-id';
 import { getChatList, getChatInfo, searchAllMembers, addChatMember } from '@lark-client';
 import { getBotAppId } from 'utils/bot/bot-var';
 

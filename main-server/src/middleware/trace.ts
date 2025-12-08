@@ -1,5 +1,5 @@
 import { Context, Next } from 'koa';
-import { asyncLocalStorage } from '../middleware/context';
+import { asyncLocalStorage } from '@middleware/context';
 import { v4 as uuidv4 } from 'uuid';
 
 export const traceMiddleware = async (ctx: Context, next: Next) => {

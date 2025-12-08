@@ -9,7 +9,7 @@ const AppDataSource = new DataSource({
     database: process.env.POSTGRES_DB!,
     synchronize: process.env.SYNCHRONIZE_DB === 'true', // 是否自动同步数据库结构,
     logging: ['error', 'schema', 'warn'], // 是否启用日志
-    entities: [`${__dirname}/dal/entities/*.{ts,js}`], // 实体文件路径
+    entities: [`${__dirname}/infrastructure/dal/entities/*.{ts,js}`], // 实体文件路径
 });
 
 export default AppDataSource;
