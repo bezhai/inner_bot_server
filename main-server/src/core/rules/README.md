@@ -1,39 +1,43 @@
 # Message Processing (消息处理)
 
-负责对接收到的消息进行解析、匹配与响应，结合规则引擎与 AI 服务产出结果。
+负责对接收到的消息进行解析、匹配与响应，结合规则引擎与 AI 服务产出结果。以“规则链”组织复杂逻辑，并按需调用媒体/管理等处理器。
 
 ## 目录结构
 
 ```
-message-processing/
-├── ai/              # AI 聊天能力
-│   ├── service.ts   # AI 服务封装
-│   └── stream/      # AI 流式响应处理
-├── rules/           # 规则体系
-│   ├── admin/       # 管理员规则
-│   ├── general/     # 通用规则
-│   └── group/       # 群聊规则
-└── rule-engine.ts   # 规则匹配与执行引擎
+core/rules/
+├── engine.ts        # 规则引擎（同步/异步规则、fallthrough）
+├── rule.ts          # 通用规则定义（OnlyGroup/NeedRobotMention 等）
+├── admin/           # 管理员规则（余额、撤回、命令）
+├── general/         # 通用规则（水群统计、帮助）
+└── group/           # 群聊规则（复读开关与复读）
 ```
 
-## 核心组件
+## 规则链（Mermaid）
 
-### Rule Engine（rule-engine.ts）
+```mermaid
+flowchart TD
+  Msg[消息] --> R1[群聊复读检测]
+  R1 -->|fallthrough| R2[管理员：余额]
+  R2 --> R3[帮助]
+  R3 --> R4[撤回]
+  R4 --> R5[水群统计]
+  R5 --> R6[复读开关]
+  R6 --> R7[命令处理]
+  R7 --> R8[发图]
+  R8 --> R9[Meme 检测]
+  R9 --> R10[AI 聊天卡片回复]
+```
 
-按顺序执行预定义规则，命中即触发处理器。
+## 写法约定
 
-典型流程：
-1. 去重：避免重复响应
-2. 管理员命令处理
-3. 通用规则（关键词、自动回复等）
-4. 群组规则（如复读）
+- 规则划分：轻量同步校验放入 `rules`；涉及外部依赖的校验放入 `async_rules`
+- fallthrough：仅在需要并行命中多个功能时开启，避免重复回复
+- 错误兜底：处理器内部统一 try/catch，并向用户回传友好错误信息
+- 权限检查：`IsAdmin`、白名单群检查等作为前置规则
 
-### rules/
+## 扩展指南
 
-分类管理具体规则，保持职责单一、便于扩展与测试。
-
-## 如何新增规则
-
-1. 在 `rules/` 下创建规则文件
-2. 实现 `Rule` 接口，提供 `condition` 与 `action`
-3. 在 `rule-engine.ts` 中将规则加入规则链
+1. 在对应子目录新增规则文件与处理器
+2. 在 `engine.ts` 的规则集数组中追加一项，配置 `rules/async_rules/handler/fallthrough`
+3. 如需 AI 能力，调用 `core/services/ai` 的 sseChat，并按需保存消息到 Memory 服务

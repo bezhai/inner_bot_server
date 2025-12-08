@@ -2,6 +2,7 @@ import Koa from 'koa';
 import Router from '@koa/router';
 import koaBody from 'koa-body';
 import cors from '@koa/cors';
+import { errorHandler } from '@middleware/error-handler';
 import { traceMiddleware } from '@middleware/trace';
 import { botContextMiddleware } from '@middleware/bot-context';
 import imageProcessRoutes from '@api/routes/image.route';
@@ -53,8 +54,9 @@ export class HttpServerManager {
      */
     private setupMiddleware(): void {
         this.app.use(cors());
-        this.app.use(traceMiddleware); // 先注入 traceId
-        this.app.use(botContextMiddleware); // 再注入 botName
+        this.app.use(traceMiddleware); // 先注入 traceId（为后续日志与错误处理提供上下文）
+        this.app.use(errorHandler); // 统一错误处理（依赖 traceId 贯穿）
+        this.app.use(botContextMiddleware); // 注入 botName
         this.app.use(koaBody({
             formLimit: '50mb',
             jsonLimit: '50mb',

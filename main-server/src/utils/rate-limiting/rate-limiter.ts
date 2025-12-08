@@ -14,7 +14,7 @@ export class RateLimiter {
     }
 
     private cleanup(now: number): void {
-        while (this.queue.length > 0 && now - this.queue[0] > this.interval) {
+        while (this.queue.length > 0 && now - this.queue[0] >= this.interval) {
             this.queue.shift();
         }
     }

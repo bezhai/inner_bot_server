@@ -1,6 +1,6 @@
 # 启动模块 (Startup Module)
 
-负责应用的初始化、启动与优雅关闭。
+负责应用的初始化、启动与优雅关闭，面向主服务的生命周期编排。
 
 ## 目录结构
 
@@ -12,46 +12,45 @@ startup/
 └── README.md
 ```
 
-## 核心组件
+## 启动编排（Mermaid）
 
-### ApplicationManager
+```mermaid
+sequenceDiagram
+  participant App as ApplicationManager
+  participant DB as DatabaseManager
+  participant MBot as multiBotManager
+  participant Lark as LarkClients
+  participant BotInit as botInitialization
+  participant Cron as Crontab
+  participant HTTP as HttpServerManager
 
-统一编排启动与关闭流程。
+  App->>DB: initialize()
+  App->>MBot: initialize()
+  App->>Lark: initializeLarkClients()
+  App->>BotInit: botInitialization()
+  App->>Cron: initializeCrontabs()
+  App-->>App: start()
+  App->>HTTP: start() (注册 http 路由)
+  App->>Lark: websocket 启动（按策略）
+```
 
-职责：
-- 初始化数据库、多机器人管理器、Lark 客户端等
-- 启动 WebSocket 与 HTTP 服务
-- 处理 SIGINT/SIGTERM 实现优雅关闭
+## 关键职责
 
-### DatabaseManager
+- 初始化：数据库、多机器人管理器、Lark 客户端池
+- 启动：WebSocket 服务（按策略）、HTTP 服务（按路由配置）
+- 关闭：处理 SIGINT/SIGTERM，优雅释放资源（DB/Redis 等）
+- 可观察性：打印当前加载的机器人配置与路由列表
 
-统一管理数据库连接的初始化与关闭。
-
-支持：
-- PostgreSQL（TypeORM）
-- MongoDB
-- Redis
-
-### HttpServerManager
-
-创建与启动 Koa 应用。
-
-职责：
-- 加载中间件（CORS/Trace/Bot 上下文/BodyParser 等）
-- 按机器人动态注册事件/卡片回调路由与健康检查
-- 监听端口启动 HTTP 服务
-
-## 使用
-
-应用入口在项目根目录的 index.ts：
+## 使用示例
 
 ```typescript
 // src/index.ts
-import { ApplicationManager, createDefaultConfig } from './startup/application';
+import { ApplicationManager, createDefaultConfig, setupProcessHandlers } from './startup/application';
 
 (async () => {
   const config = createDefaultConfig();
   const app = new ApplicationManager(config);
+  setupProcessHandlers(app);
   await app.initialize();
   await app.start();
 })();
