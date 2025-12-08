@@ -63,6 +63,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 if not should_continue:
                     continue
 
+                logger.info(f"AIMessageChunk received: {token}")
                 status_message = processor.process_chunk(token)
                 if status_message:
                     yield ChatStreamChunk(status_message=status_message)
