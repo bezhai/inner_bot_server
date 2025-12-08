@@ -1,6 +1,6 @@
 import { insertEvent } from 'dal/mongo/client';
-import { BotConfig } from '../../../dal/entities/bot-config';
-import { context } from '../../../middleware/context';
+import { BotConfig } from '../../../../dal/entities/bot-config';
+import { context } from '../../../../middleware/context';
 
 /**
  * 事件处理装饰器工厂

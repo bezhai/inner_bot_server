@@ -1,7 +1,7 @@
 import { replyCard, replyMessage } from '@lark-basic/message';
 import { CardHeader, LarkCard, MarkdownComponent, TableColumn, TableComponent } from 'feishu-card';
 import { Message } from 'models/message';
-import { getAIKeyInfo, getBalance } from 'services/integrations/provider-admin';
+import { getAIKeyInfo, getBalance } from 'infrastructure/integrations/provider-admin';
 
 export async function sendBalance(message: Message) {
     try {

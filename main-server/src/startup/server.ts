@@ -4,10 +4,10 @@ import koaBody from 'koa-body';
 import cors from '@koa/cors';
 import { traceMiddleware } from '../middleware/trace';
 import { botContextMiddleware } from '../middleware/bot-context';
-import imageProcessRoutes from '../handlers/image-process';
+import imageProcessRoutes from '../api/routes/image.route';
 import { multiBotManager } from '../utils/bot/multi-bot-manager';
-import { StartupStrategyManager } from '../services/lark/startup-strategy';
-import { HttpRouterConfig } from '../services/lark/router';
+import { StartupStrategyManager } from '../infrastructure/integrations/lark/startup-strategy';
+import { HttpRouterConfig } from '../infrastructure/integrations/lark/router';
 
 /**
  * 路由配置接口

@@ -5,9 +5,9 @@ import {
     LarkGroupChangeInfo,
 } from 'types/lark';
 import { EventHandler } from './event-registry';
-import { runRules } from 'services/message-processing/rule-engine';
+import { runRules } from 'services/rules/engine';
 import { MessageTransferer } from './factory';
-import { storeMessage } from 'services/integrations/memory';
+import { storeMessage } from 'infrastructure/integrations/memory';
 import {
     UpdatePhotoCard,
     FetchPhotoDetails,
@@ -22,7 +22,7 @@ import { handleRetryCard } from '@callback/retry-card';
 import { handleFeedback } from '@callback/feedback';
 import { LarkGroupMember, LarkUser } from 'dal/entities';
 import { LarkUserOpenId } from 'dal/entities/lark-user-open-id';
-import { getUserInfo } from 'services/integrations/lark-client';
+import { getUserInfo } from 'infrastructure/integrations/lark-client';
 import {
     GroupMemberRepository,
     UserRepository,

@@ -3,13 +3,13 @@ import { LarkMessageMetaInfo, LarkUserMessageMetaInfo } from 'types/mongo';
 import { LarkHistoryMessage } from 'types/lark';
 import { MessageMetadata } from './message-metadata';
 import { MessageContent, ContentType, ContentItem } from './message-content';
-import { MentionUtils } from '../services/lark/utils/mention-utils';
+import { MentionUtils } from '../infrastructure/integrations/lark/utils/mention-utils';
 import {
     BaseChatInfoRepository,
     GroupChatInfoRepository,
     UserRepository,
 } from 'dal/repositories/repositories';
-import { MessageTransferer } from 'services/lark/events/factory';
+import { MessageTransferer } from 'infrastructure/integrations/lark/events/factory';
 
 export class MessageBuilder {
     static async buildMetadataFromEvent(event: LarkReceiveMessage): Promise<MessageMetadata> {

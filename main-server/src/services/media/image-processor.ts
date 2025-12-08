@@ -1,8 +1,8 @@
-import { downloadResource, downloadSelfImage, uploadImage } from '../integrations/lark-client';
-import { getOss } from '../integrations/aliyun/oss';
-import { cache } from '../../utils/cache/cache-decorator';
-import { RedisLock } from '../../utils/cache/redis-lock';
-import { get as redisGet, setWithExpire as redisSetWithExpire } from '../../dal/redis';
+import { downloadResource, downloadSelfImage, uploadImage } from '../../infrastructure/integrations/lark-client';
+import { getOss } from '../../infrastructure/integrations/aliyun/oss';
+import { cache } from '../../infrastructure/cache/cache-decorator';
+import { RedisLock } from '../../infrastructure/cache/redis-lock';
+import { get as redisGet, setWithExpire as redisSetWithExpire } from '../../infrastructure/cache/redis-client';
 import { Readable } from 'node:stream';
 import sharp from 'sharp';
 

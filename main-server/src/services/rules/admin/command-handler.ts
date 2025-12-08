@@ -1,4 +1,4 @@
-import { set } from 'dal/redis';
+import { set } from 'infrastructure/cache/redis-client';
 import { UserGroupBindingRepository, GroupMemberRepository } from 'dal/repositories/repositories';
 import { Message } from 'models/message';
 import { getBotUnionId } from 'utils/bot/bot-var';

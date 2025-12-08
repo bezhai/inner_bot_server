@@ -1,7 +1,7 @@
-import { getOss } from 'services/integrations/aliyun/oss';
+import { getOss } from 'infrastructure/integrations/aliyun/oss';
 import { resizeImage } from './image-resize';
 import { uploadImage } from '@lark-client';
-import { getPixivImages, reportLarkUpload } from 'services/integrations/aliyun/proxy';
+import { getPixivImages, reportLarkUpload } from 'infrastructure/integrations/aliyun/proxy';
 import { ImageForLark, ListPixivImageDto } from 'types/pixiv';
 
 export async function fetchUploadedImages(params: ListPixivImageDto): Promise<ImageForLark[]> {

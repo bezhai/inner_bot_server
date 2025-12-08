@@ -16,8 +16,8 @@
         "baseUrl": "src",
         "paths": {
             "@entities": ["dal/entities"],
-            "@lark-client": ["services/integrations/lark-client"],
-            "@lark-basic/*": ["services/lark/basic/*"],
+            "@lark-client": ["infrastructure/integrations/lark-client"],
+            "@lark-basic/*": ["infrastructure/integrations/lark/basic/*"],
             "@callback/*": ["services/callback/*"],
             "@media/*": ["services/media/*"],
             "@types/*": ["types/*"]

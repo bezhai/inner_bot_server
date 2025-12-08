@@ -1,19 +1,19 @@
 import Router from '@koa/router';
 import { Context } from 'koa';
-import { bearerAuthMiddleware } from '../middleware/auth';
-import { traceMiddleware } from '../middleware/trace';
-import { botContextMiddleware } from '../middleware/bot-context';
+import { bearerAuthMiddleware } from '../../middleware/auth';
+import { traceMiddleware } from '../../middleware/trace';
+import { botContextMiddleware } from '../../middleware/bot-context';
 import {
     validateBody,
     imageProcessValidationRules,
     base64ImageUploadValidationRules,
-} from '../middleware/validation';
+} from '../../middleware/validation';
 import {
     imageProcessor,
     ImageProcessRequest,
     ImageProcessError,
     Base64ImageUploadRequest,
-} from '../services/media/image-processor';
+} from '../../services/media/image-processor';
 
 const router = new Router({ prefix: '/api/image' });
 

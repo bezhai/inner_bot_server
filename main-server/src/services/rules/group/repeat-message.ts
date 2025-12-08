@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { get, setWithExpire } from 'dal/redis';
+import { get, setWithExpire } from 'infrastructure/cache/redis-client';
 import { BaseChatInfoRepository } from 'dal/repositories/repositories';
 import { Message } from 'models/message';
 import { sendSticker, replyMessage, sendPost } from '@lark-basic/message';

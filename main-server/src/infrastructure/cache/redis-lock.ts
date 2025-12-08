@@ -1,4 +1,4 @@
-import { setWithExpire, evalScript } from '../../dal/redis';
+import { setWithExpire, evalScript } from './redis-client';
 import { randomBytes } from 'crypto';
 
 interface LockOptions {

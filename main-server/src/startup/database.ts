@@ -25,7 +25,7 @@ export class DatabaseManager {
             }
 
             // 关闭 Redis 连接
-            const { close } = await import('../dal/redis');
+            const { close } = await import('../infrastructure/cache/redis-client');
             await close();
             console.info('Redis connections closed');
         } catch (error) {

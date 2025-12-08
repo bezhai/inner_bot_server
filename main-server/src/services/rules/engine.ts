@@ -1,10 +1,10 @@
 import { Message } from 'models/message';
 import { replyTemplate } from '@lark-basic/message';
-import { CommandHandler, CommandRule } from './rules/admin/command-handler';
-import { deleteBotMessage } from './rules/admin/delete-message';
-import { genHistoryCard } from './rules/general/gen-history';
+import { CommandHandler, CommandRule } from './admin/command-handler';
+import { deleteBotMessage } from './admin/delete-message';
+import { genHistoryCard } from './general/gen-history';
 import { checkMeme, genMeme } from 'services/media/meme/meme';
-import { changeRepeatStatus, repeatMessage } from './rules/group/repeat-message';
+import { changeRepeatStatus, repeatMessage } from './group/repeat-message';
 import {
     EqualText,
     NeedNotRobotMention,
@@ -15,10 +15,10 @@ import {
     TextMessageLimit,
     WhiteGroupCheck,
     IsAdmin,
-} from './rules/rule';
+} from './rule';
 import { sendPhoto } from 'services/media/photo/send-photo';
 import { makeCardReply } from 'services/ai/reply';
-import { sendBalance } from './rules/admin/balance';
+import { sendBalance } from './admin/balance';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {

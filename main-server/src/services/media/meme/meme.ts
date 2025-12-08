@@ -6,7 +6,7 @@ import { uploadImage, downloadResource } from '@lark-client';
 import FormData from 'form-data';
 import { replyImage, replyMessage } from '@lark-basic/message';
 import { GroupChatInfoRepository } from 'dal/repositories/repositories';
-import { cache } from 'utils/cache/cache-decorator';
+import { cache } from 'infrastructure/cache/cache-decorator';
 import http from '../../../services/http';
 
 // 缓存过期时间（10分钟）
