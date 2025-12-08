@@ -1,5 +1,5 @@
 import { TextUtils } from 'utils/text/text-utils';
-import { getBotUnionId } from 'utils/bot/bot-var';
+import { getBotUnionId } from '@core/services/bot/bot-var';
 
 export enum ContentType {
     Text = 'text',

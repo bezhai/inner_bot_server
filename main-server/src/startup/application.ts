@@ -1,6 +1,6 @@
 import { DatabaseManager } from './database';
 import { HttpServerManager, ServerConfig } from './server';
-import { multiBotManager } from '@utils/bot/multi-bot-manager';
+import { multiBotManager } from '@core/services/bot/multi-bot-manager';
 import { botInitialization } from './initializers/bot';
 import { initializeLarkClients } from '@integrations/lark-client';
 import { StartupStrategyManager } from '@lark/startup-strategy';

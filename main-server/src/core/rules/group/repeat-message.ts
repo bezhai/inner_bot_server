@@ -3,7 +3,7 @@ import { get, setWithExpire } from 'infrastructure/cache/redis-client';
 import { BaseChatInfoRepository } from 'infrastructure/dal/repositories/repositories';
 import { Message } from 'core/models/message';
 import { sendSticker, replyMessage, sendPost } from '@lark/basic/message';
-import { createPostContentFromText } from 'utils/text/post-content-processor';
+import { createPostContentFromText } from '@core/services/message/post-content-processor';
 
 interface RepeatMsg {
     chatId: string;

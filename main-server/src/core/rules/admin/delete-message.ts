@@ -1,6 +1,6 @@
 import { getMessageInfo, deleteMessage } from '@lark-client';
 import { Message } from 'core/models/message';
-import { getBotAppId } from 'utils/bot/bot-var';
+import { getBotAppId } from '@core/services/bot/bot-var';
 import { replyMessage } from '@lark/basic/message';
 
 export async function deleteBotMessage(message: Message) {

@@ -6,7 +6,7 @@ import { errorHandler } from '@middleware/error-handler';
 import { traceMiddleware } from '@middleware/trace';
 import { botContextMiddleware } from '@middleware/bot-context';
 import imageProcessRoutes from '@api/routes/image.route';
-import { multiBotManager } from '@utils/bot/multi-bot-manager';
+import { multiBotManager } from '@core/services/bot/multi-bot-manager';
 import { StartupStrategyManager } from '@lark/startup-strategy';
 import { HttpRouterConfig } from '@lark/router';
 

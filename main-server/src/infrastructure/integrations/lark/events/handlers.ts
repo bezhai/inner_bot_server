@@ -30,7 +30,7 @@ import {
     GroupChatInfoRepository,
     UserGroupBindingRepository,
 } from 'infrastructure/dal/repositories/repositories';
-import { getBotAppId } from 'utils/bot/bot-var';
+import { getBotAppId } from '@core/services/bot/bot-var';
 import { searchLarkChatInfo, searchLarkChatMember, addChatMember } from '@lark/basic/group';
 import { LarkEnterChatEvent } from 'types/lark';
 import { LarkBaseChatInfo } from 'infrastructure/dal/entities';

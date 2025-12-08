@@ -1,6 +1,6 @@
 import { Context, Next } from 'koa';
 import { asyncLocalStorage, context } from './context';
-import { multiBotManager } from '@utils/bot/multi-bot-manager';
+import { multiBotManager } from '@core/services/bot/multi-bot-manager';
 
 export const botContextMiddleware = async (ctx: Context, next: Next) => {
     let botName: string | undefined;

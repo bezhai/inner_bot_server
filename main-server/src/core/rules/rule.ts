@@ -1,6 +1,6 @@
 import { LarkBaseChatInfo } from 'infrastructure/dal/entities';
 import { Message } from 'core/models/message';
-import { getBotUnionId } from 'utils/bot/bot-var';
+import { getBotUnionId } from '@core/services/bot/bot-var';
 
 // 定义规则函数类型
 type Rule = (message: Message) => boolean;

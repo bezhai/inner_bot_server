@@ -13,7 +13,7 @@ import {
     WordCloudChartSpec,
 } from 'feishu-card';
 import { Message } from 'core/models/message';
-import { buildWeeklyWordCloud } from 'utils/text/jieba';
+import { buildWeeklyWordCloud } from '@core/services/text-analytics/jieba';
 import { replyCard, searchGroupMessage } from '@lark/basic/message';
 
 function splitTime(start: number, end: number, splitSize: number): number[][] {

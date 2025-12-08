@@ -1,7 +1,7 @@
 import { LarkGroupChatInfo, LarkGroupMember, LarkUser } from 'infrastructure/dal/entities';
 import { LarkUserOpenId } from 'infrastructure/dal/entities/lark-user-open-id';
 import { getChatList, getChatInfo, searchAllMembers, addChatMember } from '@lark-client';
-import { getBotAppId } from 'utils/bot/bot-var';
+import { getBotAppId } from '@core/services/bot/bot-var';
 
 // 从飞书获取所有群聊列表
 export async function searchAllLarkGroup() {

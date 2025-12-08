@@ -1,7 +1,7 @@
 import { Message } from 'core/models/message';
 import { sseChat } from './chat';
 import { CardLifecycleManager } from '@lark/basic/card-lifecycle-manager';
-import { getBotUnionId } from 'utils/bot/bot-var';
+import { getBotUnionId } from '@core/services/bot/bot-var';
 import dayjs from 'dayjs';
 
 export async function makeCardReply(message: Message): Promise<void> {

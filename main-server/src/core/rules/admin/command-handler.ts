@@ -1,6 +1,6 @@
 import { UserGroupBindingRepository, GroupMemberRepository } from '@infrastructure/dal/repositories/repositories';
 import { Message } from '@core/models/message';
-import { getBotUnionId } from '@utils/bot/bot-var';
+import { getBotUnionId } from '@core/services/bot/bot-var';
 import { replyMessage } from '@lark/basic/message';
 import { combineRule, RegexpMatch } from '@core/rules/rule';
 import { getUserInfo } from '@lark-client';
