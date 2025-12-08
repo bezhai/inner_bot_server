@@ -28,14 +28,7 @@ class AIMessageChunkProcessor:
         if tool_calls:
             # 取第一个工具的名称
             first_tool = tool_calls[0]
-            if isinstance(first_tool, dict):
-                tool_name = first_tool.get("function", {}).get("name")
-            else:
-                tool_name = (
-                    getattr(first_tool.function, "name", None)
-                    if hasattr(first_tool, "function")
-                    else None
-                )
+            tool_name = first_tool.get("name")
 
             new_state = tool_name if tool_name else "tool_calling"
         elif hasattr(chunk, "content") and chunk.content and chunk.content.strip():
