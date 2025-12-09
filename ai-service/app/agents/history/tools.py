@@ -47,7 +47,7 @@ async def search_messages(
     end_time: str | None = None,
     keywords: str | None = None,
     user_name: str | None = None,
-    limit: int = 10,
+    limit: int = 500,
 ) -> str:
     """
     搜索本群内消息
@@ -57,7 +57,7 @@ async def search_messages(
         end_time: 结束时间（YYYY-MM-DD HH:mm，默认当前时间）
         keywords: 关键词（可选，多个用空格分隔）
         user_name: 指定用户姓名（可选）
-        limit: 最多返回条数（默认10）
+        limit: 限制返回条数（默认500），请根据任务需求自行调节
     """
     context = get_runtime(ContextSchema).context
 
