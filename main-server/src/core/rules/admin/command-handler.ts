@@ -108,10 +108,11 @@ const commandRules = [
             }
 
             // 解析命令: /config [xxx] set [yyy]
-            const configMatch = message.text().match(/^\/config\s+(\S+)\s+set\s+(\S+)$/);
+            const text = message.clearText();
+            const configMatch = text.match(/^\/config\s+(\S+)\s+set\s+(\S+)$/);
 
             if (!configMatch) {
-                replyMessage(message.messageId, '命令格式错误，正确格式: /config [key] set [value]（key和value不能包含空格）', true);
+                replyMessage(message.messageId, `命令格式错误，正确格式: /config [key] set [value]（key和value不能包含空格）\n收到的命令: ${text}`, true);
                 return;
             }
 
