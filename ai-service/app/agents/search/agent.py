@@ -62,6 +62,7 @@ async def unified_search(query: str) -> str:
             "search",  # 在 Langfuse 中配置对应的 prompt
             SEARCH_TOOLS,
             model_id="grok-4-fast-reasoning",  # 使用快速模型
+            trace_name="search",
         )
 
         message = await agent.run([HumanMessage(content=query)])

@@ -114,6 +114,7 @@ async def evolve_group_profile(
             PROFILE_PROMPT_ID,
             PROFILE_TOOLS,
             model_id="gpt-5-mini",
+            trace_name="profile_update",
         )
         await agent.run(
             [HumanMessage(content="\n".join(formatted_messages))],

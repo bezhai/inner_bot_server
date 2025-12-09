@@ -16,11 +16,14 @@ class ChatAgent:
         prompt_id: str,
         tools: list,
         model_id: str | None = None,
+        trace_name: str | None = None,
     ):
         self.model_id = model_id
         self.prompt_id = prompt_id
         self.tools = tools
-        self._langfuse_handler = CallbackHandler()
+        self.trace_name = trace_name
+        # 启用 update_trace 以支持设置 trace name
+        self._langfuse_handler = CallbackHandler(update_trace=True)
         self._agent = None  # 缓存agent实例
 
     async def _init_agent(self, **prompt_vars):
@@ -49,6 +52,12 @@ class ChatAgent:
         prompt_vars: dict | None = None,
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         await self._init_agent(**(prompt_vars or {}))
+
+        # 构建配置，如果提供了 trace_name 则添加到 run_name
+        config: dict = {"callbacks": [self._langfuse_handler]}
+        if self.trace_name:
+            config["run_name"] = self.trace_name
+
         async for (
             token,
             _,
@@ -56,7 +65,7 @@ class ChatAgent:
             {"messages": messages},
             context=context,
             stream_mode="messages",
-            config={"callbacks": [self._langfuse_handler]},
+            config=config,  # pyright: ignore[reportArgumentType]
         ):
             yield token  # type: ignore
 
@@ -67,9 +76,15 @@ class ChatAgent:
         prompt_vars: dict | None = None,
     ) -> AIMessage:
         await self._init_agent(**(prompt_vars or {}))
+
+        # 构建配置，如果提供了 trace_name 则添加到 run_name
+        config: dict = {"callbacks": [self._langfuse_handler]}
+        if self.trace_name:
+            config["run_name"] = self.trace_name
+
         all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
             {"messages": messages},
             context=context,
-            config={"callbacks": [self._langfuse_handler]},
+            config=config,  # pyright: ignore[reportArgumentType]
         )
         return all_message["messages"][-1]
