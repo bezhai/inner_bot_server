@@ -12,6 +12,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -132,3 +133,14 @@ class GroupProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(
         server_default=func.now(), onupdate=func.now()
     )
+
+
+class LarkBaseChatInfo(Base):
+    """基础聊天信息"""
+
+    __tablename__ = "lark_base_chat_info"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    chat_mode: Mapped[str] = mapped_column(String(10))
+    permission_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    gray_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

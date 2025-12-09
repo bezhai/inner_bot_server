@@ -9,3 +9,4 @@ class ContextSchema:
     curr_chat_id: str | None = None
     image_url_list: list[str] | None = None
     user_id_map: bidict[str, str] | None = None
+    gray_config: dict[str, str] | None = None

@@ -71,6 +71,10 @@ table "lark_base_chat_info" {
     null = true
     type = jsonb
   }
+  column "gray_config" {
+    null = true
+    type = jsonb
+  }
   primary_key "PK_1bbfde6e303414e212f345a4a0e" {
     columns = [column.chat_id]
   }

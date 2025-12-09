@@ -8,6 +8,7 @@ from .base import AsyncSessionLocal
 from .models import (
     ConversationMessage,
     GroupProfile,
+    LarkBaseChatInfo,
     ModelProvider,
     TopicMemory,
     UserProfile,
@@ -213,3 +214,21 @@ async def upsert_group_profile(chat_id: str, profile: str | None) -> None:
         )
 
         await session.execute(stmt)
+
+
+async def get_gray_config(message_id: str) -> dict | None:
+    """
+    根据 message_id 关联查询所属 chat 的灰度配置
+    """
+    async with AsyncSessionLocal() as session:
+        # 使用 Join 避免 N+1 查询
+        stmt = (
+            select(LarkBaseChatInfo.gray_config)
+            .join(
+                ConversationMessage,
+                ConversationMessage.chat_id == LarkBaseChatInfo.chat_id,
+            )
+            .where(ConversationMessage.message_id == message_id)
+        )
+        # 直接返回配置字段 (dict) 或者 None
+        return await session.scalar(stmt)

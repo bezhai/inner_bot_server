@@ -62,11 +62,8 @@ async def generate_image(
     try:
         # 获取runtime context中的图片URL列表
         image_url_list = []
-        try:
-            context = get_runtime(ContextSchema).context
-            image_url_list = context.image_url_list or []
-        except Exception as e:
-            logger.warning(f"无法获取runtime context，参考图片功能不可用: {e}")
+        context = get_runtime(ContextSchema).context
+        image_url_list = context.image_url_list or []
 
         # 根据image_list获取实际的图片URLs
         reference_urls = []
@@ -86,7 +83,13 @@ async def generate_image(
 
         logger.info(f"生成图片请求: {query}")
 
-        async with OpenAIClient("doubao:ep-20251024125110-4xhl4") as client:
+        model_name = "doubao:ep-20251024125110-4xhl4"
+
+        if context.gray_config and context.gray_config.get("image_model"):
+            model_name = context.gray_config["image_model"]
+            logger.info(f"灰度配置覆盖图片模型为: {model_name}")
+
+        async with OpenAIClient(model_name) as client:
             base64_images = await client.images_generate(
                 query, size, reference_urls if reference_urls else None
             )

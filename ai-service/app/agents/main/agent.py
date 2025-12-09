@@ -7,6 +7,7 @@ from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
+from app.orm.crud import get_gray_config
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
 from app.utils.status_processor import AIMessageChunkProcessor
@@ -32,6 +33,9 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
 
+    # 获取 gray_config
+    gray_config = (await get_gray_config(message_id)) or {}
+
     accumulate_chunk = ChatStreamChunk(
         content="",
         reason_content="",
@@ -47,6 +51,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
             context=ContextSchema(
                 curr_message_id=message_id,
                 image_url_list=image_urls,
+                gray_config=gray_config,
             ),
         ):
             # 工具调用忽略

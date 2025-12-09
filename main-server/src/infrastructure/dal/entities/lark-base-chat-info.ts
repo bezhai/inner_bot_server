@@ -19,4 +19,7 @@ export class LarkBaseChatInfo {
         new_permission?: boolean;
         is_canary?: boolean;
     }; // 权限配置，包含所有权限相关设置
+
+    @Column({ type: 'jsonb', nullable: true })
+    gray_config?: Record<string, string>; // 灰度配置，存储 key-value 对
 }
