@@ -15,16 +15,14 @@ from app.agents.basic.agent import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.history.tools import (
     list_group_members,
-    search_recent_messages,
-    search_user_messages,
+    search_messages,
 )
 
 logger = logging.getLogger(__name__)
 
 # 历史检索工具集
 HISTORY_TOOLS = [
-    search_recent_messages,
-    search_user_messages,
+    search_messages,
     list_group_members,
 ]
 

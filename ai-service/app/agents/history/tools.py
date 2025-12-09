@@ -42,19 +42,21 @@ def _truncate(text: str, max_len: int = 100) -> str:
 
 
 @tool
-async def search_recent_messages(
-    keywords: str,
+async def search_messages(
     start_time: str | None = None,
     end_time: str | None = None,
+    keywords: str | None = None,
+    user_name: str | None = None,
     limit: int = 10,
 ) -> str:
     """
-    搜索包含关键词的消息
+    搜索本群内消息
 
     Args:
-        keywords: 搜索关键词（多个关键词用空格分隔）
         start_time: 开始时间（YYYY-MM-DD HH:mm，默认最近7天）
         end_time: 结束时间（YYYY-MM-DD HH:mm，默认当前时间）
+        keywords: 关键词（可选，多个用空格分隔）
+        user_name: 指定用户姓名（可选）
         limit: 最多返回条数（默认10）
     """
     context = get_runtime(ContextSchema).context
@@ -72,9 +74,14 @@ async def search_recent_messages(
                 )
             )
 
-            # 关键词过滤
-            for kw in keywords.strip().split():
-                query = query.where(ConversationMessage.content.ilike(f"%{kw}%"))
+            # 关键词过滤（可选）
+            if keywords:
+                for kw in keywords.strip().split():
+                    query = query.where(ConversationMessage.content.ilike(f"%{kw}%"))
+
+            # 用户过滤（可选）
+            if user_name:
+                query = query.where(LarkUser.name == user_name)
 
             result = await session.execute(
                 query.order_by(ConversationMessage.create_time.desc()).limit(limit)
@@ -82,7 +89,7 @@ async def search_recent_messages(
             rows = result.all()
 
             if not rows:
-                return f"未找到包含关键词 '{keywords}' 的消息"
+                return "未找到相关消息"
 
             # 格式化输出
             lines = [f"找到 {len(rows)} 条消息：\n"]
@@ -96,64 +103,7 @@ async def search_recent_messages(
     except ValueError:
         return "时间格式错误，请使用 YYYY-MM-DD HH:mm"
     except Exception as e:
-        logger.error(f"search_recent_messages error: {e}", exc_info=True)
-        return f"搜索失败: {e}"
-
-
-@tool
-async def search_user_messages(
-    user_name: str,
-    start_time: str | None = None,
-    end_time: str | None = None,
-    limit: int = 10,
-) -> str:
-    """
-    搜索某个用户的发言
-
-    Args:
-        user_name: 用户姓名
-        start_time: 开始时间（YYYY-MM-DD HH:mm，默认最近7天）
-        end_time: 结束时间（YYYY-MM-DD HH:mm，默认当前时间）
-        limit: 最多返回条数（默认10）
-    """
-    context = get_runtime(ContextSchema).context
-
-    try:
-        start_ms, end_ms = _parse_time_range(start_time, end_time)
-
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(ConversationMessage, LarkUser)
-                .join(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
-                .where(
-                    ConversationMessage.chat_id == context.curr_chat_id,
-                    LarkUser.name == user_name,
-                    ConversationMessage.create_time.between(start_ms, end_ms),
-                )
-                .order_by(ConversationMessage.create_time.desc())
-                .limit(limit)
-            )
-            rows = result.all()
-
-            if not rows:
-                return f"未找到用户 '{user_name}' 的消息"
-
-            # 格式化输出
-            user_names = {user.name for _, user in rows}
-            matched_names = ", ".join(user_names)
-
-            lines = [f"{matched_names} 的消息（共{len(rows)}条）：\n"]
-            for msg, user in reversed(rows):
-                time_str = _format_timestamp(msg.create_time)
-                content = _truncate(msg.content)
-                lines.append(f"[{time_str}] {user.name}: {content}")
-
-            return "\n".join(lines)
-
-    except ValueError:
-        return "时间格式错误，请使用 YYYY-MM-DD HH:mm"
-    except Exception as e:
-        logger.error(f"search_user_messages error: {e}", exc_info=True)
+        logger.error(f"search_messages error: {e}", exc_info=True)
         return f"搜索失败: {e}"
 
 
