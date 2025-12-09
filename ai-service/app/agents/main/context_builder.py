@@ -353,7 +353,7 @@ async def _build_context_from_messages(
     )
 
     after_reduce_user_profiles = (
-        "\n".join(
+        "\n------------------\n".join(
             [
                 f"{user_ids[user_id]}: {profile}"
                 for user_id, profile in user_profiles.items()
