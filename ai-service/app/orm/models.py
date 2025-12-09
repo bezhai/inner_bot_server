@@ -144,3 +144,19 @@ class LarkBaseChatInfo(Base):
     chat_mode: Mapped[str] = mapped_column(String(10))
     permission_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     gray_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
+class LarkGroupMember(Base):
+    """群成员信息"""
+
+    __tablename__ = "lark_group_member"
+
+    chat_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    union_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    is_owner: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_manager: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_leave: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

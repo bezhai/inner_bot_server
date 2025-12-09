@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 async def build_chat_context(
     message_id: str, limit: int = 10
-) -> tuple[list[HumanMessage | AIMessage], list[str]]:
+) -> tuple[list[HumanMessage | AIMessage], list[str], str]:
     """构建聊天上下文，支持私聊和群聊使用不同组装策略
 
     群聊: 使用系统Prompt进行上下文组装成一条HumanMessage
@@ -38,7 +38,7 @@ async def build_chat_context(
 
     if not l1_results:
         logger.warning(f"No results found for message_id: {message_id}")
-        return [], []
+        return [], [], ""
 
     chat_type = l1_results[-1].chat_type or "p2p"  # 默认私聊
 
@@ -79,7 +79,7 @@ async def build_chat_context(
     # 提取所有成功的图片URL列表（用于context）
     image_urls = list(image_key_to_url.values())
 
-    return messages, image_urls
+    return messages, image_urls, l1_results[0].chat_id or ""
 
 
 async def _build_group_messages(

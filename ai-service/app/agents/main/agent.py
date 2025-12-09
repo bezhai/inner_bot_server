@@ -26,7 +26,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     )
 
     # 使用统一的上下文构建接口
-    messages, image_urls = await build_chat_context(message_id)
+    messages, image_urls, chat_id = await build_chat_context(message_id)
 
     if not messages:
         logger.warning(f"No results found for message_id: {message_id}")
@@ -52,6 +52,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 curr_message_id=message_id,
                 image_url_list=image_urls,
                 gray_config=gray_config,
+                curr_chat_id=chat_id,
             ),
         ):
             # 工具调用忽略
