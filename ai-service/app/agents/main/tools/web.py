@@ -46,7 +46,7 @@ async def search_web(query: str, gl: str = "cn") -> WebSearchResult:
         query: 搜索关键词
         gl: 国家代码，默认中国
     """
-    url = "https://api.302.ai/searchapi/search"
+    url = "https://api.302.ai/serpapi/search"
 
     params = {
         "q": query,
