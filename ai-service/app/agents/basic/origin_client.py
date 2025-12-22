@@ -64,6 +64,81 @@ class OpenAIClient:
         resp = await client.embeddings.create(model=self.model_name, input=text)
         return list(resp.data[0].embedding)
 
+    async def embed_multimodal(
+        self,
+        text: str,
+        image_base64_list: list[str],
+        instructions: str,
+        dimensions: int = 1024,
+    ) -> list[float]:
+        """
+        多模态向量化（通用方法）
+
+        Args:
+            text: 文本内容
+            image_base64_list: Base64格式图片列表
+            instructions: 向量化指令（召回或聚类场景）
+            dimensions: 向量维度，默认1024
+
+        Returns:
+            list[float]: 向量表示
+        """
+        client = self._ensure_connected()
+
+        # 构造输入列表
+        input_list = []
+
+        # 添加文本
+        if text:
+            input_list.append({"type": "text", "text": text})
+
+        # 添加图片
+        for image_base64 in image_base64_list:
+            input_list.append({"type": "image_url", "image_url": {"url": image_base64}})
+
+        # 调用API
+        resp = await client.embeddings.create(
+            model=self.model_name,
+            input=input_list,
+            dimensions=dimensions,
+            encoding_format="float",
+            extra_body={"instructions": instructions},
+        )
+
+        return list(resp.data[0].embedding)
+
+    async def embed_multimodal_for_recall(
+        self, text: str, image_base64_list: list[str]
+    ) -> list[float]:
+        """
+        生成召回向量（用于检索匹配）
+
+        Args:
+            text: 文本内容
+            image_base64_list: Base64格式图片列表
+
+        Returns:
+            list[float]: 召回向量（1024维）
+        """
+        instructions = "Instruction:Compress the text and image into one word.\\nQuery:"
+        return await self.embed_multimodal(text, image_base64_list, instructions)
+
+    async def embed_multimodal_for_cluster(
+        self, text: str, image_base64_list: list[str]
+    ) -> list[float]:
+        """
+        生成聚类向量（用于相似度聚类）
+
+        Args:
+            text: 文本内容
+            image_base64_list: Base64格式图片列表
+
+        Returns:
+            list[float]: 聚类向量（1024维）
+        """
+        instructions = "Target_modality: text and image.\\nInstruction:Retrieve semantically similar content\\nQuery:"
+        return await self.embed_multimodal(text, image_base64_list, instructions)
+
     async def images_generate(
         self,
         prompt: str,
