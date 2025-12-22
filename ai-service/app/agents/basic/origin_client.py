@@ -139,6 +139,26 @@ class OpenAIClient:
         instructions = "Target_modality: text and image.\\nInstruction:Retrieve semantically similar content\\nQuery:"
         return await self.embed_multimodal(text, image_base64_list, instructions)
 
+    async def embed_multimodal_for_query(
+        self, text: str, image_base64_list: list[str]
+    ) -> list[float]:
+        """
+        生成查询向量（Query侧，用于检索消息）
+
+        用于召回场景的Query侧，能够检索与查询语义相关的Corpus（消息库）。
+
+        Args:
+            text: 查询文本
+            image_base64_list: 查询图片列表（可选）
+
+        Returns:
+            list[float]: 查询向量（1024维）
+        """
+        # Target_modality设置为 text/image，匹配消息库的模态
+        # Instruction描述检索意图
+        instructions = "Target_modality: text/image.\\nInstruction:为这个句子生成表示以用于检索相关消息\\nQuery:"
+        return await self.embed_multimodal(text, image_base64_list, instructions)
+
     async def images_generate(
         self,
         prompt: str,
