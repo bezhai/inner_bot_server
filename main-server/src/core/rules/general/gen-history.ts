@@ -63,7 +63,6 @@ export async function genHistoryCard(message: Message) {
     const dateKeys = Array.from({ length: 7 }, (_, i) =>
         dayjs()
             .subtract(6 - i, 'day')
-            .add(8, 'hour') // 转换为东八区
             .format('YYYY-MM-DD'),
     );
 
@@ -230,9 +229,8 @@ async function getHistoryMessage(
     startDateDiff: number = 0,
     endDateDiff: number = 0,
 ) {
-    // 这里手动调一下东八区, 这里是因为我们要取东八区的零点
-    const startTime = dayjs().startOf('day').subtract(startDateDiff, 'day').add(8, 'hour').unix();
-    const endTime = dayjs().endOf('day').subtract(endDateDiff, 'day').add(8, 'hour').unix();
+    const startTime = dayjs().startOf('day').subtract(startDateDiff, 'day').unix();
+    const endTime = dayjs().endOf('day').subtract(endDateDiff, 'day').unix();
 
     // 分割时间区间
     const splitSize = 10;
@@ -274,8 +272,8 @@ function messageTimeFilter(
     startDateDiff: number = 0,
     endDateDiff: number = 0,
 ) {
-    const startTime = dayjs().startOf('day').subtract(startDateDiff, 'day').add(8, 'hour');
-    const endTime = dayjs().endOf('day').subtract(endDateDiff, 'day').add(8, 'hour');
+    const startTime = dayjs().startOf('day').subtract(startDateDiff, 'day');
+    const endTime = dayjs().endOf('day').subtract(endDateDiff, 'day');
 
     return messages.filter((message) => {
         const createTime = dayjs(parseInt(message.createTime ?? ''));
@@ -293,8 +291,7 @@ function messageGroupByDate(messages: Message[]) {
         messages,
         (m) =>
             dayjs(parseInt(m.createTime ?? ''))
-                .add(8, 'hour')
-                .format('YYYY-MM-DD'), // 转为东八区时间并格式化
+                .format('YYYY-MM-DD'),
     );
 }
 
@@ -308,8 +305,7 @@ function messageGroupByHour(messages: Message[]) {
         messages,
         (m) =>
             dayjs(parseInt(m.createTime ?? ''))
-                .add(8, 'hour')
-                .format('HH'), // 转为东八区时间并格式化
+                .format('HH'),
     );
 }
 
