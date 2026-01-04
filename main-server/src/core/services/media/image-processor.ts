@@ -1,5 +1,5 @@
 import { downloadResource, downloadSelfImage, uploadImage } from '@integrations/lark-client';
-import { getOss } from '@integrations/aliyun/oss';
+import { getTos } from '@volcengine/tos';
 import { cache } from '@cache/cache-decorator';
 import { RedisLock } from '@cache/redis-lock';
 import { get as redisGet, setWithExpire as redisSetWithExpire } from '@cache/redis-client';
@@ -240,7 +240,7 @@ export class ImageProcessorService {
      */
     @cache({ type: 'redis', ttl: 600 }) // 10分钟缓存
     private async getFileUrlWithCache(fileName: string): Promise<string> {
-        return await getOss().getFileUrl(fileName);
+        return await getTos().getFileUrl(fileName);
     }
 
     /**
@@ -277,7 +277,7 @@ export class ImageProcessorService {
     }
 
     /**
-     * 上传图片到OSS（仅上传，不获取URL）
+     * 上传图片到TOS（仅上传，不获取URL）
      */
     private async uploadToOssOnly(fileKey: string, imageStream: Readable): Promise<string> {
         try {
@@ -286,16 +286,16 @@ export class ImageProcessorService {
             // 压缩图片
             const compressedBuffer = await this.compressImage(imageStream);
 
-            await getOss().uploadFile(fileName, compressedBuffer);
+            await getTos().uploadFile(fileName, compressedBuffer);
 
-            console.debug(`成功上传到OSS: ${fileName}`);
+            console.debug(`成功上传到TOS: ${fileName}`);
             return fileName;
         } catch (error) {
             if (error instanceof ImageProcessError) {
                 throw error;
             }
             throw new ImageProcessError(
-                `上传到OSS失败: ${error instanceof Error ? error.message : '未知错误'}`,
+                `上传到TOS失败: ${error instanceof Error ? error.message : '未知错误'}`,
                 'UPLOAD_ERROR',
                 500,
             );

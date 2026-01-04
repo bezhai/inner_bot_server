@@ -1,4 +1,4 @@
-import { getOss } from 'infrastructure/integrations/aliyun/oss';
+import { getTos } from '@volcengine/tos';
 import { resizeImage } from './image-resize';
 import { uploadImage } from '@lark-client';
 import { getPixivImages, reportLarkUpload } from 'infrastructure/integrations/aliyun/proxy';
@@ -9,7 +9,7 @@ export async function fetchUploadedImages(params: ListPixivImageDto): Promise<Im
 
     for (const image of images) {
         if (!image.image_key) {
-            const imageFile = await getOss().getFile(image.tos_file_name);
+            const imageFile = await getTos().getFile(image.tos_file_name);
             if (!imageFile) {
                 console.error(`Failed to retrieve file for TOS file name: ${image.tos_file_name}`);
                 continue;

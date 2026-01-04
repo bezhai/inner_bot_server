@@ -35,7 +35,8 @@
             "@crontab/*": ["infrastructure/crontab/*"],
             "@lark/*": ["infrastructure/integrations/lark/*"],
             "@lark-client": ["infrastructure/integrations/lark-client"],
-            "@aliyun/*": ["infrastructure/integrations/aliyun/*"]
+            "@aliyun/*": ["infrastructure/integrations/aliyun/*"],
+            "@volcengine/*": ["infrastructure/integrations/volcengine/*"]
         }
     },
     "include": ["src/**/*.ts"],

@@ -24,9 +24,10 @@ declare namespace NodeJS {
         AI_PROVIDER_ADMIN_KEY: string;
         IS_DEV: string; // true or false
         INNER_HTTP_SECRET: string;
-        OSS_ACCESS_KEY_ID: string;
-        OSS_ACCESS_KEY_SECRET: string;
-        OSS_BUCKET: string;
-        END_POINT: string;
+        TOS_ACCESS_KEY_ID: string;
+        TOS_ACCESS_KEY_SECRET: string;
+        TOS_BUCKET: string;
+        TOS_REGION: string;
+        TOS_ENDPOINT: string;
     }
 }
