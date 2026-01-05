@@ -22,6 +22,7 @@
     "author": "Chiwei",
     "license": "MIT",
     "devDependencies": {
+        "@types/ali-oss": "^6.16.11",
         "@types/jest": "^29.5.12",
         "@types/koa": "^2.15.0",
         "@types/koa__cors": "^5.0.0",
@@ -50,6 +51,7 @@
         "@koa/cors": "^5.0.0",
         "@koa/router": "^12.0.1",
         "@larksuiteoapi/node-sdk": "^1.23.0",
+        "ali-oss": "^6.23.0",
         "@volcengine/tos-sdk": "^0.0.0-preview-2.7.7-20251211024611",
         "async-mutex": "^0.5.0",
         "axios": "^1.6.2",

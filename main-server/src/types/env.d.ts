@@ -24,6 +24,12 @@ declare namespace NodeJS {
         AI_PROVIDER_ADMIN_KEY: string;
         IS_DEV: string; // true or false
         INNER_HTTP_SECRET: string;
+        // OSS（Pixiv 图片等历史存量）
+        OSS_ACCESS_KEY_ID: string;
+        OSS_ACCESS_KEY_SECRET: string;
+        OSS_BUCKET: string;
+        END_POINT: string;
+        // TOS（聊天图片等迁移/新增）
         TOS_ACCESS_KEY_ID: string;
         TOS_ACCESS_KEY_SECRET: string;
         TOS_BUCKET: string;
