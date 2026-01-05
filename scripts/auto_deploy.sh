@@ -144,17 +144,37 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   # 记录当前版本
   OLD_VERSION=$(git rev-parse --short HEAD)
   
-  # 记录变更内容
-  CHANGES=$(git log --pretty=format:"%h - %s (%an, %ar)" $LOCAL..$REMOTE)
-  log "即将应用以下变更:\n$CHANGES"
+  # 检查是否可以 fast-forward（判断远程是否包含本地提交）
+  BASE=$(git merge-base HEAD @{u})
   
-  # 执行git pull
-  log "执行 git pull"
-  git pull
-  if [ $? -ne 0 ]; then
-    log "Git pull 失败，中止部署"
-    rm -f $LOCK_FILE
-    exit 1
+  if [ "$BASE" = "$LOCAL" ]; then
+    # 可以 fast-forward，正常拉取
+    log "检测到正常更新（fast-forward）"
+    CHANGES=$(git log --pretty=format:"%h - %s (%an, %ar)" $LOCAL..$REMOTE)
+    log "即将应用以下变更:\n$CHANGES"
+    
+    log "执行 git pull"
+    git pull
+    if [ $? -ne 0 ]; then
+      log "Git pull 失败，中止部署"
+      rm -f $LOCK_FILE
+      exit 1
+    fi
+  else
+    # 无法 fast-forward，远程可能被 force push 回退
+    log "⚠️ 检测到远程分支历史变更（可能是 force push），将强制同步到远程"
+    CHANGES=$(git log --pretty=format:"%h - %s (%an, %ar)" --left-right $LOCAL...$REMOTE)
+    log "本地与远程的差异:\n$CHANGES"
+    
+    # 强制同步到远程分支
+    log "执行 git reset --hard origin/$BRANCH"
+    git reset --hard origin/$BRANCH
+    if [ $? -ne 0 ]; then
+      log "Git reset 失败，中止部署"
+      rm -f $LOCK_FILE
+      exit 1
+    fi
+    log "已强制同步到远程分支"
   fi
   
   # 记录新版本
@@ -179,7 +199,13 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   else
     log "部署成功：从 $OLD_VERSION 更新到 $NEW_VERSION"
     # 发送部署成功的飞书通知
-    NOTIFICATION_MESSAGE="✅ 服务已部署成功！\n从版本 $OLD_VERSION 更新到 $NEW_VERSION\n\n📝 变更内容:\n$CHANGES"
+    if [ "$BASE" = "$LOCAL" ]; then
+      # 正常更新
+      NOTIFICATION_MESSAGE="✅ 服务已部署成功！\n从版本 $OLD_VERSION 更新到 $NEW_VERSION\n\n📝 变更内容:\n$CHANGES"
+    else
+      # 强制同步
+      NOTIFICATION_MESSAGE="✅ 服务已部署成功（强制同步）！\n从版本 $OLD_VERSION 同步到 $NEW_VERSION\n\n⚠️ 检测到远程分支历史变更，已强制同步\n\n📝 变更差异:\n$CHANGES"
+    fi
     unset_proxy
     send_feishu_notification "$NOTIFICATION_MESSAGE"
   fi
