@@ -1,6 +1,79 @@
 import winston from 'winston';
 import path from 'node:path';
+import util from 'node:util';
 import { context } from '@middleware/context';
+
+function errorToPlainObject(error: Error): Record<string, unknown> {
+    const plain: Record<string, unknown> = {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+    };
+
+    // Node.js v16+ / modern TS: Error may have `cause`
+    const cause = (error as unknown as { cause?: unknown }).cause;
+    if (cause !== undefined) {
+        plain.cause = cause;
+    }
+
+    // Preserve enumerable custom fields on Error subclasses
+    for (const [key, value] of Object.entries(error)) {
+        if (!(key in plain)) {
+            plain[key] = value;
+        }
+    }
+
+    return plain;
+}
+
+function safeJsonStringify(value: unknown): string {
+    const seen = new WeakSet<object>();
+    return JSON.stringify(
+        value,
+        (_key, val: unknown) => {
+            if (val instanceof Error) {
+                return errorToPlainObject(val);
+            }
+
+            if (typeof val === 'bigint') {
+                return val.toString();
+            }
+
+            if (typeof val === 'object' && val !== null) {
+                const obj = val as object;
+                if (seen.has(obj)) {
+                    return '[Circular]';
+                }
+                seen.add(obj);
+            }
+
+            return val;
+        },
+    );
+}
+
+function formatConsoleArg(arg: unknown): string {
+    if (arg instanceof Error) {
+        return arg.stack || `${arg.name}: ${arg.message}`;
+    }
+    if (typeof arg === 'string') {
+        return arg;
+    }
+    if (arg === null) {
+        return 'null';
+    }
+    if (arg === undefined) {
+        return 'undefined';
+    }
+    if (typeof arg === 'bigint') {
+        return arg.toString();
+    }
+    if (typeof arg === 'object') {
+        // Avoid JSON.stringify on Error / circular structures; keep it readable.
+        return util.inspect(arg, { depth: 6, breakLength: 120 });
+    }
+    return String(arg);
+}
 
 /**
  * 日志配置接口
@@ -25,11 +98,12 @@ export class LoggerTransportFactory {
     static createConsoleTransport(): winston.transport {
         return new winston.transports.Console({
             format: winston.format.combine(
+                winston.format.errors({ stack: true }),
                 winston.format.colorize(),
-                winston.format.simple(),
                 winston.format.printf((info) => {
                     const traceId = context.getTraceId();
-                    return `${info.level}: ${info.message} ${traceId ? `[traceId: ${traceId}]` : ''}`;
+                    const message = info.stack || info.message;
+                    return `${info.level}: ${message} ${traceId ? `[traceId: ${traceId}]` : ''}`;
                 }),
             ),
         });
@@ -44,10 +118,11 @@ export class LoggerTransportFactory {
             maxsize: config.maxFileSize,
             maxFiles: config.maxFiles,
             format: winston.format.combine(
+                winston.format.errors({ stack: true }),
                 winston.format.timestamp(),
                 winston.format.printf((info) => {
                     const traceId = context.getTraceId();
-                    return JSON.stringify({
+                    return safeJsonStringify({
                         ...info,
                         traceId,
                     });
@@ -149,7 +224,7 @@ export class LoggerFactory {
         console.log = (...args) => {
             const traceId = context.getTraceId();
             logger.info(
-                args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+                args.map(formatConsoleArg).join(' '),
                 { traceId },
             );
         };
@@ -157,7 +232,7 @@ export class LoggerFactory {
         console.error = (...args) => {
             const traceId = context.getTraceId();
             logger.error(
-                args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+                args.map(formatConsoleArg).join(' '),
                 { traceId },
             );
         };
@@ -165,7 +240,7 @@ export class LoggerFactory {
         console.info = (...args) => {
             const traceId = context.getTraceId();
             logger.info(
-                args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+                args.map(formatConsoleArg).join(' '),
                 { traceId },
             );
         };
@@ -173,7 +248,7 @@ export class LoggerFactory {
         console.warn = (...args) => {
             const traceId = context.getTraceId();
             logger.warn(
-                args.map((arg) => (typeof arg === 'object' ? JSON.stringify(arg) : arg)).join(' '),
+                args.map(formatConsoleArg).join(' '),
                 { traceId },
             );
         };
