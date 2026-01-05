@@ -19,7 +19,8 @@ export class MultiBotManager {
     async initialize(): Promise<void> {
         if (this.initialized) return;
 
-        const allBots = await botConfigRepository.getAllActiveBots(process.env.IS_DEV === 'true');
+        // 所有启用的机器人都加载进内存；后续由调用方按环境筛选是否启动 http/ws
+        const allBots = await botConfigRepository.getAllActiveBots();
         this.botConfigs.clear();
 
         for (const bot of allBots) {
@@ -51,8 +52,13 @@ export class MultiBotManager {
     }
 
     // 获取指定初始化类型的机器人
-    getBotsByInitType(initType: 'http' | 'websocket'): BotConfig[] {
-        return Array.from(this.botConfigs.values()).filter((bot) => bot.init_type === initType);
+    getBotsByInitType(initType: 'http' | 'websocket', onlyCurrentEnv = false): BotConfig[] {
+        const isDevEnv = process.env.IS_DEV === 'true';
+        return Array.from(this.botConfigs.values()).filter((bot) => {
+            if (bot.init_type !== initType) return false;
+            if (!onlyCurrentEnv) return true;
+            return bot.is_dev === isDevEnv;
+        });
     }
 
     // 重新加载配置

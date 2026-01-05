@@ -10,9 +10,16 @@ export class BotConfigRepository {
     }
 
     // 获取所有启用的机器人配置
-    async getAllActiveBots(isDev: boolean): Promise<BotConfig[]> {
+    // - isDev 为 undefined：返回所有启用机器人
+    // - isDev 为 boolean：按环境过滤
+    async getAllActiveBots(isDev?: boolean): Promise<BotConfig[]> {
+        const where: Record<string, any> = { is_active: true };
+        if (typeof isDev === 'boolean') {
+            where.is_dev = isDev;
+        }
+
         return this.repository.find({
-            where: { is_active: true, is_dev: isDev },
+            where,
             order: { bot_name: 'ASC' },
         });
     }

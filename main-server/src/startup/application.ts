@@ -71,7 +71,7 @@ export class ApplicationManager {
      * 启动 WebSocket 服务
      */
     private async startWebSocketServices(): Promise<void> {
-        const websocketBots = multiBotManager.getBotsByInitType('websocket');
+        const websocketBots = multiBotManager.getBotsByInitType('websocket', true);
         if (websocketBots.length > 0) {
             await StartupStrategyManager.executeStrategy('websocket', websocketBots);
             console.info(`Started WebSocket services for ${websocketBots.length} bots`);

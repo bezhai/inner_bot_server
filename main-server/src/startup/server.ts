@@ -121,7 +121,7 @@ export class HttpServerManager {
      */
     async start(): Promise<void> {
         // 初始化 HTTP 路由
-        const httpBots = multiBotManager.getBotsByInitType('http');
+        const httpBots = multiBotManager.getBotsByInitType('http', true);
         if (httpBots.length > 0) {
             const httpRouters = (await StartupStrategyManager.executeStrategy(
                 'http',
@@ -151,7 +151,7 @@ export class HttpServerManager {
         console.info('  - /api/image/process (image processing)');
         console.info('  - /api/image/upload-base64 (base64 image upload)');
 
-        const httpBots = multiBotManager.getBotsByInitType('http');
+        const httpBots = multiBotManager.getBotsByInitType('http', true);
         httpBots.forEach((bot) => {
             const eventPath = this.config.routeConfig.eventPath.replace('{botName}', bot.bot_name);
             const cardPath = this.config.routeConfig.cardPath.replace('{botName}', bot.bot_name);
