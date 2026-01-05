@@ -20,10 +20,29 @@ log() {
 send_feishu_notification() {
   MESSAGE="$1"
 
+  if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
+    log "DEPLOY_WEBHOOK_URL 未配置，跳过飞书通知"
+    return 0
+  fi
+
+  # 使用 JSON 转义，避免换行/引号导致的 Bad Request
+  if command -v python3 >/dev/null 2>&1; then
+    export FEISHU_MESSAGE="$MESSAGE"
+    PAYLOAD=$(python3 -c 'import json, os; print(json.dumps({"msg_type":"text","content":{"text":os.environ.get("FEISHU_MESSAGE", "")}}, ensure_ascii=False))')
+    unset FEISHU_MESSAGE
+  else
+    ESCAPED_MESSAGE=${MESSAGE//\\/\\\\}
+    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//"/\\"}
+    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\n'/\\n}
+    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\t'/\\t}
+    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\r'/\\r}
+    PAYLOAD="{\"msg_type\":\"text\",\"content\":{\"text\":\"${ESCAPED_MESSAGE}\"}}"
+  fi
+
   # 发送通知
   RESPONSE_FILE=$(mktemp)
   HTTP_CODE=$(curl -s -w "%{http_code}" -X POST -H "Content-Type: application/json" \
-    -d "{\"msg_type\":\"text\",\"content\":{\"text\":\"$MESSAGE\"}}" \
+    --data-binary "$PAYLOAD" \
     -o "$RESPONSE_FILE" "$DEPLOY_WEBHOOK_URL")
 
   # 读取响应内容
