@@ -11,7 +11,7 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.agents.basic.origin_client import ArkClient
+from app.agents.basic.origin_client import ArkClient, InstructionBuilder, Modality
 from app.clients.image_client import image_client
 from app.clients.redis import AsyncRedisClient
 from app.orm.crud import create_conversation_message
@@ -61,12 +61,21 @@ async def _vectorize_and_store_message(
             image_base64_list = [r for r in results if isinstance(r, str) and r]
 
         # 3. 并行生成召回和聚类向量
+        modality = InstructionBuilder.detect_input_modality(
+            text_content, image_base64_list
+        )
+        recall_instructions = InstructionBuilder.for_corpus(modality)
+        cluster_instructions = InstructionBuilder.for_cluster(
+            target_modality=modality,
+            instruction="Retrieve semantically similar content",
+        )
+
         async with ArkClient("embedding-model") as client:
-            recall_task = client.embed_multimodal_for_recall(
-                text_content, image_base64_list
+            recall_task = client.embed_multimodal(
+                text_content, image_base64_list, recall_instructions
             )
-            cluster_task = client.embed_multimodal_for_cluster(
-                text_content, image_base64_list
+            cluster_task = client.embed_multimodal(
+                text_content, image_base64_list, cluster_instructions
             )
             recall_vector, cluster_vector = await asyncio.gather(
                 recall_task, cluster_task

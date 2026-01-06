@@ -8,7 +8,7 @@ from langgraph.runtime import get_runtime
 from sqlalchemy import select
 
 from app.agents.basic.context import ContextSchema
-from app.agents.basic.origin_client import OpenAIClient
+from app.agents.basic.origin_client import ArkClient, InstructionBuilder, Modality
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkGroupMember, LarkUser, UserProfile
 
@@ -143,8 +143,17 @@ async def search_messages_semantic(
 
     try:
         # 1. 生成查询向量（Query侧）
-        async with OpenAIClient("doubao:doubao-embedding-vision-251215") as client:
-            query_vector = await client.embed_multimodal_for_query(query, [])
+        # 消息库包含：纯文本、纯图片、文本+图片
+        target_modality = InstructionBuilder.combine_corpus_modalities(
+            Modality.TEXT, Modality.IMAGE, Modality.TEXT_AND_IMAGE
+        )
+        instructions = InstructionBuilder.for_query(
+            target_modality=target_modality,
+            instruction="为这个句子生成表示以用于检索相关消息",
+        )
+
+        async with ArkClient("embedding-model") as client:
+            query_vector = await client.embed_multimodal(query, [], instructions)
 
         # 2. 从 messages_recall 检索
         from app.services.qdrant import qdrant_service
