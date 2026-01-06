@@ -41,6 +41,21 @@ class ModelProvider(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime)
 
 
+class ModelMapping(Base):
+    __tablename__ = "model_mappings"
+
+    id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    alias: Mapped[str] = mapped_column(String(100), unique=True)
+    provider_name: Mapped[str] = mapped_column(String(100))
+    real_model_name: Mapped[str] = mapped_column(String(100))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_config: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=func.now(), onupdate=func.now()
+    )
+
+
 class ConversationMessage(Base):
     __tablename__ = "conversation_messages"
 

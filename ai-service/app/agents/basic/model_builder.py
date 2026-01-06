@@ -9,10 +9,6 @@ from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import ChatOpenAI
-from sqlalchemy.future import select
-
-from app.orm.base import AsyncSessionLocal
-from app.orm.models import ModelProvider
 
 from .exceptions import ModelBuilderError, ModelConfigError, UnsupportedModelError
 
@@ -42,33 +38,9 @@ class ModelBuilder:
             Dict: 包含模型和供应商信息的字典，如果未找到返回None
         """
         try:
-            from app.orm.crud import parse_model_id
+            from app.orm.crud import get_model_and_provider_info
 
-            provider_name, actual_model_name = parse_model_id(model_id)
-
-            async with AsyncSessionLocal() as session:
-                # 直接查询供应商信息
-                provider_result = await session.execute(
-                    select(ModelProvider).where(ModelProvider.name == provider_name)
-                )
-                provider = provider_result.scalar_one_or_none()
-
-                # 如果找不到指定供应商，尝试使用默认的302.ai
-                if not provider:
-                    provider_result = await session.execute(
-                        select(ModelProvider).where(ModelProvider.name == "302.ai")
-                    )
-                    provider = provider_result.scalar_one_or_none()
-
-                if not provider:
-                    return None
-
-                return {
-                    "model_name": actual_model_name,
-                    "api_key": provider.api_key,
-                    "base_url": provider.base_url,
-                    "is_active": provider.is_active,
-                }
+            return await get_model_and_provider_info(model_id)
         except Exception as e:
             logger.error(f"数据库查询错误: {e}")
             return None

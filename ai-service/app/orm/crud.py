@@ -9,6 +9,7 @@ from .models import (
     ConversationMessage,
     GroupProfile,
     LarkBaseChatInfo,
+    ModelMapping,
     ModelProvider,
     TopicMemory,
     UserProfile,
@@ -36,17 +37,29 @@ def parse_model_id(model_id: str) -> tuple[str, str]:
 async def get_model_and_provider_info(model_id: str):
     """
     根据model_id获取供应商配置和模型名称
+    优先查找 ModelMapping，如果未找到则回退到解析逻辑
 
     Args:
-        model_id: 格式为"供应商名称/模型原名"的字符串
+        model_id: 映射别名 或 格式为"供应商名称/模型原名"的字符串
 
     Returns:
         dict: 包含模型和供应商信息的字典
     """
-    provider_name, actual_model_name = parse_model_id(model_id)
-
     async with AsyncSessionLocal() as session:
-        # 直接查询供应商信息
+        # 1. 尝试查找映射
+        mapping_result = await session.execute(
+            select(ModelMapping).where(ModelMapping.alias == model_id)
+        )
+        mapping = mapping_result.scalar_one_or_none()
+
+        if mapping:
+            provider_name = mapping.provider_name
+            actual_model_name = mapping.real_model_name
+        else:
+            # 2. 回退到解析逻辑
+            provider_name, actual_model_name = parse_model_id(model_id)
+
+        # 3. 查询供应商信息
         provider_result = await session.execute(
             select(ModelProvider).where(ModelProvider.name == provider_name)
         )
@@ -66,6 +79,7 @@ async def get_model_and_provider_info(model_id: str):
             "model_name": actual_model_name,
             "api_key": provider.api_key,
             "base_url": provider.base_url,
+            "is_active": provider.is_active,
         }
 
 

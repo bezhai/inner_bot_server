@@ -48,3 +48,6 @@ tmp/
 temp
 .venv
 .cursorignore
+
+.next/
+.mypy_cache/
