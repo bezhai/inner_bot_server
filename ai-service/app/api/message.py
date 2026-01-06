@@ -5,12 +5,14 @@
 import asyncio
 import json
 import logging
+import re
 import uuid
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.agents.basic.origin_client import OpenAIClient
+from app.agents.basic.origin_client import ArkClient
+from app.clients.image_client import image_client
 from app.clients.redis import AsyncRedisClient
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
@@ -31,11 +33,6 @@ class MessageCreateRequest(BaseModel):
     create_time: str
 
 
-async def _embed_text(text: str) -> list[float]:
-    async with OpenAIClient("text-embedding-3-small") as client:
-        return await client.embed(text)
-
-
 async def _vectorize_and_store_message(
     message_id: str,
     user_id: str,
@@ -45,30 +42,66 @@ async def _vectorize_and_store_message(
     chat_type: str,
     create_time: str,
 ) -> None:
-    """异步向量化消息内容并写入 Qdrant 向量库"""
+    """异步向量化消息内容（多模态）并写入 Qdrant 双向量库"""
     try:
-        vector = await _embed_text(content)
+        # 1. 解析消息内容：提取文本和图片keys
+        image_keys = re.findall(r"!\[image\]\(([^)]+)\)", content)
+        text_content = re.sub(r"!\[image\]\([^)]+\)", "", content).strip()
 
-        # 生成确定性 UUID（相同 message_id 总是生成相同 UUID，保证幂等性）
+        # 2. 批量下载图片转Base64
+        image_base64_list = []
+        if image_keys:
+            tasks = [
+                image_client.download_image_as_base64(
+                    key, message_id if role == "user" else None
+                )
+                for key in image_keys
+            ]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            image_base64_list = [r for r in results if isinstance(r, str) and r]
+
+        # 3. 并行生成召回和聚类向量
+        async with ArkClient("embedding-model") as client:
+            recall_task = client.embed_multimodal_for_recall(
+                text_content, image_base64_list
+            )
+            cluster_task = client.embed_multimodal_for_cluster(
+                text_content, image_base64_list
+            )
+            recall_vector, cluster_vector = await asyncio.gather(
+                recall_task, cluster_task
+            )
+
+        # 4. 生成向量ID
         vector_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, message_id))
 
-        # 写入 Qdrant
-        await qdrant_service.upsert_vectors(
-            collection="messages",
-            vectors=[vector],
+        # 5. 准备payload
+        payload = {
+            "message_id": message_id,
+            "user_id": user_id,
+            "chat_id": chat_id,
+            "chat_type": chat_type,
+            "role": role,
+            "timestamp": int(create_time),
+        }
+
+        # 6. 并行写入两个collection
+        recall_upsert = qdrant_service.upsert_vectors(
+            collection="messages_recall",
+            vectors=[recall_vector],
             ids=[vector_id],
-            payloads=[
-                {
-                    "message_id": message_id,
-                    "user_id": user_id,
-                    "chat_id": chat_id,
-                    "chat_type": chat_type,
-                    "role": role,
-                    "timestamp": int(create_time),
-                }
-            ],
+            payloads=[payload],
         )
-        logger.info(f"消息 {message_id} 成功写入向量库")
+        cluster_upsert = qdrant_service.upsert_vectors(
+            collection="messages_cluster",
+            vectors=[cluster_vector],
+            ids=[vector_id],
+            payloads=[payload],
+        )
+        await asyncio.gather(recall_upsert, cluster_upsert)
+
+        logger.info(f"消息 {message_id} 成功写入双向量库（召回+聚类）")
+
     except Exception as e:
         logger.error(f"消息 {message_id} 向量化写入失败: {str(e)}")
 

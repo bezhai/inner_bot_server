@@ -16,7 +16,6 @@ from app.long_tasks.executor import poll_and_execute_tasks
 
 # 导入记忆系统相关
 from app.memory.worker import (
-    cron_profile_scan,
     task_update_topic_memory,
 )
 
@@ -58,5 +57,5 @@ class UnifiedWorkerSettings:
         #     minute=set(range(0, 60, settings.l2_scan_interval_minutes)),
         # ),
         # 3. 画像扫描：每 30 分钟一次 (0分, 30分)
-        cron(cron_profile_scan, minute={0, 30}),
+        # cron(cron_profile_scan, minute={0, 30}), // 暂停使用
     ]

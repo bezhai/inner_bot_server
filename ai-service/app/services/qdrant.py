@@ -186,22 +186,22 @@ qdrant_service = QdrantService()
 async def init_qdrant_collections():
     """初始化所有必要的 QDrant 集合"""
     try:
-        # 创建消息集合，向量维度为1536（OpenAI text-embedding-3-small模型的输出维度）
-        result = await qdrant_service.create_collection(
-            collection_name="messages", vector_size=1536
+        # 创建消息召回向量集合，向量维度为1024（火山引擎多模态模型）
+        recall_result = await qdrant_service.create_collection(
+            collection_name="messages_recall", vector_size=1024
         )
-        if result:
-            logger.info("QDrant消息集合创建成功")
+        if recall_result:
+            logger.info("Qdrant 消息召回向量集合创建成功")
         else:
-            logger.warning("QDrant消息集合可能已存在")
+            logger.warning("Qdrant 消息召回向量集合可能已存在")
 
-        # 创建群组记忆集合（L3），向量维度同样为1536
-        memory_created = await qdrant_service.create_collection(
-            collection_name="group_memories", vector_size=1536
+        # 创建消息聚类向量集合，向量维度为1024（火山引擎多模态模型）
+        cluster_result = await qdrant_service.create_collection(
+            collection_name="messages_cluster", vector_size=1024
         )
-        if memory_created:
-            logger.info("QDrant群组记忆集合创建成功")
+        if cluster_result:
+            logger.info("Qdrant 消息聚类向量集合创建成功")
         else:
-            logger.warning("QDrant群组记忆集合可能已存在")
+            logger.warning("Qdrant 消息聚类向量集合可能已存在")
     except Exception as e:
         logger.error(f"初始化QDrant集合失败: {str(e)}")

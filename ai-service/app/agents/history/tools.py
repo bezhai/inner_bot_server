@@ -8,6 +8,7 @@ from langgraph.runtime import get_runtime
 from sqlalchemy import select
 
 from app.agents.basic.context import ContextSchema
+from app.agents.basic.origin_client import OpenAIClient
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkGroupMember, LarkUser, UserProfile
 
@@ -105,6 +106,100 @@ async def search_messages(
     except Exception as e:
         logger.error(f"search_messages error: {e}", exc_info=True)
         return f"搜索失败: {e}"
+
+
+@tool
+async def search_messages_semantic(
+    query: str,
+    limit: int = 10,
+) -> str:
+    """
+    语义化搜索本群内消息（支持图片内容检索）
+
+    使用多模态向量检索，能够：
+    - 理解同义词和语义相关性（如"bug"="问题"="错误"）
+    - 搜索图片中的视觉内容（如"蓝色的架构图""那个报错截图"）
+    - 跨模态匹配（用文字描述匹配图片内容）
+
+    适用场景：
+    - 用模糊描述查找消息（如"上次那个讨论""关于性能的那次"）
+    - 查找图片相关消息（如"那张设计稿""数据库架构图"）
+    - 同义词匹配（如搜"故障"能找到"bug""问题""错误"）
+
+    Args:
+        query: 自然语言查询描述
+        limit: 返回结果数量（默认10条）
+
+    Returns:
+        str: 格式化的搜索结果
+
+    Examples:
+        - "上周那张数据库设计图"
+        - "关于Redis缓存的讨论"
+        - "那个报错截图"
+        - "性能优化的方案"
+    """
+    context = get_runtime(ContextSchema).context
+
+    try:
+        # 1. 生成查询向量（Query侧）
+        async with OpenAIClient("doubao:doubao-embedding-vision-251215") as client:
+            query_vector = await client.embed_multimodal_for_query(query, [])
+
+        # 2. 从 messages_recall 检索
+        from app.services.qdrant import qdrant_service
+
+        results = await qdrant_service.search_vectors(
+            collection_name="messages_recall",
+            query_vector=query_vector,
+            limit=limit * 3,  # 多取一些，然后过滤chat_id
+        )
+
+        if not results:
+            return "未找到相关消息"
+
+        # 3. 过滤当前chat_id的结果
+        filtered_results = [
+            r
+            for r in results
+            if r.get("payload", {}).get("chat_id") == context.curr_chat_id
+        ]
+
+        if not filtered_results:
+            return "在本群内未找到相关消息"
+
+        # 4. 获取完整消息内容
+        message_ids = [r["payload"]["message_id"] for r in filtered_results[:limit]]
+
+        async with AsyncSessionLocal() as session:
+            query_obj = (
+                select(ConversationMessage, LarkUser)
+                .join(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
+                .where(ConversationMessage.message_id.in_(message_ids))
+            )
+            result = await session.execute(query_obj)
+            rows = result.all()
+
+        if not rows:
+            return "未找到相关消息"
+
+        # 5. 按原始相似度排序并格式化输出
+        message_map = {msg.message_id: (msg, user) for msg, user in rows}
+        sorted_messages = [
+            message_map[mid] for mid in message_ids if mid in message_map
+        ]
+
+        lines = [f"找到 {len(sorted_messages)} 条相关消息：\n"]
+        for msg, user in sorted_messages:
+            time_str = _format_timestamp(msg.create_time)
+            content = _truncate(msg.content)
+            lines.append(f"[{time_str}] {user.name}: {content}")
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"search_messages_semantic error: {e}", exc_info=True)
+        return f"语义搜索失败: {e}"
 
 
 @tool

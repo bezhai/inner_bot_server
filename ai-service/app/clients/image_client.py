@@ -2,6 +2,7 @@
 Main-server图片处理客户端
 """
 
+import base64
 import logging
 
 import httpx
@@ -125,6 +126,68 @@ class ImageProcessClient:
             return None
         except Exception as e:
             logger.error(f"调用base64图片上传接口失败: {str(e)}")
+            return None
+
+    async def download_image_as_base64(
+        self, file_key: str, message_id: str | None
+    ) -> str | None:
+        """
+        下载图片并转换为Base64格式
+
+        Args:
+            file_key: 图片文件key
+            message_id: 消息ID
+
+        Returns:
+            str: Base64格式图片 data:image/{format};base64,{base64_data}
+            失败返回None
+        """
+        try:
+            # 1. 获取图片URL
+            image_url = await self.process_image(file_key, message_id)
+            if not image_url:
+                logger.warning(f"无法获取图片URL: {file_key}")
+                return None
+
+            # 2. 下载图片内容
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.get(image_url)
+                response.raise_for_status()
+
+                # 3. 获取图片格式
+                content_type = response.headers.get("content-type", "image/jpeg")
+                image_format = content_type.split("/")[-1].split(";")[0].lower()
+
+                # 支持的格式映射
+                format_map = {
+                    "jpeg": "jpeg",
+                    "jpg": "jpeg",
+                    "png": "png",
+                    "gif": "gif",
+                    "webp": "webp",
+                    "bmp": "bmp",
+                }
+                image_format = format_map.get(image_format, "jpeg")
+
+                # 4. 转换为Base64
+                image_bytes = response.content
+                base64_str = base64.b64encode(image_bytes).decode("utf-8")
+
+                # 5. 返回完整格式
+                result = f"data:image/{image_format};base64,{base64_str}"
+                logger.info(
+                    f"图片下载并转换为Base64成功: {file_key}, 格式: {image_format}"
+                )
+                return result
+
+        except httpx.TimeoutException:
+            logger.warning(f"图片下载超时: {file_key}")
+            return None
+        except httpx.HTTPStatusError as e:
+            logger.error(f"图片下载HTTP错误: {e.response.status_code} - {file_key}")
+            return None
+        except Exception as e:
+            logger.error(f"图片下载转换失败: {file_key} - {str(e)}")
             return None
 
 

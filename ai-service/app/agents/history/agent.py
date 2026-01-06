@@ -16,13 +16,15 @@ from app.agents.basic.context import ContextSchema
 from app.agents.history.tools import (
     list_group_members,
     search_messages,
+    search_messages_semantic,
 )
 
 logger = logging.getLogger(__name__)
 
 # 历史检索工具集
 HISTORY_TOOLS = [
-    search_messages,
+    search_messages,  # 关键词检索
+    search_messages_semantic,  # 语义检索（多模态）
     list_group_members,
 ]
 
@@ -62,7 +64,6 @@ async def search_history(
             prompt_id="history_search",
             tools=HISTORY_TOOLS,
             model_id="search-history-model",
-            trace_name="history_search",
         )
 
         # 调用子 agent
