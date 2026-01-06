@@ -83,7 +83,7 @@ async def generate_image(
 
         logger.info(f"生成图片请求: {query}")
 
-        model_name = "doubao:ep-20251024125110-4xhl4"
+        model_name = "default-generate-image-model"
 
         if context.gray_config and context.gray_config.get("image_model"):
             model_name = context.gray_config["image_model"]

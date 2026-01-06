@@ -28,8 +28,6 @@ class ChatAgent:
 
     async def _init_agent(self, **prompt_vars):
         langfuse_prompt = get_prompt(self.prompt_id)
-        if langfuse_prompt.config.get("model_name"):
-            self.model_id = langfuse_prompt.config.get("model_name")
 
         assert self.model_id is not None, "Model ID must be specified"
 

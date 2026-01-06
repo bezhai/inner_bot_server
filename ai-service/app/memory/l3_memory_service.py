@@ -113,7 +113,7 @@ async def evolve_group_profile(
         agent = ChatAgent(
             PROFILE_PROMPT_ID,
             PROFILE_TOOLS,
-            model_id="gpt-5-mini",
+            model_id="evolve-group-profile-model",
             trace_name="profile_update",
         )
         await agent.run(

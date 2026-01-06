@@ -61,7 +61,7 @@ async def search_history(
         agent = ChatAgent(
             prompt_id="history_search",
             tools=HISTORY_TOOLS,
-            model_id="gemini-2.5-flash-preview-09-2025",
+            model_id="search-history-model",
             trace_name="history_search",
         )
 

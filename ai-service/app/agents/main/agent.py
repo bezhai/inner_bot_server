@@ -21,7 +21,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     agent = ChatAgent(
         "main",
         MAIN_TOOLS,
-        model_id="gemini-2.5-flash-preview-09-2025",
+        model_id="main-chat-model",
         trace_name="main",
     )
 
