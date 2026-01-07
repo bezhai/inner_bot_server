@@ -434,6 +434,17 @@ class AzureHttpClient(BaseAIClient[requests.Session]):
         self._endpoint = model_info["base_url"]
         return requests.Session()
 
+    async def disconnect(self) -> None:
+        """关闭 HTTP 客户端会话。
+
+        requests.Session.close 是同步方法，不能直接被 await。
+        这里覆盖基类的实现，避免对同步 close 结果执行 await。
+        """
+        if self._client is not None:
+            # requests.Session.close() 为同步方法，直接调用即可
+            self._client.close()  # type: ignore[union-attr]
+            self._client = None
+
     @staticmethod
     def _build_image_config(size: str) -> dict[str, Any]:
         """根据 size 构造 image_config。

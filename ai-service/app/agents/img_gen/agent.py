@@ -102,7 +102,8 @@ async def generate_image(
             }
 
     except Exception as e:
-        logger.error(f"Bangumi agent执行失败: {str(e)}")
+        # 记录完整 traceback，方便排查例如 azure-http 链路上的异常
+        logger.exception(f"Image agent执行失败: {str(e)}")
         return f"抱歉，处理您的请求时出现错误: {str(e)}"
 
 
