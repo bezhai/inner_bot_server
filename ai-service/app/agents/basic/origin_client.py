@@ -428,10 +428,14 @@ class AzureHttpClient(BaseAIClient[requests.Session]):
     def __init__(self, model_id: str) -> None:
         super().__init__(model_id)
         self._endpoint: str | None = None
+        # HTTP 接口使用 ak 作为查询参数做鉴权
+        self._api_key: str | None = None
 
     async def _create_client(self, model_info: dict) -> requests.Session:
         # 对于 HTTP 客户端，base_url 约定为完整的调用 URL
         self._endpoint = model_info["base_url"]
+        # 与官方示例保持一致，使用 ak 查询参数做鉴权
+        self._api_key = model_info.get("api_key")
         return requests.Session()
 
     async def disconnect(self) -> None:
@@ -537,8 +541,17 @@ class AzureHttpClient(BaseAIClient[requests.Session]):
             headers = {
                 "Content-Type": "application/json",
             }
+            params: dict[str, Any] | None = None
+            if self._api_key:
+                # 官方接口通过 ak 查询参数做鉴权
+                params = {"ak": self._api_key}
+
             resp = session.post(
-                self._endpoint or "", json=payload, headers=headers, timeout=60
+                self._endpoint or "",
+                params=params,
+                json=payload,
+                headers=headers,
+                timeout=60,
             )
             resp.raise_for_status()
             return resp.json()
