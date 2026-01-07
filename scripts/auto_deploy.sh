@@ -25,19 +25,26 @@ send_feishu_notification() {
     return 0
   fi
 
-  # 使用 JSON 转义，避免换行/引号导致的 Bad Request
-  if command -v python3 >/dev/null 2>&1; then
-    export FEISHU_MESSAGE="$MESSAGE"
-    PAYLOAD=$(python3 -c 'import json, os; print(json.dumps({"msg_type":"text","content":{"text":os.environ.get("FEISHU_MESSAGE", "")}}, ensure_ascii=False))')
-    unset FEISHU_MESSAGE
-  else
-    ESCAPED_MESSAGE=${MESSAGE//\\/\\\\}
-    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//"/\\"}
-    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\n'/\\n}
-    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\t'/\\t}
-    ESCAPED_MESSAGE=${ESCAPED_MESSAGE//$'\r'/\\r}
-    PAYLOAD="{\"msg_type\":\"text\",\"content\":{\"text\":\"${ESCAPED_MESSAGE}\"}}"
+  if ! command -v python3 >/dev/null 2>&1; then
+    log "python3 未安装，无法发送飞书通知"
+    return 0
   fi
+
+  # 完全交给 Python 处理 JSON 构造与换行转换：
+  # - 支持调用方传入真实换行
+  # - 也支持传入字面量 "\\n"，这里会转换成真正的换行符
+  export FEISHU_MESSAGE="$MESSAGE"
+  PAYLOAD=$(python3 << 'EOF'
+import json, os
+
+msg = os.environ.get("FEISHU_MESSAGE", "")
+# 把字面量 \n/\t/\r 转成真实控制符，方便在 Shell 侧书写
+msg = msg.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
+
+print(json.dumps({"msg_type": "text", "content": {"text": msg}}, ensure_ascii=False))
+EOF
+  )
+  unset FEISHU_MESSAGE
 
   # 发送通知
   RESPONSE_FILE=$(mktemp)
