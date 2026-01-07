@@ -57,11 +57,10 @@ async def unified_search(query: str) -> str:
         搜索结果的结构化信息
     """
     try:
-        # 使用 search agent 智能选择合适的搜索工具
         agent = ChatAgent(
-            "search",  # 在 Langfuse 中配置对应的 prompt
+            "search",
             SEARCH_TOOLS,
-            model_id="search-model",  # 使用快速模型
+            model_id="search-model",
             trace_name="search",
         )
 
