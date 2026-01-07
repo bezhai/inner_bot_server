@@ -1,6 +1,7 @@
 """统一的底层模型客户端封装（OpenAI / Ark / HTTP Image 等）。"""
 
 import asyncio
+import logging
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
@@ -13,6 +14,8 @@ from volcenginesdkarkruntime.types.multimodal_embedding import (
 )
 
 from app.agents.basic.model_builder import ModelBuilder
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 ClientT = TypeVar("ClientT")
@@ -526,7 +529,7 @@ class AzureHttpClient(BaseAIClient[requests.Session]):
         payload: dict[str, Any] = {
             "stream": False,
             "model": self.model_name,
-            "max_tokens": 20000,
+            "max_tokens": 5000,
             "messages": [
                 {
                     "role": "user",
