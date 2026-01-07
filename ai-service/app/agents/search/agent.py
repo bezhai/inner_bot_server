@@ -61,7 +61,6 @@ async def unified_search(query: str) -> str:
             "search",
             SEARCH_TOOLS,
             model_id="search-model",
-            trace_name="search",
         )
 
         message = await agent.run([HumanMessage(content=query)])

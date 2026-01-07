@@ -56,6 +56,8 @@ class ChatAgent:
         if self.trace_name:
             config["run_name"] = self.trace_name
 
+        assert self._agent is not None  # for mypy type checking
+
         async for (
             token,
             _,
@@ -79,6 +81,8 @@ class ChatAgent:
         config: dict = {"callbacks": [self._langfuse_handler]}
         if self.trace_name:
             config["run_name"] = self.trace_name
+
+        assert self._agent is not None  # for mypy type checking
 
         all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
             {"messages": messages},

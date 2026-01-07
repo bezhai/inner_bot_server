@@ -114,7 +114,6 @@ async def evolve_group_profile(
             PROFILE_PROMPT_ID,
             PROFILE_TOOLS,
             model_id="evolve-group-profile-model",
-            trace_name="profile_update",
         )
         await agent.run(
             [HumanMessage(content="\n".join(formatted_messages))],
