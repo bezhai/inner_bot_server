@@ -36,6 +36,8 @@ class ModelProvider(Base):
     name: Mapped[str] = mapped_column(String(100))
     api_key: Mapped[str] = mapped_column(Text)
     base_url: Mapped[str] = mapped_column(Text)
+    # 用于区分底层客户端类型，例如 "openai"、"ark" 等
+    client_type: Mapped[str] = mapped_column(String(50), default="openai")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime)
     updated_at: Mapped[datetime] = mapped_column(DateTime)

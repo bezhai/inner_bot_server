@@ -7,7 +7,7 @@ from langgraph.runtime import get_runtime
 from pydantic import Field
 
 from app.agents.basic.context import ContextSchema
-from app.agents.basic.origin_client import OpenAIClient
+from app.agents.basic.origin_client import BaseAIClient
 
 logger = logging.getLogger(__name__)
 
@@ -89,9 +89,11 @@ async def generate_image(
             model_name = context.gray_config["image_model"]
             logger.info(f"灰度配置覆盖图片模型为: {model_name}")
 
-        async with OpenAIClient(model_name) as client:
-            base64_images = await client.images_generate(
-                query, size, reference_urls if reference_urls else None
+        async with await BaseAIClient.create(model_name) as client:
+            base64_images = await client.generate_image(
+                prompt=query,
+                size=size,
+                reference_images=reference_urls if reference_urls else None,
             )
 
             image_keys = await batch_upload_images(base64_images=base64_images)

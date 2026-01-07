@@ -267,6 +267,11 @@ table "model_provider" {
     null = false
     type = text
   }
+  column "client_type" {
+    null    = false
+    type    = character_varying(50)
+    default = "openai"
+  }
   column "is_active" {
     null    = false
     type    = boolean

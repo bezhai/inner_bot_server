@@ -8,7 +8,7 @@ from langgraph.runtime import get_runtime
 from sqlalchemy import select
 
 from app.agents.basic.context import ContextSchema
-from app.agents.basic.origin_client import ArkClient, InstructionBuilder, Modality
+from app.agents.basic.origin_client import BaseAIClient, InstructionBuilder, Modality
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkGroupMember, LarkUser, UserProfile
 
@@ -152,8 +152,12 @@ async def search_messages_semantic(
             instruction="为这个句子生成表示以用于检索相关消息",
         )
 
-        async with ArkClient("embedding-model") as client:
-            query_vector = await client.embed_multimodal(query, [], instructions)
+        async with await BaseAIClient.create("embedding-model") as client:
+            query_vector = await client.embed(
+                text=query,
+                image_base64_list=None,
+                instructions=instructions,
+            )
 
         # 2. 从 messages_recall 检索
         from app.services.qdrant import qdrant_service

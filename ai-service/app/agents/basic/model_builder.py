@@ -71,6 +71,7 @@ class ModelBuilder:
             "api_key": model_info["api_key"],
             "base_url": model_info["base_url"],
             "model": model_info["model_name"],
+            "client_type": model_info["client_type"],
         }
 
     @staticmethod

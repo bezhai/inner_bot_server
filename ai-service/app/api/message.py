@@ -3,7 +3,6 @@
 """
 
 import asyncio
-import json
 import logging
 import re
 import uuid
@@ -11,9 +10,8 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.agents.basic.origin_client import ArkClient, InstructionBuilder, Modality
+from app.agents.basic.origin_client import BaseAIClient, InstructionBuilder
 from app.clients.image_client import image_client
-from app.clients.redis import AsyncRedisClient
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
 
@@ -70,12 +68,16 @@ async def _vectorize_and_store_message(
             instruction="Retrieve semantically similar content",
         )
 
-        async with ArkClient("embedding-model") as client:
-            recall_task = client.embed_multimodal(
-                text_content, image_base64_list, recall_instructions
+        async with await BaseAIClient.create("embedding-model") as client:
+            recall_task = client.embed(
+                text=text_content,
+                image_base64_list=image_base64_list,
+                instructions=recall_instructions,
             )
-            cluster_task = client.embed_multimodal(
-                text_content, image_base64_list, cluster_instructions
+            cluster_task = client.embed(
+                text=text_content,
+                image_base64_list=image_base64_list,
+                instructions=cluster_instructions,
             )
             recall_vector, cluster_vector = await asyncio.gather(
                 recall_task, cluster_task
@@ -131,15 +133,15 @@ async def create_message(request: MessageCreateRequest):
     )
 
     # L2 队列入队：按 chat 维度
-    redis = AsyncRedisClient.get_instance()
-    queue_key = f"l2:queue:{request.chat_id}"
-    # 仅推入轻量信息，正文不必入队
-    payload = {
-        "message_id": request.message_id,
-        "user_id": request.user_id,
-        "create_time": request.create_time,
-    }
-    await redis.rpush(queue_key, json.dumps(payload))
+    # redis = AsyncRedisClient.get_instance()
+    # queue_key = f"l2:queue:{request.chat_id}"
+    # # 仅推入轻量信息，正文不必入队
+    # payload = {
+    #     "message_id": request.message_id,
+    #     "user_id": request.user_id,
+    #     "create_time": request.create_time,
+    # }
+    # await redis.rpush(queue_key, json.dumps(payload))
     # 可选限长，保留最近200条触发信号
     # await redis.ltrim(queue_key, -200, -1)
 

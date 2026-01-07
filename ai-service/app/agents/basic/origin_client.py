@@ -1,11 +1,9 @@
 """OpenAI API client for AI/ML operations."""
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletion
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 from pydantic import BaseModel
 from volcenginesdkarkruntime import AsyncArk
 from volcenginesdkarkruntime.types.multimodal_embedding import (
@@ -16,6 +14,18 @@ from app.agents.basic.model_builder import ModelBuilder
 
 T = TypeVar("T", bound=BaseModel)
 ClientT = TypeVar("ClientT")
+
+
+class ClientType:
+    """底层客户端类型枚举。
+
+    主要通过 model_provider.client_type 进行配置：
+    - "openai": OpenAI 兼容客户端
+    - "ark": 火山引擎 Ark Runtime 客户端
+    """
+
+    OPENAI = "openai"
+    ARK = "ark"
 
 
 class Modality:
@@ -143,6 +153,7 @@ class BaseAIClient(ABC, Generic[ClientT]):
         self._client: ClientT | None = None
         self.model_id = model_id
         self.model_name: str = ""
+        self.client_type: str | None = None
 
     @abstractmethod
     async def _create_client(self, model_info: dict) -> ClientT:
@@ -163,6 +174,7 @@ class BaseAIClient(ABC, Generic[ClientT]):
             if model_info is None:
                 raise ValueError(f"无法获取模型参数: {self.model_id}")
             self.model_name = model_info["model"]
+            self.client_type = model_info.get("client_type")
             self._client = await self._create_client(model_info)
 
     async def disconnect(self) -> None:
@@ -195,6 +207,59 @@ class BaseAIClient(ABC, Generic[ClientT]):
         """异步上下文管理器出口。"""
         await self.disconnect()
 
+    # 工厂方法：根据 model_provider.client_type 选择具体实现
+    @staticmethod
+    async def create(model_id: str) -> "BaseAIClient[Any]":
+        """根据模型配置创建合适的客户端实例。
+
+        Args:
+            model_id: 内部模型 ID（alias 或 provider:model 形式）
+
+        Returns:
+            对应的 BaseAIClient 子类实例（如 OpenAIClient、ArkClient）
+        """
+
+        model_info = await ModelBuilder._get_model_and_provider_info(model_id)
+        if model_info is None or not model_info.get("is_active", True):
+            raise ValueError(f"无法获取模型配置或模型未激活: {model_id}")
+
+        client_type = (model_info.get("client_type") or ClientType.OPENAI).lower()
+
+        if client_type == ClientType.OPENAI:
+            return OpenAIClient(model_id)
+        if client_type == ClientType.ARK:
+            return ArkClient(model_id)
+
+        raise ValueError(f"未知的 client_type: {client_type} (model_id={model_id})")
+
+    async def embed(
+        self,
+        text: str | None = None,
+        image_base64_list: list[str] | None = None,
+        instructions: str | None = None,
+        dimensions: int | None = None,
+    ) -> list[float]:
+        """统一的 embedding 能力（默认不支持）。
+
+        Args:
+            text: 文本内容，可选
+            image_base64_list: Base64 图片列表，可选
+            instructions: 任务指令（如召回/聚类/STS 等），可选
+            dimensions: 维度，具体是否生效由底层模型决定
+        """
+        raise RuntimeError(f"{self.__class__.__name__} 不支持 embed 能力")
+
+    async def generate_image(
+        self,
+        prompt: str,
+        size: str,
+        reference_images: list[str] | None = None,
+        *,
+        n: int = 1,
+    ) -> list[str]:
+        """文生图/图生图（默认不支持）。"""
+        raise RuntimeError(f"{self.__class__.__name__} 不支持 generate_image 能力")
+
 
 class OpenAIClient(BaseAIClient[AsyncOpenAI]):
     """Async OpenAI API client wrapper."""
@@ -208,46 +273,53 @@ class OpenAIClient(BaseAIClient[AsyncOpenAI]):
             max_retries=3,
         )
 
-    async def chat_completion(
+    async def embed(
         self,
-        messages: list[ChatCompletionMessageParam],
-        **kwargs,
-    ) -> ChatCompletion:
-        """Create a chat completion."""
-        client = self._ensure_connected()
-        return await client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            **kwargs,
-        )
+        text: str | None = None,
+        image_base64_list: list[str] | None = None,
+        instructions: str | None = None,
+        dimensions: int | None = None,
+    ) -> list[float]:
+        """统一的 embedding 能力实现（当前仅支持纯文本）。"""
 
-    async def embed(self, text: str) -> list[float]:
-        """直接调用embedding API"""
+        # OpenAI embeddings 当前不支持多模态图片输入，如果调用方传了图片，直接抛错
+        if image_base64_list:
+            raise RuntimeError(
+                "OpenAIClient 当前不支持带图片的多模态 embedding，请仅传入 text"
+            )
+
+        if not text:
+            raise RuntimeError("OpenAIClient embed 需要提供 text 内容")
+
         client = self._ensure_connected()
         resp = await client.embeddings.create(model=self.model_name, input=text)
         return list(resp.data[0].embedding)
 
-    async def images_generate(
+    async def generate_image(
         self,
         prompt: str,
         size: str,
-        reference_urls: list[str] | None = None,
+        reference_images: list[str] | None = None,
+        *,
+        n: int = 1,
     ) -> list[str]:
+        """统一的图片生成能力实现（OpenAI 兼容接口）。"""
         client = self._ensure_connected()
-        extra_body = {
+        extra_body: dict[str, Any] = {
             "watermark": False,
             "sequential_image_generation": "disabled",
         }
 
         # 如果提供了参考图片，添加到 extra_body
-        if reference_urls:
-            extra_body["image"] = reference_urls
+        if reference_images:
+            extra_body["image"] = reference_images
 
         resp = await client.images.generate(
             model=self.model_name,
             response_format="b64_json",
             prompt=prompt,
             size=size,  # pyright: ignore[reportArgumentType]
+            n=n,
             extra_body=extra_body,
         )
         return [f"data:image/jpeg;base64,{image.b64_json}" for image in resp.data or []]
@@ -265,26 +337,25 @@ class ArkClient(BaseAIClient[AsyncArk]):
             max_retries=3,
         )
 
-    async def embed_multimodal(
+    async def embed(
         self,
-        text: str,
-        image_base64_list: list[str],
-        instructions: str,
-        dimensions: int = 1024,
+        text: str | None = None,
+        image_base64_list: list[str] | None = None,
+        instructions: str | None = None,
+        dimensions: int | None = 1024,
     ) -> list[float]:
-        """
-        多模态向量化
+        """多模态 embedding 能力实现。
 
         Args:
-            text: 文本内容
-            image_base64_list: Base64格式图片列表
-            instructions: 向量化指令（使用 InstructionBuilder 构建）
-            dimensions: 向量维度，默认1024
-
-        Returns:
-            list[float]: 向量表示
+            text: 文本内容，可选
+            image_base64_list: Base64 格式图片列表，可选
+            instructions: 向量化指令（推荐使用 InstructionBuilder 构建）
+            dimensions: 向量维度，默认 1024
         """
         client = self._ensure_connected()
+
+        if not text and not image_base64_list:
+            raise RuntimeError("ArkClient embed 需要至少提供 text 或一张图片")
 
         # 构造输入列表
         input_list: list[EmbeddingInputParam] = []
@@ -294,16 +365,46 @@ class ArkClient(BaseAIClient[AsyncArk]):
             input_list.append({"type": "text", "text": text})
 
         # 添加图片
-        for image_base64 in image_base64_list:
-            input_list.append({"type": "image_url", "image_url": {"url": image_base64}})
+        if image_base64_list:
+            for image_base64 in image_base64_list:
+                input_list.append(
+                    {"type": "image_url", "image_url": {"url": image_base64}}
+                )
 
-        # 调用API
+        # 调用 API
         resp = await client.multimodal_embeddings.create(
             model=self.model_name,
             input=input_list,
-            dimensions=dimensions,
+            dimensions=dimensions or 1024,
             encoding_format="float",
-            extra_body={"instructions": instructions},
+            extra_body={"instructions": instructions or ""},
         )
 
         return resp.data.embedding
+
+    async def generate_image(
+        self,
+        prompt: str,
+        size: str,
+        reference_images: list[str] | None = None,
+        *,
+        n: int = 1,
+    ) -> list[str]:
+        """Ark 图片生成能力，接口与 OpenAIClient 对齐。
+
+        当前使用非流式、b64_json 的返回形式。
+        """
+        client = self._ensure_connected()
+
+        resp = await client.images.generate(
+            model=self.model_name,
+            prompt=prompt,
+            size=size,
+            n=n,
+            image=reference_images or None,
+            response_format="b64_json",
+            watermark=False,
+            sequential_image_generation="disabled",
+        )
+
+        return [f"data:image/jpeg;base64,{image.b64_json}" for image in resp.data or []]
