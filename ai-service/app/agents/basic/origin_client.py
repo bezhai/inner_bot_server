@@ -554,7 +554,7 @@ class AzureHttpClient(BaseAIClient[requests.Session]):
                 params=params,
                 json=payload,
                 headers=headers,
-                timeout=60,
+                timeout=240,
             )
             resp.raise_for_status()
             return resp.json()
