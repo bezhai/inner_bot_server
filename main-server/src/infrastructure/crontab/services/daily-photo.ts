@@ -32,7 +32,9 @@ export class DailyPhotoService {
             .withHeader(new CardHeader('今天的每日一图').color('blue'))
             .addElement(new ImgComponent(images[0].image_key!).setAlt(images[0].pixiv_addr));
 
-        sendCard('oc_0d2e26c81fdf0823997a7bb40d71dcc1', card);
+        await sendCard('oc_0d2e26c81fdf0823997a7bb40d71dcc1', card);
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        await sendCard('oc_a44255e98af05f1359aeb29eeb503536', card);
     }
 
     /**
@@ -41,14 +43,12 @@ export class DailyPhotoService {
      */
     @Crontab('30 19 * * *', { taskName: 'daily-new-photo', botName: 'bytedance' })
     async dailySendNewPhoto(): Promise<void> {
-    try {
-          const card = await searchAndBuildDailyPhotoCard(
-              dayjs().add(-1, 'day').valueOf()
-          );
-          sendCard('oc_a79ce7cc8cc4afdcfd519532d0a917f5', card);
-      } catch (e) {
-          console.error('daily send new photo error:', e);
-      }
+        try {
+            const card = await searchAndBuildDailyPhotoCard(dayjs().add(-1, 'day').valueOf());
+            await sendCard('oc_a79ce7cc8cc4afdcfd519532d0a917f5', card);
+        } catch (e) {
+            console.error('daily send new photo error:', e);
+        }
     }
 }
 
