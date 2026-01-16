@@ -263,8 +263,6 @@ class BaseAIClient(ABC, Generic[ClientT]):
         prompt: str,
         size: str,
         reference_images: list[str] | None = None,
-        *,
-        n: int = 1,
     ) -> list[str]:
         """文生图/图生图（默认不支持）。"""
         raise RuntimeError(f"{self.__class__.__name__} 不支持 generate_image 能力")
@@ -309,8 +307,6 @@ class OpenAIClient(BaseAIClient[AsyncOpenAI]):
         prompt: str,
         size: str,
         reference_images: list[str] | None = None,
-        *,
-        n: int = 1,
     ) -> list[str]:
         """统一的图片生成能力实现（OpenAI 兼容接口）。"""
         client = self._ensure_connected()
@@ -328,7 +324,7 @@ class OpenAIClient(BaseAIClient[AsyncOpenAI]):
             response_format="b64_json",
             prompt=prompt,
             size=size,  # pyright: ignore[reportArgumentType]
-            n=n,
+            n=1,
             extra_body=extra_body,
         )
         return [f"data:image/jpeg;base64,{image.b64_json}" for image in resp.data or []]
@@ -396,8 +392,6 @@ class ArkClient(BaseAIClient[AsyncArk]):
         prompt: str,
         size: str,
         reference_images: list[str] | None = None,
-        *,
-        n: int = 1,
     ) -> list[str]:
         """Ark 图片生成能力，接口与 OpenAIClient 对齐。
 
@@ -409,7 +403,6 @@ class ArkClient(BaseAIClient[AsyncArk]):
             model=self.model_name,
             prompt=prompt,
             size=size,
-            n=n,
             image=reference_images or None,
             response_format="b64_json",
             watermark=False,
