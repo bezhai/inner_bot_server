@@ -6,7 +6,7 @@ import {
     LarkCard,
 } from 'feishu-card';
 import { fetchUploadedImages } from '@core/services/media/photo/upload';
-import { sendCard } from '@lark/basic/message';
+import { replyCard, sendCard, sendMsg } from '@lark/basic/message';
 import { Crontab, registerCrontabService } from '@crontab/decorators';
 import { searchAndBuildDailyPhotoCard } from '@core/services/media/photo/photo-card';
 
@@ -34,7 +34,8 @@ export class DailyPhotoService {
 
         await sendCard('oc_0d2e26c81fdf0823997a7bb40d71dcc1', card);
         await new Promise((resolve) => setTimeout(resolve, 10000));
-        await sendCard('oc_a44255e98af05f1359aeb29eeb503536', card);
+        const msgInfo = await sendMsg('oc_a44255e98af05f1359aeb29eeb503536', '每日一图');
+        await replyCard(msgInfo.message_id!, card, true);
     }
 
     /**

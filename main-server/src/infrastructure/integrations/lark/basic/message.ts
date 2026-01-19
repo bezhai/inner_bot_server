@@ -5,7 +5,7 @@ import { RateLimiter } from 'utils/rate-limiting/rate-limiter';
 import { Message } from 'core/models/message';
 
 export async function sendMsg(chat_id: string, message: string) {
-    await send(chat_id, { text: message }, 'text');
+    return send(chat_id, { text: message }, 'text');
 }
 
 export async function sendSticker(chat_id: string, sticker_id: string) {
@@ -24,8 +24,8 @@ export async function sendCard(chat_id: string, card: ValidLarkCard) {
     await send(chat_id, card, 'interactive');
 }
 
-export async function replyCard(messageId: string, card: ValidLarkCard) {
-    await reply(messageId, card, 'interactive');
+export async function replyCard(messageId: string, card: ValidLarkCard, replyInThread?: boolean) {
+    await reply(messageId, card, 'interactive', replyInThread);
 }
 
 export async function replyImage(messageId: string, image_key: string) {
