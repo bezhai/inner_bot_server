@@ -7,17 +7,7 @@ from langchain.tools import tool
 
 from app.agents.basic.agent import ChatAgent
 from app.agents.search.tools import (
-    get_character_persons,
-    get_character_subjects,
-    get_person_characters,
-    get_person_subjects,
-    get_subject_characters,
-    get_subject_persons,
-    get_subject_relations,
-    search_characters,
     search_donjin_event,
-    search_persons,
-    search_subjects,
     search_web,
 )
 
@@ -29,24 +19,13 @@ SEARCH_TOOLS = [
     search_web,
     # 同人展搜索
     search_donjin_event,
-    # Bangumi 搜索工具
-    search_subjects,
-    search_characters,
-    search_persons,
-    get_subject_characters,
-    get_subject_persons,
-    get_subject_relations,
-    get_character_subjects,
-    get_character_persons,
-    get_person_characters,
-    get_person_subjects,
 ]
 
 
 @tool
 async def unified_search(query: str) -> str:
     """
-    统一搜索接口，整合多种搜索能力（网络搜索、同人展查询、ACG数据库）
+    统一搜索接口，整合多种搜索能力（网络搜索、同人展查询）
 
     该工具会智能分析查询意图，自动选择最合适的搜索工具，支持复杂的多步查询。
 

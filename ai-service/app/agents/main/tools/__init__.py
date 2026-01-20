@@ -11,7 +11,7 @@ from app.agents.img_gen.agent import generate_image
 from app.agents.search.agent import unified_search
 
 MAIN_TOOLS = [
-    unified_search,  # 统一搜索入口（整合 web、同人展、bangumi 搜索）
+    unified_search,  # 统一搜索入口（整合 web、同人展搜索）
     generate_image,  # 图片生成
     search_history,  # 历史检索
 ]
