@@ -114,7 +114,7 @@ class ModelBuilder:
             # 根据 client_type 选择不同的模型类
             client_type = model_info.get("client_type", "")
 
-            if client_type == "azure_http":
+            if client_type == "azure-http":
                 # 使用 AzureChatOpenAI
                 chat_params = {
                     "openai_api_type": "azure",
