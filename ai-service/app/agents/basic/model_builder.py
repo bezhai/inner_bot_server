@@ -8,7 +8,7 @@ import logging
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_openai import ChatOpenAI
+from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
 from .exceptions import ModelBuilderError, ModelConfigError, UnsupportedModelError
 
@@ -111,21 +111,41 @@ class ModelBuilder:
                     model_id, f"模型配置缺少必要字段: {', '.join(missing_fields)}"
                 )
 
-            # 准备ChatOpenAI参数
-            chat_params = {
-                "api_key": model_info["api_key"],
-                "base_url": model_info["base_url"],
-                "model": model_info["model_name"],
-                **kwargs,
-            }
+            # 根据 client_type 选择不同的模型类
+            client_type = model_info.get("client_type", "")
 
-            logger.info(
-                f"为模型 {model_id} 构建ChatOpenAI实例，"
-                f"参数: {list(chat_params.keys())}"
-            )
+            if client_type == "azure_http":
+                # 使用 AzureChatOpenAI
+                chat_params = {
+                    "openai_api_type": "azure",
+                    "openai_api_version": "2024-03-01-preview",
+                    "azure_endpoint": model_info["base_url"],
+                    "openai_api_key": model_info["api_key"],
+                    "deployment_name": model_info["model_name"],
+                    **kwargs,
+                }
 
-            # 创建ChatOpenAI实例
-            return ChatOpenAI(**chat_params)
+                logger.info(
+                    f"为模型 {model_id} 构建AzureChatOpenAI实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+
+                return AzureChatOpenAI(**chat_params)
+            else:
+                # 默认使用 ChatOpenAI
+                chat_params = {
+                    "api_key": model_info["api_key"],
+                    "base_url": model_info["base_url"],
+                    "model": model_info["model_name"],
+                    **kwargs,
+                }
+
+                logger.info(
+                    f"为模型 {model_id} 构建ChatOpenAI实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+
+                return ChatOpenAI(**chat_params)
 
         except Exception as e:
             if isinstance(e, ModelBuilderError):
