@@ -27,3 +27,13 @@ class ModelConfigError(ModelBuilderError):
         if message is None:
             message = f"模型配置错误: {model_id}"
         super().__init__(message)
+
+
+class BannedWordError(Exception):
+    """消息包含封禁词异常"""
+
+    def __init__(self, word: str, message: "str | None" = None):
+        self.word = word
+        if message is None:
+            message = f"消息包含封禁词: {word}"
+        super().__init__(message)

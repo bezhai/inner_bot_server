@@ -10,9 +10,11 @@ from dataclasses import dataclass
 
 from langchain.messages import AIMessage, HumanMessage
 
+from app.agents.basic.exceptions import BannedWordError
 from app.agents.basic.langfuse import get_prompt
 from app.clients.image_client import image_client
 from app.orm.crud import fetch_group_profile, fetch_user_profiles
+from app.services.banned_word import check_banned_word
 from app.services.quick_search import QuickSearchResult, quick_search
 
 logger = logging.getLogger(__name__)
@@ -39,6 +41,13 @@ async def build_chat_context(
     if not l1_results:
         logger.warning(f"No results found for message_id: {message_id}")
         return [], [], ""
+
+    # 检测最新消息是否包含封禁词
+    last_message = l1_results[-1]
+    banned_word = await check_banned_word(last_message.content)
+    if banned_word:
+        logger.warning(f"消息包含封禁词: {banned_word}, message_id: {message_id}")
+        raise BannedWordError(banned_word)
 
     chat_type = l1_results[-1].chat_type or "p2p"  # 默认私聊
 

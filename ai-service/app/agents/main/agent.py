@@ -5,6 +5,7 @@ from langchain.messages import AIMessageChunk
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
+from app.agents.basic.exceptions import BannedWordError
 from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
 from app.orm.crud import get_gray_config
@@ -25,8 +26,12 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         trace_name="main",
     )
 
-    # 使用统一的上下文构建接口
-    messages, image_urls, chat_id = await build_chat_context(message_id)
+    try:
+        # 使用统一的上下文构建接口
+        messages, image_urls, chat_id = await build_chat_context(message_id)
+    except BannedWordError:
+        yield ChatStreamChunk(content="你发了一些赤尾不想讨论的话题呢~")
+        return
 
     if not messages:
         logger.warning(f"No results found for message_id: {message_id}")
