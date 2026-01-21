@@ -1,9 +1,18 @@
 """Guard 状态定义"""
 
 from dataclasses import dataclass
+from enum import Enum
 from typing import Annotated
 
 from typing_extensions import TypedDict
+
+
+class BlockReason(str, Enum):
+    """拦截原因枚举"""
+
+    BANNED_WORD = "banned_word"  # 关键词命中
+    PROMPT_INJECTION = "prompt_injection"  # 提示词注入
+    SENSITIVE_POLITICS = "sensitive_politics"  # 敏感政治话题
 
 
 @dataclass
@@ -11,7 +20,8 @@ class GuardResult:
     """单个检测节点的结果"""
 
     blocked: bool = False
-    reason: str | None = None
+    reason: BlockReason | None = None
+    detail: str | None = None  # 额外详情，如命中的关键词
 
 
 def merge_results(
@@ -32,3 +42,6 @@ class GuardState(TypedDict):
 
     # 最终判定：是否被拦截
     is_blocked: bool
+
+    # 拦截原因（用于日志和审计）
+    block_reason: BlockReason | None

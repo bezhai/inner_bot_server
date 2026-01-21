@@ -5,8 +5,7 @@ from langchain.messages import AIMessageChunk
 
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
-from app.agents.basic.exceptions import BannedWordError
-from app.agents.guard import guard_graph
+from app.agents.guard import run_guard
 from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
 from app.orm.crud import get_gray_config, get_message_content
@@ -30,17 +29,14 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
 
-    # 2. 运行 guard graph 进行前置检测
-    guard_result = await guard_graph.ainvoke(
-        {
-            "message_content": message_content,
-            "check_results": [],
-            "is_blocked": False,
-        }
-    )
+    # 2. 运行 guard graph 进行前置检测（带 Langfuse trace）
+    guard_result = await run_guard(message_content)
 
     if guard_result["is_blocked"]:
-        logger.info(f"消息被 guard 拦截: message_id={message_id}")
+        logger.info(
+            f"消息被 guard 拦截: message_id={message_id}, "
+            f"reason={guard_result['block_reason']}"
+        )
         yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
         return
 
@@ -52,12 +48,8 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         trace_name="main",
     )
 
-    try:
-        # 使用统一的上下文构建接口
-        messages, image_urls, chat_id = await build_chat_context(message_id)
-    except BannedWordError:
-        yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
-        return
+    # 4. 构建上下文
+    messages, image_urls, chat_id = await build_chat_context(message_id)
 
     if not messages:
         logger.warning(f"No results found for message_id: {message_id}")
