@@ -8,6 +8,7 @@ from typing import Annotated
 
 from langchain.messages import AIMessage, HumanMessage
 from langchain.tools import tool
+from langchain_core.runnables import RunnableConfig
 from langgraph.runtime import get_runtime
 from pydantic import Field
 
@@ -35,6 +36,7 @@ async def search_history(
         str,
         Field(description="自然语言描述的查询需求"),
     ],
+    config: RunnableConfig,
 ) -> str:
     """
     搜索历史消息或群成员信息
@@ -66,13 +68,14 @@ async def search_history(
             model_id="search-history-model",
         )
 
-        # 调用子 agent
+        # 调用子 agent，传递父级 config 保持 trace 链路
         context = get_runtime(ContextSchema).context
         message = await agent.run(
             [HumanMessage(content=query)],  # type: ignore
             context=ContextSchema(
                 curr_chat_id=context.curr_chat_id,
             ),
+            config=config,
         )
 
         if isinstance(message, AIMessage) and message.content:
