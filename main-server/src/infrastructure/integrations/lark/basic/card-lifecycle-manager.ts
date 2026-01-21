@@ -184,7 +184,8 @@ export class CardLifecycleManager {
 
     public async updateContent(content: string): Promise<void> {
         await this.createResponseElement();
-        await this.apiClient.streamUpdateText(this.cardId!, ELEMENT_IDS.RESPONSE, content, this.getSequence());
+        const result = await this.apiClient.streamUpdateText(this.cardId!, ELEMENT_IDS.RESPONSE, content, this.getSequence());
+        console.info(`update msgId: ${this.getMessageId}, content: [${content}], result: ${JSON.stringify(result)}`);
     }
 
     public async updateStatus(statusMessage: string): Promise<void> {

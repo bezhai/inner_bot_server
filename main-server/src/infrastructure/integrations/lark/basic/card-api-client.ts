@@ -56,8 +56,8 @@ export class CardApiClient {
         return sendResp?.message_id;
     }
 
-    public async streamUpdateText(cardId: string, elementId: string, content: string, sequence: number): Promise<void> {
-        await sendReq(
+    public async streamUpdateText(cardId: string, elementId: string, content: string, sequence: number) {
+        return sendReq(
             `/open-apis/cardkit/v1/cards/${cardId}/elements/${elementId}/content`,
             {
                 content,
