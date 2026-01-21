@@ -523,3 +523,27 @@ table "group_profiles" {
     columns = [column.chat_id]
   }
 }
+
+table "user_blacklist" {
+  schema = schema.public
+  column "union_id" {
+    null = false
+    type = character_varying(100)
+  }
+  column "reason" {
+    null = true
+    type = text
+  }
+  column "blocked_by" {
+    null = true
+    type = character_varying(100)
+  }
+  column "created_at" {
+    null    = false
+    type    = timestamp
+    default = sql("now()")
+  }
+  primary_key "PK_user_blacklist" {
+    columns = [column.union_id]
+  }
+}

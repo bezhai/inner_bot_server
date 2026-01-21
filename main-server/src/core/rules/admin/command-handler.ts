@@ -1,4 +1,4 @@
-import { UserGroupBindingRepository, GroupMemberRepository, BaseChatInfoRepository } from '@infrastructure/dal/repositories/repositories';
+import { UserGroupBindingRepository, GroupMemberRepository, BaseChatInfoRepository, UserBlacklistRepository } from '@infrastructure/dal/repositories/repositories';
 import { Message } from '@core/models/message';
 import { getBotUnionId } from '@core/services/bot/bot-var';
 import { replyMessage } from '@lark/basic/message';
@@ -138,6 +138,100 @@ const commandRules = [
             );
 
             replyMessage(message.messageId, `灰度配置设置成功: ${key} = ${value}`, true);
+        },
+    },
+    {
+        key: 'block',
+        handler: async (message: Message) => {
+            // 检查是否是管理员
+            if (!message.senderInfo?.is_admin) {
+                replyMessage(message.messageId, '只有管理员可以拉黑用户', true);
+                return;
+            }
+
+            const mentionUser = message
+                .getMentionedUsers()
+                .find((user) => user !== getBotUnionId());
+
+            if (!mentionUser) {
+                replyMessage(message.messageId, '请@具体用户进行拉黑', true);
+                return;
+            }
+
+            // 检查是否已被拉黑
+            const existing = await UserBlacklistRepository.findOne({
+                where: { union_id: mentionUser },
+            });
+
+            if (existing) {
+                replyMessage(message.messageId, '该用户已在黑名单中', true);
+                return;
+            }
+
+            // 添加到黑名单
+            await UserBlacklistRepository.save({
+                union_id: mentionUser,
+                blocked_by: message.sender,
+            });
+
+            replyMessage(message.messageId, '拉黑成功', true);
+        },
+    },
+    {
+        key: 'unblock',
+        handler: async (message: Message) => {
+            // 检查是否是管理员
+            if (!message.senderInfo?.is_admin) {
+                replyMessage(message.messageId, '只有管理员可以解除拉黑', true);
+                return;
+            }
+
+            const mentionUser = message
+                .getMentionedUsers()
+                .find((user) => user !== getBotUnionId());
+
+            if (!mentionUser) {
+                replyMessage(message.messageId, '请@具体用户进行解除拉黑', true);
+                return;
+            }
+
+            // 检查是否在黑名单中
+            const existing = await UserBlacklistRepository.findOne({
+                where: { union_id: mentionUser },
+            });
+
+            if (!existing) {
+                replyMessage(message.messageId, '该用户不在黑名单中', true);
+                return;
+            }
+
+            // 从黑名单移除
+            await UserBlacklistRepository.delete({ union_id: mentionUser });
+
+            replyMessage(message.messageId, '解除拉黑成功', true);
+        },
+    },
+    {
+        key: 'blocklist',
+        handler: async (message: Message) => {
+            // 检查是否是管理员
+            if (!message.senderInfo?.is_admin) {
+                replyMessage(message.messageId, '只有管理员可以查看黑名单', true);
+                return;
+            }
+
+            const list = await UserBlacklistRepository.find();
+
+            if (list.length === 0) {
+                replyMessage(message.messageId, '黑名单为空', true);
+                return;
+            }
+
+            const text = list
+                .map((item, index) => `${index + 1}. ${item.union_id}`)
+                .join('\n');
+
+            replyMessage(message.messageId, `黑名单列表:\n${text}`, true);
         },
     },
 ];

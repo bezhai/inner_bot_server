@@ -1,6 +1,7 @@
 import { LarkBaseChatInfo } from 'infrastructure/dal/entities';
 import { Message } from 'core/models/message';
 import { getBotUnionId } from '@core/services/bot/bot-var';
+import { UserBlacklistRepository } from '@infrastructure/dal/repositories/repositories';
 
 // 定义规则函数类型
 type Rule = (message: Message) => boolean;
@@ -115,3 +116,14 @@ export const WhiteGroupCheck =
     };
 
 export const IsAdmin: Rule = (message) => message.senderInfo?.is_admin ?? false;
+
+// 异步规则：检查用户是否未被拉黑
+export const NotBlocked: AsyncRule = async (message) => {
+    const unionId = message.sender;
+    if (!unionId || unionId === 'unknown_sender') return true;
+
+    const blocked = await UserBlacklistRepository.findOne({
+        where: { union_id: unionId },
+    });
+    return !blocked;
+};

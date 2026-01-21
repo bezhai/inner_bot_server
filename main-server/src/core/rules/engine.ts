@@ -15,6 +15,7 @@ import {
     TextMessageLimit,
     WhiteGroupCheck,
     IsAdmin,
+    NotBlocked,
 } from './rule';
 import { sendPhoto } from '@core/services/media/photo/send-photo';
 import { makeCardReply } from 'core/services/ai/reply';
@@ -22,6 +23,12 @@ import { sendBalance } from './admin/balance';
 
 // 工具函数：执行规则链
 export async function runRules(message: Message) {
+    // 黑名单检查：被拉黑的用户直接忽略
+    if (!(await NotBlocked(message))) {
+        console.info(`Blocked user ${message.sender} message ignored`);
+        return;
+    }
+
     for (const { rules, handler, fallthrough, async_rules } of chatRules) {
         // 检查同步规则
         const syncRulesPass = rules.every((rule) => rule(message));
