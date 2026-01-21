@@ -40,11 +40,18 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
         return
 
+    # 获取 gray_config
+    gray_config = (await get_gray_config(message_id)) or {}
     # 3. 创建 agent
+
+    model_id = "main-chat-model"
+    if gray_config.get("main_model"):
+        model_id = str(gray_config.get("main_model"))
+
     agent = ChatAgent(
         "main",
         MAIN_TOOLS,
-        model_id="main-chat-model",
+        model_id=model_id,
         trace_name="main",
     )
 
@@ -55,9 +62,6 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         logger.warning(f"No results found for message_id: {message_id}")
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
-
-    # 获取 gray_config
-    gray_config = (await get_gray_config(message_id)) or {}
 
     accumulate_chunk = ChatStreamChunk(
         content="",
