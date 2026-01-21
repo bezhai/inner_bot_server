@@ -6,9 +6,10 @@ from langchain.messages import AIMessageChunk
 from app.agents.basic import ChatAgent
 from app.agents.basic.context import ContextSchema
 from app.agents.basic.exceptions import BannedWordError
+from app.agents.guard import guard_graph
 from app.agents.main.context_builder import build_chat_context
 from app.agents.main.tools import MAIN_TOOLS
-from app.orm.crud import get_gray_config
+from app.orm.crud import get_gray_config, get_message_content
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
 from app.utils.status_processor import AIMessageChunkProcessor
@@ -17,8 +18,33 @@ logger = logging.getLogger(__name__)
 
 YIELD_INTERVAL = 0.5
 
+# 统一的拒绝响应
+GUARD_REJECT_MESSAGE = "你发了一些赤尾不想讨论的话题呢~"
+
 
 async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
+    # 1. 获取消息内容用于 guard 检测
+    message_content = await get_message_content(message_id)
+    if not message_content:
+        logger.warning(f"No message found for message_id: {message_id}")
+        yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
+        return
+
+    # 2. 运行 guard graph 进行前置检测
+    guard_result = await guard_graph.ainvoke(
+        {
+            "message_content": message_content,
+            "check_results": [],
+            "is_blocked": False,
+        }
+    )
+
+    if guard_result["is_blocked"]:
+        logger.info(f"消息被 guard 拦截: message_id={message_id}")
+        yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
+        return
+
+    # 3. 创建 agent
     agent = ChatAgent(
         "main",
         MAIN_TOOLS,
@@ -30,7 +56,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
         # 使用统一的上下文构建接口
         messages, image_urls, chat_id = await build_chat_context(message_id)
     except BannedWordError:
-        yield ChatStreamChunk(content="你发了一些赤尾不想讨论的话题呢~")
+        yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
         return
 
     if not messages:

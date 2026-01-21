@@ -247,3 +247,20 @@ async def get_gray_config(message_id: str) -> dict | None:
         )
         # 直接返回配置字段 (dict) 或者 None
         return await session.scalar(stmt)
+
+
+async def get_message_content(message_id: str) -> str | None:
+    """
+    根据 message_id 获取消息内容
+
+    Args:
+        message_id: 消息ID
+
+    Returns:
+        消息内容，如果未找到返回 None
+    """
+    async with AsyncSessionLocal() as session:
+        stmt = select(ConversationMessage.content).where(
+            ConversationMessage.message_id == message_id
+        )
+        return await session.scalar(stmt)
