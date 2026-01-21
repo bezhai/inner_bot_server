@@ -1,13 +1,17 @@
-from langfuse import Langfuse
+"""向后兼容层 - Langfuse
 
-from app.config import settings
+重定向到 app.agents.infra.langfuse
+"""
 
-client = Langfuse(
-    public_key=settings.langfuse_public_key,
-    secret_key=settings.langfuse_secret_key,
-    host=settings.langfuse_host,
+import warnings
+
+warnings.warn(
+    "app.agents.basic.langfuse is deprecated. "
+    "Please use app.agents.infra.langfuse instead.",
+    DeprecationWarning,
+    stacklevel=2,
 )
 
+from app.agents.infra.langfuse import client, get_prompt
 
-def get_prompt(prompt_id: str, label: str | None = None):
-    return client.get_prompt(prompt_id, label=label)
+__all__ = ["client", "get_prompt"]

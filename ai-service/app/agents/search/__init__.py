@@ -1,12 +1,17 @@
-"""统一搜索 Agent 模块
+"""向后兼容层 - Search
 
-提供统一的搜索入口，整合多种搜索源：
-- Web 搜索 (Google)
-- 同人展搜索 (allcpp)
+重定向到 app.agents.domains.search
 """
 
-from .agent import unified_search
+import warnings
 
-__all__ = [
-    "unified_search",
-]
+warnings.warn(
+    "app.agents.search is deprecated. "
+    "Please use app.agents.domains.search instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from app.agents.domains.search.agent import unified_search
+
+__all__ = ["unified_search"]

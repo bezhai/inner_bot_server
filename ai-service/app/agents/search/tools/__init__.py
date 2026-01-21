@@ -1,7 +1,20 @@
-"""搜索工具集"""
+"""向后兼容层 - Search Tools
 
-from .allcpp import search_donjin_event
-from .bangumi import (
+重定向到 app.agents.tools.search
+"""
+
+import warnings
+
+warnings.warn(
+    "app.agents.search.tools is deprecated. "
+    "Please use app.agents.tools.search instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+# 从旧位置的子模块中重新导出
+from app.agents.search.tools.allcpp import search_donjin_event
+from app.agents.search.tools.bangumi import (
     get_character_persons,
     get_character_subjects,
     get_person_characters,
@@ -13,7 +26,7 @@ from .bangumi import (
     search_persons,
     search_subjects,
 )
-from .web import search_web
+from app.agents.search.tools.web import search_web
 
 __all__ = [
     # Web 搜索

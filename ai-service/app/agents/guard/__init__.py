@@ -1,16 +1,28 @@
-"""Guard 模块
+"""向后兼容层 - Guard
 
-前置检测图，用于在进入主聊天流程前进行安全检测。
-包含三个并行检测节点：
-1. 关键词检测（快速，无 LLM）
-2. 系统提示词注入检测（LLM）
-3. 敏感政治话题检测（LLM）
-
-支持 Langfuse trace 追踪
+重定向到 app.agents.graphs.guard
 """
 
-from app.agents.guard.graph import create_guard_graph, guard_graph, run_guard
-from app.agents.guard.state import BlockReason, GuardResult, GuardState
+import warnings
+
+warnings.warn(
+    "app.agents.guard is deprecated. "
+    "Please use app.agents.graphs.guard instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from app.agents.graphs.guard import (
+    BlockReason,
+    GuardResult,
+    GuardState,
+    get_guard_graph,
+    run_guard,
+)
+
+# 保留旧的命名用于兼容性
+guard_graph = get_guard_graph()
+create_guard_graph = get_guard_graph
 
 __all__ = [
     "create_guard_graph",

@@ -1,12 +1,31 @@
-from dataclasses import dataclass
+"""向后兼容层 - Context
 
-from bidict import bidict
+重定向到 app.agents.core.context
+"""
 
+import warnings
 
-@dataclass
-class ContextSchema:
-    curr_message_id: str | None = None
-    curr_chat_id: str | None = None
-    image_url_list: list[str] | None = None
-    user_id_map: bidict[str, str] | None = None
-    gray_config: dict[str, str] | None = None
+warnings.warn(
+    "app.agents.basic.context is deprecated. "
+    "Please use app.agents.core.context instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from app.agents.core.context import (
+    AgentContext,
+    ContextSchema,
+    FeatureFlags,
+    MediaContext,
+    MessageContext,
+    UserContext,
+)
+
+__all__ = [
+    "ContextSchema",
+    "AgentContext",
+    "MessageContext",
+    "MediaContext",
+    "UserContext",
+    "FeatureFlags",
+]

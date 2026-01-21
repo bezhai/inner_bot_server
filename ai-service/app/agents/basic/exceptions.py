@@ -1,39 +1,27 @@
+"""向后兼容层 - Exceptions
+
+重定向到 app.agents.infra.exceptions
 """
-LangGraph基础设施异常定义
-"""
 
+import warnings
 
-class ModelBuilderError(Exception):
-    """ModelBuilder相关异常基类"""
+warnings.warn(
+    "app.agents.basic.exceptions is deprecated. "
+    "Please use app.agents.infra.exceptions instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-    pass
+from app.agents.infra.exceptions import (
+    BannedWordError,
+    ModelBuilderError,
+    ModelConfigError,
+    UnsupportedModelError,
+)
 
-
-class UnsupportedModelError(ModelBuilderError):
-    """不支持的模型类型异常"""
-
-    def __init__(self, model_id: str, message: "str | None" = None):
-        self.model_id = model_id
-        if message is None:
-            message = f"不支持的模型: {model_id}"
-        super().__init__(message)
-
-
-class ModelConfigError(ModelBuilderError):
-    """模型配置错误异常"""
-
-    def __init__(self, model_id: str, message: "str | None" = None):
-        self.model_id = model_id
-        if message is None:
-            message = f"模型配置错误: {model_id}"
-        super().__init__(message)
-
-
-class BannedWordError(Exception):
-    """消息包含封禁词异常"""
-
-    def __init__(self, word: str, message: "str | None" = None):
-        self.word = word
-        if message is None:
-            message = f"消息包含封禁词: {word}"
-        super().__init__(message)
+__all__ = [
+    "ModelBuilderError",
+    "UnsupportedModelError",
+    "ModelConfigError",
+    "BannedWordError",
+]
