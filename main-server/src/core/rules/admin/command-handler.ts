@@ -234,6 +234,21 @@ const commandRules = [
             replyMessage(message.messageId, `黑名单列表:\n${text}`, true);
         },
     },
+    {
+        key: 'union_id',
+        handler: async (message: Message) => {
+            const mentionUser = message
+                .getMentionedUsers()
+                .find((user) => user !== getBotUnionId());
+
+            if (!mentionUser) {
+                replyMessage(message.messageId, '请@具体用户进行获取union_id', true);
+                return;
+            }
+
+            replyMessage(message.messageId, `union_id: ${mentionUser}`, true);
+        },
+    },
 ];
 
 export const { rule: CommandRule, handler: CommandHandler } = combineRule<string>(
