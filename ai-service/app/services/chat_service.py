@@ -7,7 +7,7 @@ import logging
 import traceback
 from collections.abc import AsyncGenerator
 
-from app.agents.main.agent import stream_chat
+from app.agents import stream_chat
 from app.types.chat import (
     ChatNormalResponse,
     ChatProcessResponse,

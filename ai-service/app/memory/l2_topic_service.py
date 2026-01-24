@@ -56,7 +56,7 @@ async def update_topic_memory(group_id: str, new_messages_slice: list[str]) -> N
         active = await get_active_topics(group_id)
         prompt = build_topic_rewrite_prompt(active, new_messages_slice)
 
-        from app.agents.basic import ChatAgent
+        from app.agents import ChatAgent
 
         agent = ChatAgent(
             "upsert_group_topic", tools=[], model_id="gemini-2.5-flash-preview-09-2025"

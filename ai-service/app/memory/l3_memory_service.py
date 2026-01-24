@@ -11,9 +11,8 @@ from datetime import datetime
 from langchain.messages import HumanMessage
 from sqlalchemy import select
 
-from app.agents.basic import ChatAgent
-from app.agents.basic.context import ContextSchema
-from app.agents.memory.tools import PROFILE_TOOLS
+from app.agents import ChatAgent, ContextSchema
+from app.agents.tools.memory import PROFILE_TOOLS
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkUser
 from app.services.quick_search import QuickSearchResult

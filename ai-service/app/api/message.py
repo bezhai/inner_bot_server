@@ -10,7 +10,7 @@ import uuid
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from app.agents.basic.origin_client import BaseAIClient, InstructionBuilder
+from app.agents import InstructionBuilder, create_client
 from app.clients.image_client import image_client
 from app.orm.crud import create_conversation_message
 from app.services.qdrant import qdrant_service
@@ -68,7 +68,7 @@ async def _vectorize_and_store_message(
             instruction="Retrieve semantically similar content",
         )
 
-        async with await BaseAIClient.create("embedding-model") as client:
+        async with await create_client("embedding-model") as client:
             recall_task = client.embed(
                 text=text_content,
                 image_base64_list=image_base64_list,
