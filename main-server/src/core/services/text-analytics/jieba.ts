@@ -1,6 +1,6 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import http from '@http/client';
+import http, { requestWithRetry } from '@http/client';
 
 /**
  * 检查一个词是否有意义
@@ -27,12 +27,15 @@ async function extractBatchWithWeight(
     topN: number,
 ): Promise<{ text: string; keywords: { word: string; weight: number }[] }[]> {
     try {
-        const response = await http.post(
-            `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
-            {
-                texts,
-                top_n: topN,
-            },
+        const response = await requestWithRetry(
+            () => http.post(
+                `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}/extract_batch`,
+                {
+                    texts,
+                    top_n: topN,
+                },
+            ),
+            { maxRetries: 3, retryDelay: 1000 }
         );
         return response.data;
     } catch (error) {

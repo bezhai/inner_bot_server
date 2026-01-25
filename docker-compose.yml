@@ -9,6 +9,12 @@ services:
       - .env:/app/.env
       - ai_service_logs:/logs/ai-service
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # MongoDB 服务
   mongo:
@@ -39,10 +45,16 @@ services:
     volumes:
       - main_server_logs:/var/log/main-server
     depends_on:
-      - redis
-      - mongo
-      - postgres
-      - elasticsearch
+      redis:
+        condition: service_started
+      mongo:
+        condition: service_started
+      postgres:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      ai-app:
+        condition: service_healthy
     restart: always
 
   # Redis 服务
