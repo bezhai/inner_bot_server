@@ -6,8 +6,8 @@
 - clients/: AI 客户端层 (BaseAIClient, OpenAIClient, ArkClient, AzureHttpClient)
 - infra/: 基础设施层 (ModelBuilder, Langfuse, Embedding)
 - tools/: 工具层 (search, history, image, memory)
-- graphs/: Graph 流程层 (guard)
-- domains/: 业务 Agent 层 (main, search, history)
+- graphs/: Graph 流程层 (pre)
+- domains/: 业务 Agent 层 (main)
 """
 
 # 核心抽象
@@ -33,10 +33,17 @@ from app.agents.core import (
 )
 
 # 业务 Agent
-from app.agents.domains import search_history, stream_chat, unified_search
+from app.agents.domains import stream_chat
 
-# Guard
-from app.agents.graphs import BlockReason, GuardResult, GuardState, run_guard
+# Pre Graph
+from app.agents.graphs import (
+    BlockReason,
+    Complexity,
+    ComplexityResult,
+    PreState,
+    SafetyResult,
+    run_pre,
+)
 
 # 基础设施
 from app.agents.infra import ModelBuilder, get_prompt
@@ -67,11 +74,11 @@ __all__ = [
     "InstructionBuilder",
     # Domains
     "stream_chat",
-    "unified_search",
-    "search_history",
-    # Guard
-    "run_guard",
-    "GuardState",
-    "GuardResult",
+    # Pre Graph
+    "run_pre",
+    "PreState",
+    "SafetyResult",
+    "ComplexityResult",
+    "Complexity",
     "BlockReason",
 ]

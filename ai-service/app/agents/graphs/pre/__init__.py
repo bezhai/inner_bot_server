@@ -1,19 +1,17 @@
-"""Graph 流程层
+"""Pre Graph - 前置处理链路"""
 
-包含 LangGraph 状态机流程实现。
-"""
-
-from app.agents.graphs.pre import (
+from app.agents.graphs.pre.graph import get_pre_graph, run_pre
+from app.agents.graphs.pre.state import (
     BlockReason,
     Complexity,
     ComplexityResult,
     PreState,
     SafetyResult,
-    run_pre,
 )
 
 __all__ = [
     "run_pre",
+    "get_pre_graph",
     "PreState",
     "SafetyResult",
     "ComplexityResult",

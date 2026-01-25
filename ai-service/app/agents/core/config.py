@@ -55,28 +55,10 @@ AgentRegistry.register(
 )
 
 AgentRegistry.register(
-    "search",
+    "pre-complexity",
     AgentConfig(
-        prompt_id="search",
-        model_id="search-model",
-        trace_name="search",
-    ),
-)
-
-AgentRegistry.register(
-    "history",
-    AgentConfig(
-        prompt_id="history_search",
-        model_id="search-history-model",
-        trace_name="history",
-    ),
-)
-
-AgentRegistry.register(
-    "guard",
-    AgentConfig(
-        prompt_id="guard_prompt_injection",  # Guard 有多个 prompt，这里只记录主要的
-        model_id="guard-model",
-        trace_name="guard",
+        prompt_id="pre_complexity_classification",
+        model_id="pre-complexity-model",
+        trace_name="pre",
     ),
 )
