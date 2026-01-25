@@ -1,10 +1,11 @@
-"""消息搜索工具"""
+"""群聊历史混合检索工具"""
 
 import logging
 from datetime import datetime, timedelta
 
 from langchain.tools import tool
 from langgraph.runtime import get_runtime
+from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 from sqlalchemy import select
 
 from app.agents.clients import create_client
@@ -12,8 +13,16 @@ from app.agents.core.context import ContextSchema
 from app.agents.infra.embedding import InstructionBuilder, Modality
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkUser
+from app.services.qdrant import qdrant_service
 
 logger = logging.getLogger(__name__)
+
+# 混合向量集合名称
+HYBRID_COLLECTION = "group_messages"
+# 上下文时间窗口（毫秒）
+CONTEXT_WINDOW_MS = 5 * 60 * 1000  # 5分钟
+# 时间间隔分隔符阈值（毫秒）
+TIME_GAP_THRESHOLD_MS = 10 * 60 * 1000  # 10分钟
 
 
 def _format_timestamp(ts: int) -> str:
@@ -21,28 +30,160 @@ def _format_timestamp(ts: int) -> str:
     return datetime.fromtimestamp(ts / 1000).strftime("%Y-%m-%d %H:%M")
 
 
-def _parse_time_range(start_time: str | None, end_time: str | None) -> tuple[int, int]:
-    """解析时间范围，返回毫秒时间戳"""
-    now = datetime.now()
-    end_ms = (
-        int(datetime.strptime(end_time, "%Y-%m-%d %H:%M").timestamp() * 1000)
-        if end_time
-        else int(now.timestamp() * 1000)
-    )
-    start_ms = (
-        int(datetime.strptime(start_time, "%Y-%m-%d %H:%M").timestamp() * 1000)
-        if start_time
-        else int((now - timedelta(days=7)).timestamp() * 1000)
-    )
-    return start_ms, end_ms
-
-
-def _truncate(text: str, max_len: int = 100) -> str:
+def _truncate(text: str, max_len: int = 200) -> str:
     """截断并清理文本"""
     text = " ".join(text.split())  # 清理所有空白字符
     return f"{text[:max_len]}..." if len(text) > max_len else text
 
 
+@tool
+async def search_group_history(
+    query: str,
+    limit: int = 10,
+) -> str:
+    """
+    搜索本群聊天历史（混合检索：关键词 + 语义）
+
+    结合关键词精确匹配和语义相似性搜索，能够：
+    - 精确匹配人名、专有名词、代码片段等
+    - 理解同义词和语义相关性（如"bug"="问题"="错误"）
+    - 搜索图片中的视觉内容
+    - 返回匹配消息及其上下文（前后5分钟的消息）
+
+    Args:
+        query: 搜索查询（自然语言描述或关键词）
+        limit: 返回的锚点消息数量（默认10条，每条会附带上下文）
+
+    Returns:
+        str: 格式化的搜索结果，包含上下文消息
+
+    Examples:
+        - "张三说的关于Redis的讨论"
+        - "上周那张数据库设计图"
+        - "性能优化方案"
+        - "报错截图"
+    """
+    context = get_runtime(ContextSchema).context
+
+    try:
+        # 1. 生成查询的 Dense + Sparse 向量
+        target_modality = InstructionBuilder.combine_corpus_modalities(
+            Modality.TEXT, Modality.IMAGE, Modality.TEXT_AND_IMAGE
+        )
+        instructions = InstructionBuilder.for_query(
+            target_modality=target_modality,
+            instruction="为这个句子生成表示以用于检索相关消息",
+        )
+
+        async with await create_client("embedding-model") as client:
+            hybrid_embedding = await client.embed_hybrid(
+                text=query,
+                instructions=instructions,
+            )
+
+        # 2. 构建 chat_id 过滤条件
+        query_filter = Filter(
+            must=[
+                FieldCondition(
+                    key="chat_id",
+                    match=MatchValue(value=context.curr_chat_id or ""),
+                )
+            ]
+        )
+
+        # 3. 执行混合搜索
+        results = await qdrant_service.hybrid_search(
+            collection_name=HYBRID_COLLECTION,
+            dense_vector=hybrid_embedding.dense,
+            sparse_indices=hybrid_embedding.sparse.indices,
+            sparse_values=hybrid_embedding.sparse.values,
+            query_filter=query_filter,
+            limit=limit,
+            prefetch_limit=limit * 5,
+        )
+
+        if not results:
+            return "未找到相关消息"
+
+        # 4. 提取锚点消息 ID 和时间戳
+        anchor_message_ids = []
+        anchor_timestamps = []
+        anchor_root_ids = set()
+
+        for r in results:
+            payload = r.get("payload", {})
+            anchor_message_ids.append(payload.get("message_id"))
+            anchor_timestamps.append(payload.get("timestamp", 0))
+            if payload.get("root_message_id"):
+                anchor_root_ids.add(payload.get("root_message_id"))
+
+        # 5. 从 MySQL 查询上下文消息
+        async with AsyncSessionLocal() as session:
+            # 构建时间窗口条件
+            time_conditions = []
+            for ts in anchor_timestamps:
+                if ts:
+                    time_conditions.append(
+                        ConversationMessage.create_time.between(
+                            ts - CONTEXT_WINDOW_MS, ts + CONTEXT_WINDOW_MS
+                        )
+                    )
+
+            # 查询：时间窗口内的消息 + 引用链消息
+            from sqlalchemy import or_
+
+            or_conditions = [
+                *time_conditions,
+                ConversationMessage.message_id.in_(anchor_message_ids),
+            ]
+            if anchor_root_ids:
+                or_conditions.append(
+                    ConversationMessage.root_message_id.in_(anchor_root_ids)
+                )
+
+            query_obj = (
+                select(ConversationMessage, LarkUser)
+                .join(LarkUser, ConversationMessage.user_id == LarkUser.union_id)
+                .where(
+                    ConversationMessage.chat_id == context.curr_chat_id,
+                    or_(*or_conditions),
+                )
+                .order_by(ConversationMessage.create_time.asc())
+            )
+
+            result = await session.execute(query_obj)
+            rows = result.all()
+
+        if not rows:
+            return "未找到相关消息"
+
+        # 6. 格式化输出（时间间隔超过10分钟插入分隔符）
+        anchor_set = set(anchor_message_ids)
+        lines = [f"找到 {len(anchor_set)} 条相关消息及其上下文：\n"]
+
+        prev_ts = None
+        for msg, user in rows:
+            # 检查时间间隔
+            if prev_ts and (msg.create_time - prev_ts) > TIME_GAP_THRESHOLD_MS:
+                lines.append("\n--- 时间间隔 ---\n")
+
+            time_str = _format_timestamp(msg.create_time)
+            content = _truncate(msg.content)
+
+            # 标记锚点消息
+            marker = "→ " if msg.message_id in anchor_set else "  "
+            lines.append(f"{marker}[{time_str}] {user.name}: {content}")
+
+            prev_ts = msg.create_time
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        logger.error(f"search_group_history error: {e}", exc_info=True)
+        return f"搜索失败: {e}"
+
+
+# 保留旧工具作为兼容（标记为 deprecated）
 @tool
 async def search_messages(
     start_time: str | None = None,
@@ -52,14 +193,16 @@ async def search_messages(
     limit: int = 500,
 ) -> str:
     """
-    搜索本群内消息
+    [已废弃] 请使用 search_group_history 工具
+
+    搜索本群内消息（仅关键词匹配）
 
     Args:
         start_time: 开始时间（YYYY-MM-DD HH:mm，默认最近7天）
         end_time: 结束时间（YYYY-MM-DD HH:mm，默认当前时间）
         keywords: 关键词（可选，多个用空格分隔）
         user_name: 指定用户姓名（可选）
-        limit: 限制返回条数（默认500），请根据任务需求自行调节
+        limit: 限制返回条数（默认500）
     """
     context = get_runtime(ContextSchema).context
 
@@ -76,12 +219,10 @@ async def search_messages(
                 )
             )
 
-            # 关键词过滤（可选）
             if keywords:
                 for kw in keywords.strip().split():
                     query = query.where(ConversationMessage.content.ilike(f"%{kw}%"))
 
-            # 用户过滤（可选）
             if user_name:
                 query = query.where(LarkUser.name == user_name)
 
@@ -93,11 +234,10 @@ async def search_messages(
             if not rows:
                 return "未找到相关消息"
 
-            # 格式化输出
             lines = [f"找到 {len(rows)} 条消息：\n"]
-            for msg, user in reversed(rows):  # 时间正序
+            for msg, user in reversed(rows):
                 time_str = _format_timestamp(msg.create_time)
-                content = _truncate(msg.content)
+                content = _truncate(msg.content, 100)
                 lines.append(f"[{time_str}] {user.name}: {content}")
 
             return "\n".join(lines)
@@ -115,36 +255,17 @@ async def search_messages_semantic(
     limit: int = 10,
 ) -> str:
     """
+    [已废弃] 请使用 search_group_history 工具
+
     语义化搜索本群内消息（支持图片内容检索）
-
-    使用多模态向量检索，能够：
-    - 理解同义词和语义相关性（如"bug"="问题"="错误"）
-    - 搜索图片中的视觉内容（如"蓝色的架构图""那个报错截图"）
-    - 跨模态匹配（用文字描述匹配图片内容）
-
-    适用场景：
-    - 用模糊描述查找消息（如"上次那个讨论""关于性能的那次"）
-    - 查找图片相关消息（如"那张设计稿""数据库架构图"）
-    - 同义词匹配（如搜"故障"能找到"bug""问题""错误"）
 
     Args:
         query: 自然语言查询描述
         limit: 返回结果数量（默认10条）
-
-    Returns:
-        str: 格式化的搜索结果
-
-    Examples:
-        - "上周那张数据库设计图"
-        - "关于Redis缓存的讨论"
-        - "那个报错截图"
-        - "性能优化的方案"
     """
     context = get_runtime(ContextSchema).context
 
     try:
-        # 1. 生成查询向量（Query侧）
-        # 消息库包含：纯文本、纯图片、文本+图片
         target_modality = InstructionBuilder.combine_corpus_modalities(
             Modality.TEXT, Modality.IMAGE, Modality.TEXT_AND_IMAGE
         )
@@ -160,19 +281,15 @@ async def search_messages_semantic(
                 instructions=instructions,
             )
 
-        # 2. 从 messages_recall 检索
-        from app.services.qdrant import qdrant_service
-
         results = await qdrant_service.search_vectors(
             collection_name="messages_recall",
             query_vector=query_vector,
-            limit=limit * 3,  # 多取一些，然后过滤chat_id
+            limit=limit * 3,
         )
 
         if not results:
             return "未找到相关消息"
 
-        # 3. 过滤当前chat_id的结果
         filtered_results = [
             r
             for r in results
@@ -182,7 +299,6 @@ async def search_messages_semantic(
         if not filtered_results:
             return "在本群内未找到相关消息"
 
-        # 4. 获取完整消息内容
         message_ids = [r["payload"]["message_id"] for r in filtered_results[:limit]]
 
         async with AsyncSessionLocal() as session:
@@ -197,7 +313,6 @@ async def search_messages_semantic(
         if not rows:
             return "未找到相关消息"
 
-        # 5. 按原始相似度排序并格式化输出
         message_map = {msg.message_id: (msg, user) for msg, user in rows}
         sorted_messages = [
             message_map[mid] for mid in message_ids if mid in message_map
@@ -206,7 +321,7 @@ async def search_messages_semantic(
         lines = [f"找到 {len(sorted_messages)} 条相关消息：\n"]
         for msg, user in sorted_messages:
             time_str = _format_timestamp(msg.create_time)
-            content = _truncate(msg.content)
+            content = _truncate(msg.content, 100)
             lines.append(f"[{time_str}] {user.name}: {content}")
 
         return "\n".join(lines)
@@ -214,3 +329,19 @@ async def search_messages_semantic(
     except Exception as e:
         logger.error(f"search_messages_semantic error: {e}", exc_info=True)
         return f"语义搜索失败: {e}"
+
+
+def _parse_time_range(start_time: str | None, end_time: str | None) -> tuple[int, int]:
+    """解析时间范围，返回毫秒时间戳"""
+    now = datetime.now()
+    end_ms = (
+        int(datetime.strptime(end_time, "%Y-%m-%d %H:%M").timestamp() * 1000)
+        if end_time
+        else int(now.timestamp() * 1000)
+    )
+    start_ms = (
+        int(datetime.strptime(start_time, "%Y-%m-%d %H:%M").timestamp() * 1000)
+        if start_time
+        else int((now - timedelta(days=7)).timestamp() * 1000)
+    )
+    return start_ms, end_ms

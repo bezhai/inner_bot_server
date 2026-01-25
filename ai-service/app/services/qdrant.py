@@ -5,7 +5,17 @@ from typing import Any
 import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
-from qdrant_client.http.models import Distance, ExtendedPointId, Filter, VectorParams
+from qdrant_client.http.models import (
+    Distance,
+    ExtendedPointId,
+    Filter,
+    PointStruct,
+    Prefetch,
+    SparseIndexParams,
+    SparseVector,
+    SparseVectorParams,
+    VectorParams,
+)
 
 from app.config.config import settings
 
@@ -178,6 +188,133 @@ class QdrantService:
             logger.error(f"删除集合失败: {str(e)}")
             return False
 
+    async def create_hybrid_collection(
+        self,
+        collection_name: str,
+        dense_size: int = 1024,
+    ) -> bool:
+        """创建支持 Dense + Sparse 双向量的混合集合
+
+        Args:
+            collection_name: 集合名称
+            dense_size: Dense 向量维度，默认 1024
+        """
+        try:
+            self.client.create_collection(
+                collection_name=collection_name,
+                vectors_config={
+                    "dense": VectorParams(size=dense_size, distance=Distance.COSINE),
+                },
+                sparse_vectors_config={
+                    "sparse": SparseVectorParams(
+                        index=SparseIndexParams(on_disk=False),
+                    ),
+                },
+            )
+            return True
+        except Exception as e:
+            logger.warning(f"创建混合集合失败: {str(e)}")
+            return False
+
+    async def upsert_hybrid_vectors(
+        self,
+        collection_name: str,
+        point_id: str,
+        dense_vector: list[float],
+        sparse_indices: list[int],
+        sparse_values: list[float],
+        payload: dict[str, Any],
+    ) -> bool:
+        """插入混合向量（Dense + Sparse）
+
+        Args:
+            collection_name: 集合名称
+            point_id: 点 ID
+            dense_vector: Dense 向量
+            sparse_indices: Sparse 向量索引
+            sparse_values: Sparse 向量值
+            payload: 元数据
+        """
+        try:
+            point = PointStruct(
+                id=point_id,
+                vector={
+                    "dense": dense_vector,
+                    "sparse": SparseVector(
+                        indices=sparse_indices,
+                        values=sparse_values,
+                    ),
+                },
+                payload=payload,
+            )
+            self.client.upsert(
+                collection_name=collection_name,
+                points=[point],
+            )
+            return True
+        except Exception as e:
+            logger.error(f"插入混合向量失败: {str(e)}")
+            return False
+
+    async def hybrid_search(
+        self,
+        collection_name: str,
+        dense_vector: list[float],
+        sparse_indices: list[int],
+        sparse_values: list[float],
+        query_filter: Filter | None = None,
+        limit: int = 10,
+        prefetch_limit: int | None = None,
+    ) -> list[dict[str, Any]]:
+        """混合搜索（Dense + Sparse，使用 RRF 融合）
+
+        Args:
+            collection_name: 集合名称
+            dense_vector: Dense 查询向量
+            sparse_indices: Sparse 查询向量索引
+            sparse_values: Sparse 查询向量值
+            query_filter: 过滤条件
+            limit: 返回结果数量
+            prefetch_limit: 预取数量，默认为 limit * 5
+
+        Returns:
+            搜索结果列表
+        """
+        try:
+            prefetch_count = prefetch_limit or limit * 5
+
+            # 使用 prefetch + RRF 融合
+            results = self.client.query_points(
+                collection_name=collection_name,
+                prefetch=[
+                    Prefetch(
+                        query=dense_vector,
+                        using="dense",
+                        limit=prefetch_count,
+                        filter=query_filter,
+                    ),
+                    Prefetch(
+                        query=SparseVector(
+                            indices=sparse_indices,
+                            values=sparse_values,
+                        ),
+                        using="sparse",
+                        limit=prefetch_count,
+                        filter=query_filter,
+                    ),
+                ],
+                query=models.FusionQuery(fusion=models.Fusion.RRF),
+                limit=limit,
+            )
+
+            return [
+                {"id": point.id, "score": point.score, "payload": point.payload}
+                for point in results.points
+            ]
+        except Exception as e:
+            logger.error(f"混合搜索失败: {str(e)}")
+            return []
+
 
 # 创建单例实例
 qdrant_service = QdrantService()
@@ -186,15 +323,6 @@ qdrant_service = QdrantService()
 async def init_qdrant_collections():
     """初始化所有必要的 QDrant 集合"""
     try:
-        # 创建消息召回向量集合，向量维度为1024（火山引擎多模态模型）
-        recall_result = await qdrant_service.create_collection(
-            collection_name="messages_recall", vector_size=1024
-        )
-        if recall_result:
-            logger.info("Qdrant 消息召回向量集合创建成功")
-        else:
-            logger.warning("Qdrant 消息召回向量集合可能已存在")
-
         # 创建消息聚类向量集合，向量维度为1024（火山引擎多模态模型）
         cluster_result = await qdrant_service.create_collection(
             collection_name="messages_cluster", vector_size=1024
@@ -203,5 +331,14 @@ async def init_qdrant_collections():
             logger.info("Qdrant 消息聚类向量集合创建成功")
         else:
             logger.warning("Qdrant 消息聚类向量集合可能已存在")
+
+        # 创建群聊消息混合向量集合（Dense + Sparse）
+        result = await qdrant_service.create_hybrid_collection(
+            collection_name="group_messages", dense_size=1024
+        )
+        if result:
+            logger.info("Qdrant 群聊消息混合向量集合创建成功")
+        else:
+            logger.warning("Qdrant 群聊消息混合向量集合可能已存在")
     except Exception as e:
         logger.error(f"初始化QDrant集合失败: {str(e)}")

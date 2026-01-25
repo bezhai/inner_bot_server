@@ -2,11 +2,27 @@
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
+from dataclasses import dataclass
+from typing import Generic, NamedTuple, TypeVar
 
 logger = logging.getLogger(__name__)
 
 ClientT = TypeVar("ClientT")
+
+
+class SparseVector(NamedTuple):
+    """稀疏向量结构"""
+
+    indices: list[int]
+    values: list[float]
+
+
+@dataclass
+class HybridEmbedding:
+    """混合向量结构（Dense + Sparse）"""
+
+    dense: list[float]
+    sparse: SparseVector
 
 
 class ClientType:
@@ -111,3 +127,20 @@ class BaseAIClient(ABC, Generic[ClientT]):
     ) -> list[str]:
         """文生图/图生图（默认不支持）。"""
         raise RuntimeError(f"{self.__class__.__name__} 不支持 generate_image 能力")
+
+    async def embed_hybrid(
+        self,
+        text: str | None = None,
+        image_base64_list: list[str] | None = None,
+        instructions: str | None = None,
+        dimensions: int = 1024,
+    ) -> HybridEmbedding:
+        """生成混合向量（Dense + Sparse）（默认不支持）。
+
+        Args:
+            text: 文本内容，可选
+            image_base64_list: Base64 图片列表，可选
+            instructions: 向量化指令
+            dimensions: Dense 向量维度
+        """
+        raise RuntimeError(f"{self.__class__.__name__} 不支持 embed_hybrid 能力")
