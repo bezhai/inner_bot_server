@@ -17,8 +17,6 @@ from app.services.qdrant import qdrant_service
 
 logger = logging.getLogger(__name__)
 
-# 混合向量集合名称
-HYBRID_COLLECTION = "group_messages"
 # 上下文时间窗口（毫秒）
 CONTEXT_WINDOW_MS = 5 * 60 * 1000  # 5分钟
 # 时间间隔分隔符阈值（毫秒）
@@ -93,7 +91,7 @@ async def search_group_history(
 
         # 3. 执行混合搜索
         results = await qdrant_service.hybrid_search(
-            collection_name=HYBRID_COLLECTION,
+            collection_name="messages_recall",
             dense_vector=hybrid_embedding.dense,
             sparse_indices=hybrid_embedding.sparse.indices,
             sparse_values=hybrid_embedding.sparse.values,

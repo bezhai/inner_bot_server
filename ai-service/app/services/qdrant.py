@@ -323,6 +323,15 @@ qdrant_service = QdrantService()
 async def init_qdrant_collections():
     """初始化所有必要的 QDrant 集合"""
     try:
+        # 创建消息召回混合向量集合（Dense + Sparse）
+        recall_result = await qdrant_service.create_hybrid_collection(
+            collection_name="messages_recall", dense_size=1024
+        )
+        if recall_result:
+            logger.info("Qdrant 消息召回混合向量集合创建成功")
+        else:
+            logger.warning("Qdrant 消息召回混合向量集合可能已存在")
+
         # 创建消息聚类向量集合，向量维度为1024（火山引擎多模态模型）
         cluster_result = await qdrant_service.create_collection(
             collection_name="messages_cluster", vector_size=1024
@@ -331,14 +340,5 @@ async def init_qdrant_collections():
             logger.info("Qdrant 消息聚类向量集合创建成功")
         else:
             logger.warning("Qdrant 消息聚类向量集合可能已存在")
-
-        # 创建群聊消息混合向量集合（Dense + Sparse）
-        result = await qdrant_service.create_hybrid_collection(
-            collection_name="group_messages", dense_size=1024
-        )
-        if result:
-            logger.info("Qdrant 群聊消息混合向量集合创建成功")
-        else:
-            logger.warning("Qdrant 群聊消息混合向量集合可能已存在")
     except Exception as e:
         logger.error(f"初始化QDrant集合失败: {str(e)}")

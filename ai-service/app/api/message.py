@@ -18,9 +18,6 @@ from app.services.qdrant import qdrant_service
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# 混合向量集合名称
-HYBRID_COLLECTION = "group_messages"
-
 
 class MessageCreateRequest(BaseModel):
     message_id: str
@@ -45,7 +42,7 @@ async def _vectorize_and_store_message(
     """异步向量化消息内容并写入 Qdrant
 
     写入两个集合：
-    1. group_messages: 混合向量（Dense + Sparse），用于混合检索
+    1. messages_recall: 混合向量（Dense + Sparse），用于混合检索
     2. messages_cluster: 聚类向量，用于消息聚类
     """
     try:
@@ -110,7 +107,7 @@ async def _vectorize_and_store_message(
 
         # 6. 并行写入两个集合
         hybrid_upsert = qdrant_service.upsert_hybrid_vectors(
-            collection_name=HYBRID_COLLECTION,
+            collection_name="messages_recall",
             point_id=vector_id,
             dense_vector=hybrid_embedding.dense,
             sparse_indices=hybrid_embedding.sparse.indices,
