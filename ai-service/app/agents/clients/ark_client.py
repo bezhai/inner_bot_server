@@ -176,9 +176,15 @@ class ArkClient(BaseAIClient[AsyncArk]):
                 )
                 sparse_data = sparse_resp.data.sparse_embedding or []
 
-        # 转换 Sparse 格式：List[Dict] -> SparseVector
-        indices = [item["index"] for item in sparse_data]
-        values = [item["value"] for item in sparse_data]
+        # 转换 Sparse 格式：SparseEmbedding -> SparseVector
+        # 火山引擎返回的 sparse_embedding 是 SparseEmbedding 对象，有 index 和 value 属性
+        if sparse_data:
+            # SparseEmbedding 对象是可迭代的，每个元素有 index 和 value 属性
+            indices = [item.index for item in sparse_data]
+            values = [item.value for item in sparse_data]
+        else:
+            indices = []
+            values = []
         sparse_vector = SparseVector(indices=indices, values=values)
 
         return HybridEmbedding(dense=dense_vector, sparse=sparse_vector)
