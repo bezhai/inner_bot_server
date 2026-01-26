@@ -9,6 +9,7 @@ import {
     LarkUserOpenId,
     ResponseFeedback,
     UserBlacklist,
+    ConversationMessage,
 } from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
@@ -22,3 +23,4 @@ export const CardContextRepository = AppDataSource.getRepository(LarkCardContext
 export const UserGroupBindingRepository = new CustomUserGroupBindingRepository(AppDataSource);
 export const ResponseFeedbackRepository = AppDataSource.getRepository(ResponseFeedback);
 export const UserBlacklistRepository = AppDataSource.getRepository(UserBlacklist);
+export const ConversationMessageRepository = AppDataSource.getRepository(ConversationMessage);

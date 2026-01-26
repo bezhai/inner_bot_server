@@ -1,24 +1,37 @@
-import http, { requestWithRetry } from '@http/client';
 import { ChatMessage } from 'types/chat';
-import { AxiosError } from 'axios';
+import { ConversationMessageRepository } from 'infrastructure/dal/repositories/repositories';
+import { xadd } from 'infrastructure/cache/redis-client';
 
-const BASE_URL = `http://${process.env.AI_SERVER_HOST}:${process.env.AI_SERVER_PORT}`;
+// Redis Stream 名称，用于向量化任务队列
+const VECTORIZE_STREAM = 'vectorize_stream';
 
+/**
+ * 存储消息到 PostgreSQL 并推送向量化任务到 Redis Stream
+ *
+ * 解耦设计：
+ * 1. 消息直接写入 PostgreSQL，不依赖 ai-service
+ * 2. 向量化任务通过 Redis Stream 异步处理
+ * 3. 即使 ai-service 不可用，消息也不会丢失
+ */
 export async function storeMessage(message: ChatMessage): Promise<void> {
     try {
-        await requestWithRetry(
-            () => http.post(`${BASE_URL}/message`, message, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }),
-            {
-                maxRetries: 3,
-                retryDelay: 1000,
-            }
-        );
+        // 1. 直接写入 PostgreSQL
+        await ConversationMessageRepository.save({
+            message_id: message.message_id,
+            user_id: message.user_id,
+            content: message.content,
+            role: message.role,
+            root_message_id: message.root_message_id || message.message_id,
+            reply_message_id: message.reply_message_id,
+            chat_id: message.chat_id,
+            chat_type: message.chat_type,
+            create_time: message.create_time,
+            vector_status: 'pending',
+        });
+
+        // 2. 推送向量化任务到 Redis Stream（只传 message_id）
+        await xadd(VECTORIZE_STREAM, '*', 'message_id', message.message_id);
     } catch (error: unknown) {
-        const axiosError = error as AxiosError;
-        console.error('Failed to store message after retries:', axiosError.response?.data || axiosError.message);
+        console.error('Failed to store message:', (error as Error).message);
     }
 }

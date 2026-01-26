@@ -9,3 +9,4 @@ export * from './lark-user-open-id';
 export * from './response-feedback';
 export * from './bot-config';
 export * from './user-blacklist';
+export * from './conversation-message';

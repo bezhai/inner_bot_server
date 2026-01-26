@@ -84,35 +84,6 @@ async def get_model_and_provider_info(model_id: str):
         }
 
 
-async def create_conversation_message(
-    message_id: str,
-    user_id: str,
-    content: str,
-    role: str,
-    root_message_id: str,
-    chat_id: str,
-    chat_type: str,
-    create_time: int,
-    reply_message_id: str | None = None,
-) -> ConversationMessage:
-    async with AsyncSessionLocal() as session:
-        message = ConversationMessage(
-            message_id=message_id,
-            user_id=user_id,
-            content=content,
-            role=role,
-            root_message_id=root_message_id,
-            reply_message_id=reply_message_id,
-            chat_id=chat_id,
-            chat_type=chat_type,
-            create_time=create_time,
-        )
-        message = await session.merge(message)
-        await session.commit()
-        await session.refresh(message)
-        return message
-
-
 # =========================
 # TopicMemory CRUD (L2)
 # =========================

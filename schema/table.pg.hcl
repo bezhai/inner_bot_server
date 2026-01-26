@@ -393,6 +393,11 @@ table "conversation_messages" {
     null = false
     type = bigint
   }
+  column "vector_status" {
+    null    = false
+    type    = character_varying(20)
+    default = "pending"
+  }
   column "created_at" {
     null    = false
     type    = timestamp
@@ -412,6 +417,9 @@ table "conversation_messages" {
   }
   index "idx_conversation_messages_create_time" {
     columns = [column.create_time]
+  }
+  index "idx_conversation_messages_vector_status" {
+    columns = [column.vector_status]
   }
 }
 table "topic_memory" {
