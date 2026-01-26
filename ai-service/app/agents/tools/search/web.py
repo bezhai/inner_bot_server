@@ -1,17 +1,24 @@
 """Web 搜索工具"""
 
 import asyncio
+from collections import defaultdict
 
 import httpx
 from langchain.tools import tool
 
+from app.agents.tools.search.chunker import chunk_text
 from app.agents.tools.search.reader import read_webpage
+from app.agents.tools.search.rerank import rerank_documents
 from app.config import settings
 from app.utils.decorators import dict_serialize, log_io
 
-# 并发控制：限制同时抓取的网页数量
+# 并发控制
 _FETCH_SEMAPHORE = asyncio.Semaphore(10)
 _FETCH_TIMEOUT = 15  # 单个网页抓取超时（秒）
+
+# 分块参数
+_CHUNK_SIZE = 500
+_CHUNK_OVERLAP = 50
 
 
 async def _fetch_content(result: dict) -> dict:
@@ -67,20 +74,22 @@ async def search_web(
     queries: list[str],
     gl: str = "cn",
     hl: str = "zh-cn",
-    num_per_query: int = 3,
+    num_per_query: int = 5,
+    top_k: int = 10,
 ) -> list[dict]:
-    """批量 Google 网页搜索，支持多个查询并行执行。
+    """批量 Google 网页搜索，返回重排序后的高相关性结果。
 
-    对于需要搜索多个关键词的场景，请一次性传入所有查询，工具会并行执行以提升效率。
+    支持多个查询并行执行，结果经过分块和重排序，只返回最相关的内容。
 
     Args:
         queries: 搜索关键词列表，支持多个查询并行搜索。
         gl: 结果地域代码，默认 "cn"。
         hl: 界面语言代码，默认 "zh-cn"。
-        num_per_query: 每个查询返回的结果条数，默认 3。
+        num_per_query: 每个查询的搜索结果数，默认 5。
+        top_k: 返回的相关文本块数量，默认 10。
 
     Returns:
-        搜索结果列表，每个结果包含 query, title, link, snippet, content。
+        搜索结果列表，每个结果包含 title, link, content（相关片段）, relevance_score。
     """
     async with httpx.AsyncClient(timeout=15) as client:
         # 1. 并行执行所有搜索查询
@@ -100,6 +109,70 @@ async def search_web(
 
         # 3. 并行抓取所有网页内容
         fetch_tasks = [_fetch_content(r) for r in merged_results]
-        final_results = await asyncio.gather(*fetch_tasks)
+        fetched_results = list(await asyncio.gather(*fetch_tasks))
 
-    return list(final_results)
+    if not fetched_results:
+        return []
+
+    # 4. 对每个结果的内容进行分块，建立 chunk -> result 的映射
+    all_chunks: list[str] = []
+    chunk_to_result: list[int] = []  # chunk index -> result index
+
+    for result_idx, result in enumerate(fetched_results):
+        content = result.get("content") or result.get("snippet", "")
+        chunks = chunk_text(content, chunk_size=_CHUNK_SIZE, overlap=_CHUNK_OVERLAP)
+
+        for chunk in chunks:
+            all_chunks.append(chunk)
+            chunk_to_result.append(result_idx)
+
+    if not all_chunks:
+        return []
+
+    # 5. Rerank 所有 chunks
+    combined_query = " ".join(queries)
+
+    try:
+        rerank_results = await rerank_documents(combined_query, all_chunks, top_n=top_k)
+    except Exception:
+        # Rerank 失败，返回原始结果（截断内容）
+        for r in fetched_results:
+            content = r.get("content", "")
+            r["content"] = content[:_CHUNK_SIZE] if content else r.get("snippet", "")
+        return fetched_results[:top_k]
+
+    # 6. 将 top-k chunks 映射回原结果，聚合相关片段
+    result_chunks: dict[int, list[tuple[float, str]]] = defaultdict(list)
+
+    for rr in rerank_results:
+        chunk_idx = rr["index"]
+        result_idx = chunk_to_result[chunk_idx]
+        score = rr["relevance_score"]
+        chunk_text_content = rr.get("document", all_chunks[chunk_idx])
+        result_chunks[result_idx].append((score, chunk_text_content))
+
+    # 7. 构建最终结果：只保留有相关 chunk 的结果
+    final_results: list[dict] = []
+
+    for result_idx, chunks_with_scores in result_chunks.items():
+        result = fetched_results[result_idx]
+
+        # 按分数排序，聚合该结果的所有相关 chunks
+        chunks_with_scores.sort(key=lambda x: x[0], reverse=True)
+        best_score = chunks_with_scores[0][0]
+        aggregated_content = "\n\n".join(chunk for _, chunk in chunks_with_scores)
+
+        final_results.append(
+            {
+                "title": result.get("title", ""),
+                "link": result.get("link", ""),
+                "query": result.get("query", ""),
+                "content": aggregated_content,
+                "relevance_score": best_score,
+            }
+        )
+
+    # 按最高相关性分数排序
+    final_results.sort(key=lambda x: x["relevance_score"], reverse=True)
+
+    return final_results
