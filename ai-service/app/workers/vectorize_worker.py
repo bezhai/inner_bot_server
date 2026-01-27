@@ -69,19 +69,27 @@ async def update_vector_status(message_id: str, status: str) -> None:
         await session.commit()
 
 
-async def vectorize_message(message: ConversationMessage) -> None:
+async def vectorize_message(message: ConversationMessage) -> bool:
     """
     向量化消息内容并写入 Qdrant
 
     写入两个集合：
     1. messages_recall: 混合向量（Dense + Sparse），用于混合检索
     2. messages_cluster: 聚类向量，用于消息聚类
+
+    Returns:
+        bool: True 表示成功处理，False 表示内容为空需跳过
     """
     # 1. 解析消息内容：提取文本和图片keys
     image_keys = re.findall(r"!\[image\]\(([^)]+)\)", message.content)
     text_content = re.sub(r"!\[image\]\([^)]+\)", "", message.content).strip()
 
-    # 2. 批量下载图片转Base64
+    # 2. 判断是否为空内容（文本为空且无图片）
+    if not text_content and not image_keys:
+        logger.info(f"消息 {message.message_id} 内容为空，跳过向量化")
+        return False
+
+    # 3. 批量下载图片转Base64
     image_base64_list: list[str] = []
     if image_keys:
         # bot_name 默认 bytedance（兼容历史数据）
@@ -93,7 +101,7 @@ async def vectorize_message(message: ConversationMessage) -> None:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         image_base64_list = [r for r in results if isinstance(r, str) and r]
 
-    # 3. 生成向量
+    # 4. 生成向量
     modality = InstructionBuilder.detect_input_modality(text_content, image_base64_list)
     corpus_instructions = InstructionBuilder.for_corpus(modality)
     cluster_instructions = InstructionBuilder.for_cluster(
@@ -152,6 +160,7 @@ async def vectorize_message(message: ConversationMessage) -> None:
         payloads=[cluster_payload],
     )
     await asyncio.gather(hybrid_upsert, cluster_upsert)
+    return True
 
 
 async def process_message(redis: Redis, stream_id: str, message_id: str) -> None:
@@ -165,14 +174,18 @@ async def process_message(redis: Redis, stream_id: str, message_id: str) -> None
             return
 
         # 2. 执行向量化
-        await vectorize_message(message)
+        success = await vectorize_message(message)
 
-        # 3. 更新状态为完成
-        await update_vector_status(message_id, "completed")
+        # 3. 根据结果更新状态
+        if success:
+            await update_vector_status(message_id, "completed")
+            logger.info(f"消息 {message_id} 向量化完成")
+        else:
+            await update_vector_status(message_id, "skipped")
+            logger.info(f"消息 {message_id} 内容为空，已跳过")
 
         # 4. ACK 消息
         await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
-        logger.info(f"消息 {message_id} 向量化完成")
 
     except Exception as e:
         logger.error(f"消息 {message_id} 向量化失败: {e}")
