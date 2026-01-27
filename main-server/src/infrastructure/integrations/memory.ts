@@ -16,8 +16,8 @@ const VECTORIZE_STREAM = 'vectorize_stream';
  */
 export async function storeMessage(message: ChatMessage): Promise<void> {
     try {
-        // 获取当前上下文中的 bot_name（用于后续图片下载等操作）
-        const botName = message.bot_name || context.getBotName();
+        // 获取当前上下文中的 bot_name（用于后续图片下载等操作），默认 bytedance
+        const botName = message.bot_name || context.getBotName() || 'bytedance';
 
         // 1. 直接写入 PostgreSQL
         await ConversationMessageRepository.save({
