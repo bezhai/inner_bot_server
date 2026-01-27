@@ -36,6 +36,10 @@ STREAM_NAME = "vectorize_stream"
 GROUP_NAME = "vectorize_workers"
 CONSUMER_NAME = f"worker-{os.getpid()}"
 
+# 重试配置
+MAX_RETRIES = 3  # 最大重试次数
+RETRY_DELAY_MS = 60000  # 重试间隔（毫秒）
+
 # 控制 worker 运行状态
 _running = True
 
@@ -218,20 +222,36 @@ async def consume_stream() -> None:
                     STREAM_NAME, GROUP_NAME, min="-", max="+", count=10
                 )
                 for pending in pending_messages:
-                    # 如果消息已经 pending 超过 60 秒，尝试重新处理
-                    if pending["time_since_delivered"] > 60000:
+                    stream_id = pending["message_id"]
+                    times_delivered = pending["times_delivered"]
+
+                    # 检查是否超过最大重试次数
+                    if times_delivered > MAX_RETRIES:
+                        logger.warning(
+                            f"消息 {stream_id} 已重试 {times_delivered} 次，放弃重试"
+                        )
+                        # 超过重试次数，ACK 消息避免无限堆积
+                        await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
+                        continue
+
+                    # 如果消息已经 pending 超过重试间隔，尝试重新处理
+                    if pending["time_since_delivered"] > RETRY_DELAY_MS:
                         # 认领消息
                         claimed = await redis.xclaim(
                             STREAM_NAME,
                             GROUP_NAME,
                             CONSUMER_NAME,
-                            min_idle_time=60000,
-                            message_ids=[pending["message_id"]],
+                            min_idle_time=RETRY_DELAY_MS,
+                            message_ids=[stream_id],
                         )
-                        for stream_id, data in claimed:
+                        for claimed_id, data in claimed:
                             if data and "message_id" in data:
+                                logger.info(
+                                    f"重试消息 {data['message_id']}，"
+                                    f"第 {times_delivered} 次尝试"
+                                )
                                 await process_message(
-                                    redis, stream_id, data["message_id"]
+                                    redis, claimed_id, data["message_id"]
                                 )
 
             # 2. 读取新消息
