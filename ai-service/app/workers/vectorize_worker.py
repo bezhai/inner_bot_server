@@ -192,10 +192,18 @@ async def process_message(redis: Redis, stream_id: str, message_id: str) -> None
                 await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
                 return
 
-            # 2. 执行向量化
+            # 2. 检查状态，已处理过的直接跳过
+            if message.vector_status in ("completed", "skipped"):
+                logger.debug(
+                    f"消息 {message_id} 已处理（{message.vector_status}），跳过"
+                )
+                await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
+                return
+
+            # 3. 执行向量化
             success = await vectorize_message(message)
 
-            # 3. 根据结果更新状态
+            # 4. 根据结果更新状态
             if success:
                 await update_vector_status(message_id, "completed")
                 logger.info(f"消息 {message_id} 向量化完成")
@@ -203,7 +211,7 @@ async def process_message(redis: Redis, stream_id: str, message_id: str) -> None
                 await update_vector_status(message_id, "skipped")
                 logger.info(f"消息 {message_id} 内容为空，已跳过")
 
-            # 4. ACK 消息
+            # 5. ACK 消息
             await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
 
         except Exception as e:
