@@ -19,6 +19,9 @@ from app.memory.worker import (
     task_update_topic_memory,
 )
 
+# 导入向量化相关
+from app.workers.vectorize_worker import cron_scan_pending_messages
+
 
 # ==================== 长期任务相关 ====================
 async def task_executor_job(ctx) -> None:
@@ -58,4 +61,6 @@ class UnifiedWorkerSettings:
         # ),
         # 3. 画像扫描：每 30 分钟一次 (0分, 30分)
         # cron(cron_profile_scan, minute={0, 30}), // 暂停使用
+        # 4. 向量化 pending 消息扫描：每 10 分钟一次
+        cron(cron_scan_pending_messages, minute={0, 10, 20, 30, 40, 50}),
     ]

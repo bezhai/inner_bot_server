@@ -40,8 +40,22 @@ CONSUMER_NAME = f"worker-{os.getpid()}"
 MAX_RETRIES = 3  # 最大重试次数
 RETRY_DELAY_MS = 60000  # 重试间隔（毫秒）
 
+# 并发配置
+CONCURRENCY_LIMIT = 10  # 并发处理数量
+
 # 控制 worker 运行状态
 _running = True
+
+# 并发信号量
+_semaphore: asyncio.Semaphore | None = None
+
+
+def _get_semaphore() -> asyncio.Semaphore:
+    """获取或创建信号量（延迟初始化，确保在事件循环中创建）"""
+    global _semaphore
+    if _semaphore is None:
+        _semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+    return _semaphore
 
 
 def _handle_signal(signum, frame):
@@ -168,33 +182,34 @@ async def vectorize_message(message: ConversationMessage) -> bool:
 
 
 async def process_message(redis: Redis, stream_id: str, message_id: str) -> None:
-    """处理单条消息"""
-    try:
-        # 1. 从数据库获取完整消息
-        message = await get_message_by_id(message_id)
-        if not message:
-            logger.warning(f"消息 {message_id} 不存在，跳过")
+    """处理单条消息（带并发控制）"""
+    async with _get_semaphore():
+        try:
+            # 1. 从数据库获取完整消息
+            message = await get_message_by_id(message_id)
+            if not message:
+                logger.warning(f"消息 {message_id} 不存在，跳过")
+                await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
+                return
+
+            # 2. 执行向量化
+            success = await vectorize_message(message)
+
+            # 3. 根据结果更新状态
+            if success:
+                await update_vector_status(message_id, "completed")
+                logger.info(f"消息 {message_id} 向量化完成")
+            else:
+                await update_vector_status(message_id, "skipped")
+                logger.info(f"消息 {message_id} 内容为空，已跳过")
+
+            # 4. ACK 消息
             await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
-            return
 
-        # 2. 执行向量化
-        success = await vectorize_message(message)
-
-        # 3. 根据结果更新状态
-        if success:
-            await update_vector_status(message_id, "completed")
-            logger.info(f"消息 {message_id} 向量化完成")
-        else:
-            await update_vector_status(message_id, "skipped")
-            logger.info(f"消息 {message_id} 内容为空，已跳过")
-
-        # 4. ACK 消息
-        await redis.xack(STREAM_NAME, GROUP_NAME, stream_id)
-
-    except Exception as e:
-        logger.error(f"消息 {message_id} 向量化失败: {e}")
-        # 更新状态为失败，但不 ACK，消息会保留在 pending 中
-        await update_vector_status(message_id, "failed")
+        except Exception as e:
+            logger.error(f"消息 {message_id} 向量化失败: {e}")
+            # 更新状态为失败，但不 ACK，消息会保留在 pending 中
+            await update_vector_status(message_id, "failed")
 
 
 async def consume_stream() -> None:
@@ -264,16 +279,110 @@ async def consume_stream() -> None:
             )
 
             if messages:
+                # 收集所有待处理的任务
+                tasks = []
                 for _stream_name, entries in messages:
                     for stream_id, data in entries:
                         if data and "message_id" in data:
-                            await process_message(redis, stream_id, data["message_id"])
+                            tasks.append(
+                                process_message(redis, stream_id, data["message_id"])
+                            )
+                # 并发执行（并发数由 semaphore 控制）
+                if tasks:
+                    await asyncio.gather(*tasks)
 
         except Exception as e:
             logger.error(f"消费循环异常: {e}")
             await asyncio.sleep(5)  # 出错后等待重试
 
     logger.info("Worker 已停止")
+
+
+# ==================== 定时任务：捞取 pending 消息 ====================
+
+# 捞取配置
+PENDING_SCAN_BATCH_SIZE = 100  # 每批捞取数量
+PENDING_SCAN_MAX_TOTAL = 1000  # 每次最多捞取总数
+PENDING_SCAN_INTERVAL_SEC = 1  # 批次间隔（秒）
+PENDING_SCAN_DAYS = 7  # 只捞取 N 天内的消息
+
+
+async def scan_pending_messages() -> int:
+    """
+    扫描数据库中 pending 状态的消息，推送到 Redis Stream
+
+    Returns:
+        int: 推送的消息数量
+    """
+    from datetime import datetime, timedelta
+
+    redis = AsyncRedisClient.get_instance()
+
+    # 计算 7 天前的时间戳（毫秒）
+    cutoff_time = datetime.now() - timedelta(days=PENDING_SCAN_DAYS)
+    cutoff_ts = int(cutoff_time.timestamp() * 1000)
+
+    total_pushed = 0
+    offset = 0
+
+    while total_pushed < PENDING_SCAN_MAX_TOTAL:
+        # 查询 pending 状态的消息
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(ConversationMessage.message_id)
+                .where(ConversationMessage.vector_status == "pending")
+                .where(ConversationMessage.create_time >= cutoff_ts)
+                .order_by(ConversationMessage.create_time.desc())
+                .offset(offset)
+                .limit(PENDING_SCAN_BATCH_SIZE)
+            )
+            message_ids = [row[0] for row in result.fetchall()]
+
+        if not message_ids:
+            break
+
+        # 推送到 Redis Stream
+        for message_id in message_ids:
+            await redis.xadd(STREAM_NAME, {"message_id": message_id})
+            total_pushed += 1
+
+        logger.info(f"已推送 {len(message_ids)} 条 pending 消息到队列")
+
+        offset += PENDING_SCAN_BATCH_SIZE
+
+        # 批次间隔，控制 QPS
+        if total_pushed < PENDING_SCAN_MAX_TOTAL:
+            await asyncio.sleep(PENDING_SCAN_INTERVAL_SEC)
+
+    return total_pushed
+
+
+async def cron_scan_pending_messages(ctx) -> None:
+    """
+    定时任务：扫描 pending 状态的消息并推送到向量化队列
+
+    - 每 10 分钟执行一次
+    - 每次最多捞取 1000 条
+    - 只处理 7 天内的消息
+    - 使用分布式锁避免重复执行
+    """
+    redis = AsyncRedisClient.get_instance()
+    lock_key = "vectorize:pending_scan:lock"
+
+    # 获取分布式锁（5 分钟过期）
+    got = await redis.set(lock_key, "1", ex=300, nx=True)
+    if not got:
+        logger.info("pending 消息扫描任务正在执行中，跳过")
+        return
+
+    try:
+        logger.info("开始扫描 pending 状态的消息...")
+        count = await scan_pending_messages()
+        logger.info(f"pending 消息扫描完成，共推送 {count} 条消息")
+    except Exception as e:
+        logger.error(f"pending 消息扫描失败: {e}")
+    finally:
+        await redis.delete(lock_key)
 
 
 async def main():
