@@ -1,6 +1,7 @@
 import { ChatMessage } from 'types/chat';
 import { ConversationMessageRepository } from 'infrastructure/dal/repositories/repositories';
 import { xadd } from 'infrastructure/cache/redis-client';
+import { context } from '@middleware/context';
 
 // Redis Stream 名称，用于向量化任务队列
 const VECTORIZE_STREAM = 'vectorize_stream';
@@ -15,6 +16,9 @@ const VECTORIZE_STREAM = 'vectorize_stream';
  */
 export async function storeMessage(message: ChatMessage): Promise<void> {
     try {
+        // 获取当前上下文中的 bot_name（用于后续图片下载等操作）
+        const botName = message.bot_name || context.getBotName();
+
         // 1. 直接写入 PostgreSQL
         await ConversationMessageRepository.save({
             message_id: message.message_id,
@@ -27,6 +31,7 @@ export async function storeMessage(message: ChatMessage): Promise<void> {
             chat_type: message.chat_type,
             create_time: message.create_time,
             vector_status: 'pending',
+            bot_name: botName,
         });
 
         // 2. 推送向量化任务到 Redis Stream（只传 message_id）

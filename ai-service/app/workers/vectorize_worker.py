@@ -85,7 +85,9 @@ async def vectorize_message(message: ConversationMessage) -> None:
     image_base64_list: list[str] = []
     if image_keys:
         tasks = [
-            image_client.download_image_as_base64(key, message.message_id)
+            image_client.download_image_as_base64(
+                key, message.message_id, message.bot_name
+            )
             for key in image_keys
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)

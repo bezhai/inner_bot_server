@@ -72,6 +72,8 @@ class ConversationMessage(Base):
     create_time: Mapped[int] = mapped_column(BigInteger)
     # 向量化状态: pending(待处理) | completed(已完成) | failed(失败)
     vector_status: Mapped[str] = mapped_column(String(20), default="pending")
+    # 机器人名称（用于多 bot 场景下载图片等）
+    bot_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
 
 class LarkGroupChatInfo(Base):

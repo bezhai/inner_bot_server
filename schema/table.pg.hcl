@@ -398,6 +398,10 @@ table "conversation_messages" {
     type    = character_varying(20)
     default = "pending"
   }
+  column "bot_name" {
+    null = true
+    type = character_varying(50)
+  }
   column "created_at" {
     null    = false
     type    = timestamp

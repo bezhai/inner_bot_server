@@ -20,13 +20,16 @@ class ImageProcessClient:
         self.base_url = settings.main_server_base_url
         self.timeout = settings.main_server_timeout
 
-    async def process_image(self, file_key: str, message_id: str | None) -> str | None:
+    async def process_image(
+        self, file_key: str, message_id: str | None, bot_name: str | None = None
+    ) -> str | None:
         """
         处理图片，返回图片URL
 
         Args:
-            message_id: 消息ID
             file_key: 图片文件key
+            message_id: 消息ID
+            bot_name: 机器人名称（用于多 bot 场景）
 
         Returns:
             str: 图片URL，如果失败返回None
@@ -34,6 +37,9 @@ class ImageProcessClient:
         if not self.base_url:
             logger.warning("Main-server base URL未配置")
             return None
+
+        # 优先使用传入的 bot_name，否则从上下文获取
+        app_name = bot_name or get_app_name() or ""
 
         try:
             request_data = {"message_id": message_id, "file_key": file_key}
@@ -46,7 +52,7 @@ class ImageProcessClient:
                         "Content-Type": "application/json",
                         "Authorization": f"Bearer {settings.inner_http_secret}",
                         "X-Trace-Id": get_trace_id() or "",
-                        "X-App-Name": get_app_name() or "",
+                        "X-App-Name": app_name,
                     },
                 )
 
@@ -72,12 +78,15 @@ class ImageProcessClient:
             logger.error(f"调用图片处理接口失败: {str(e)}")
             return None
 
-    async def upload_base64_image(self, base64_data: str) -> str | None:
+    async def upload_base64_image(
+        self, base64_data: str, bot_name: str | None = None
+    ) -> str | None:
         """
         上传base64图片到飞书，返回image_key
 
         Args:
             base64_data: base64图片数据，需要包含data:image/...;base64,前缀
+            bot_name: 机器人名称（用于多 bot 场景）
 
         Returns:
             str: image_key，如果失败返回None
@@ -85,6 +94,9 @@ class ImageProcessClient:
         if not self.base_url:
             logger.warning("Main-server base URL未配置")
             return None
+
+        # 优先使用传入的 bot_name，否则从上下文获取
+        app_name = bot_name or get_app_name() or ""
 
         try:
             # logger.info(f"上传base64图片到飞书，base64_data: {base64_data}")
@@ -98,7 +110,7 @@ class ImageProcessClient:
                         "Content-Type": "application/json",
                         "Authorization": f"Bearer {settings.inner_http_secret}",
                         "X-Trace-Id": get_trace_id() or "",
-                        "X-App-Name": get_app_name() or "",
+                        "X-App-Name": app_name,
                     },
                 )
 
@@ -129,7 +141,7 @@ class ImageProcessClient:
             return None
 
     async def download_image_as_base64(
-        self, file_key: str, message_id: str | None
+        self, file_key: str, message_id: str | None, bot_name: str | None = None
     ) -> str | None:
         """
         下载图片并转换为Base64格式
@@ -137,6 +149,7 @@ class ImageProcessClient:
         Args:
             file_key: 图片文件key
             message_id: 消息ID
+            bot_name: 机器人名称（���于多 bot 场景）
 
         Returns:
             str: Base64格式图片 data:image/{format};base64,{base64_data}
@@ -144,7 +157,7 @@ class ImageProcessClient:
         """
         try:
             # 1. 获取图片URL
-            image_url = await self.process_image(file_key, message_id)
+            image_url = await self.process_image(file_key, message_id, bot_name)
             if not image_url:
                 logger.warning(f"无法获取图片URL: {file_key}")
                 return None

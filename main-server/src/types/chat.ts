@@ -51,6 +51,11 @@ export interface ChatMessage {
      * 创建时间
      */
     create_time: string;
+
+    /**
+     * 机器人名称（用于多 bot 场景）
+     */
+    bot_name?: string;
 }
 
 /**
