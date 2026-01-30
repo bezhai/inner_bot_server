@@ -34,17 +34,29 @@ export class EventDecoratorFactory {
     ) => (params: any) => object {
         return function (asyncFn: (params: any) => Promise<void>): (params: any) => object {
             return function (params: any): object {
-                console.info(
-                    'receive event_type: ' + (params as { event_type: string })['event_type'],
-                );
+                const startTime = Date.now();
+                const eventType = (params as { event_type: string })['event_type'];
+                console.info(`[HTTP] receive event_type: ${eventType}`);
 
                 insertEvent(params).catch((err) => {
                     console.error('Error in insert event:', err);
                 });
 
-                asyncFn(params).catch((err) => {
-                    console.error('Error in async operation:', err);
-                });
+                asyncFn(params)
+                    .then(() => {
+                        console.info(
+                            `[HTTP] event ${eventType} processed successfully, took ${Date.now() - startTime}ms`,
+                        );
+                    })
+                    .catch((err) => {
+                        console.error(
+                            `[HTTP] event ${eventType} failed after ${Date.now() - startTime}ms:`,
+                            err,
+                        );
+                    });
+
+                const responseTime = Date.now() - startTime;
+                console.info(`[HTTP] returning response for ${eventType}, sync took ${responseTime}ms`);
 
                 // 立即返回空对象，告诉飞书已成功接收事件
                 return {};
