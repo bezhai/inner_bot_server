@@ -346,54 +346,34 @@ check_system_resources() {
 
 # 检查Qdrant服务健康状态
 check_qdrant() {
-  log "检查 Qdrant 健康状态..."
-
-  # 使用SERVICES数组中的配置
   SERVICE_NAME="qdrant"
-  QDRANT_SERVICE_HOST_PORT=${SERVICES[$SERVICE_NAME]}
-  QDRANT_SERVICE_HOST=$(echo $QDRANT_SERVICE_HOST_PORT | cut -d: -f1)
-  QDRANT_PORT=$(echo $QDRANT_SERVICE_HOST_PORT | cut -d: -f2)
+  HOST_PORT=${SERVICES[$SERVICE_NAME]}
+  HOST=$(echo $HOST_PORT | cut -d: -f1)
+  PORT=$(echo $HOST_PORT | cut -d: -f2)
 
-  # 获取API密钥（如果有的话）
-  # 注：.env 已在脚本开始处加载并导出，这里直接读取环境变量即可
+  log "检查 $SERVICE_NAME 健康状态 ($HOST:$PORT)..."
 
-  log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_PORT}"
-  
   # 检查端口连通性
-  nc -z -w 5 $QDRANT_SERVICE_HOST $QDRANT_PORT
-  
+  nc -z -w 5 $HOST $PORT
+
   if [ $? -ne 0 ]; then
-    log "❌ Qdrant服务不可连接: ${QDRANT_SERVICE_HOST}:${QDRANT_PORT}"
+    log "❌ $SERVICE_NAME 端口不可连接"
     return 1
+  fi
+
+  # 尝试调用健康检查API
+  if [ -n "$QDRANT_SERVICE_API_KEY" ]; then
+    RESPONSE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" -H "api-key: $QDRANT_SERVICE_API_KEY" "http://$HOST:$PORT/healthz")
   else
-    # 准备API请求头
-    HEADERS=""
-    if [ ! -z "$QDRANT_SERVICE_API_KEY" ]; then
-      HEADERS="-H \"api-key: $QDRANT_SERVICE_API_KEY\""
-      log "使用Qdrant API密钥进行认证"
-    fi
-    
-    # 尝试调用健康检查API
-    HEALTH_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_PORT}/healthz"
-    HEALTH_RESPONSE=$(eval $HEALTH_CMD)
-    
-    if [ "$HEALTH_RESPONSE" == "200" ]; then
-      log "✅ Qdrant服务健康"
-      return 0
-    else
-      # 尝试集合API，作为备选检查
-      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_PORT}/collections"
-      COLLECTIONS_RESPONSE=$(eval $COLLECTIONS_CMD)
-      
-      if [ "$COLLECTIONS_RESPONSE" == "200" ]; then
-        log "✅ Qdrant集合API可访问，服务可能正常"
-        return 0
-      else
-        log "✅ Qdrant端口可连接，但API可能不可用。HTTP状态码: ${HEALTH_RESPONSE}"
-        # 返回0，因为端口可连接，服务可能还是有效的
-        return 0
-      fi
-    fi
+    RESPONSE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "http://$HOST:$PORT/healthz")
+  fi
+
+  if [ "$RESPONSE" == "200" ]; then
+    log "✅ $SERVICE_NAME 服务健康"
+    return 0
+  else
+    log "⚠️ $SERVICE_NAME 端口可连接，但健康检查API返回 HTTP $RESPONSE"
+    return 0
   fi
 }
 
