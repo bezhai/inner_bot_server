@@ -40,6 +40,9 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
+# 切换到项目目录，让 uv run 能找到虚拟环境
+WORKDIR /app/apps/ai-service
+
 EXPOSE 8000
 
 CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--log-config", "app/config/logging_config.json"]

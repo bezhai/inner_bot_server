@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ../.env:/app/.env
+      - ../.env:/app/apps/ai-service/.env
       - ai_service_logs:/logs/ai-service
     restart: always
     healthcheck:
@@ -65,7 +65,7 @@ services:
       - L2_SCAN_INTERVAL_MINUTES=${L2_SCAN_INTERVAL_MINUTES:-5}
       - L2_QUEUE_MAX_LEN=${L2_QUEUE_MAX_LEN:-200}
     volumes:
-      - ../.env:/app/.env
+      - ../.env:/app/apps/ai-service/.env
     depends_on:
       - redis
       - postgres
@@ -88,7 +88,7 @@ services:
       - QDRANT_HOST=${QDRANT_HOST}
       - QDRANT_SERVICE_API_KEY=${QDRANT_SERVICE_API_KEY}
     volumes:
-      - ../.env:/app/.env
+      - ../.env:/app/apps/ai-service/.env
     depends_on:
       - redis
       - postgres
