@@ -31,9 +31,9 @@ export class EventDecoratorFactory {
      */
     private static createHttpDecorator(): (
         asyncFn: (params: any) => Promise<void>,
-    ) => (params: any) => void {
-        return function (asyncFn: (params: any) => Promise<void>): (params: any) => void {
-            return function (params: any): void {
+    ) => (params: any) => object {
+        return function (asyncFn: (params: any) => Promise<void>): (params: any) => object {
+            return function (params: any): object {
                 console.info(
                     'receive event_type: ' + (params as { event_type: string })['event_type'],
                 );
@@ -45,6 +45,9 @@ export class EventDecoratorFactory {
                 asyncFn(params).catch((err) => {
                     console.error('Error in async operation:', err);
                 });
+
+                // 立即返回空对象，告诉飞书已成功接收事件
+                return {};
             };
         };
     }
