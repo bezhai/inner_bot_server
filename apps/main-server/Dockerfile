@@ -13,6 +13,11 @@ RUN npm install
 
 COPY apps/main-server ./apps/main-server
 COPY packages/ts-shared ./packages/ts-shared
+
+# 先构建共享包
+RUN npm run -w @inner/shared build
+
+# 再构建主服务
 RUN npm run -w apps/main-server build
 
 RUN npm prune --omit=dev
