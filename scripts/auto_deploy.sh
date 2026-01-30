@@ -92,10 +92,13 @@ PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 cd $PROJECT_DIR
 log "进入项目目录: $PROJECT_DIR"
 
-# 加载环境变量文件
+# 加载环境变量文件（并导出为环境变量，供 make/docker compose 使用）
 if [ -f "$PROJECT_DIR/.env" ]; then
   log "加载环境变量文件"
+  set -a
+  # shellcheck disable=SC1090
   source "$PROJECT_DIR/.env"
+  set +a
 fi
 
 # 记录开始检查

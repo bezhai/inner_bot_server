@@ -1,0 +1,97 @@
+services:
+  # AI 服务
+  ai-app:
+    build:
+      context: ..
+      dockerfile: apps/ai-service/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../.env:/app/.env
+      - ai_service_logs:/logs/ai-service
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Main Server 服务
+  app:
+    build:
+      context: ..
+      dockerfile: apps/main-server/Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ENABLE_FILE_LOGGING=true
+      - LOG_LEVEL=info
+      - LOG_DIR=/var/log/main-server
+    env_file:
+      - ../.env
+    volumes:
+      - main_server_logs:/var/log/main-server
+    depends_on:
+      redis:
+        condition: service_started
+      mongo:
+        condition: service_started
+      postgres:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      ai-app:
+        condition: service_started
+    restart: always
+
+  ai-service-arq-worker:
+    build:
+      context: ..
+      dockerfile: apps/ai-service/Dockerfile
+    command: bash -lc "uv run --no-sync arq app.workers.unified_worker.UnifiedWorkerSettings"
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      # 记忆系统配置
+      - L2_QUEUE_TRIGGER_THRESHOLD=${L2_QUEUE_TRIGGER_THRESHOLD:-10}
+      - L2_FORCE_UPDATE_AFTER_MINUTES=${L2_FORCE_UPDATE_AFTER_MINUTES:-60}
+      - L2_SCAN_INTERVAL_MINUTES=${L2_SCAN_INTERVAL_MINUTES:-5}
+      - L2_QUEUE_MAX_LEN=${L2_QUEUE_MAX_LEN:-200}
+    volumes:
+      - ../.env:/app/.env
+    depends_on:
+      - redis
+      - postgres
+    restart: always
+
+  # 向量化 Worker - 消费 Redis Stream 进行消息向量化
+  vectorize-worker:
+    build:
+      context: ..
+      dockerfile: apps/ai-service/Dockerfile
+
+    command: bash -lc "uv run --no-sync python -m app.workers.vectorize_worker"
+    environment:
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - QDRANT_HOST=${QDRANT_HOST}
+      - QDRANT_SERVICE_API_KEY=${QDRANT_SERVICE_API_KEY}
+    volumes:
+      - ../.env:/app/.env
+    depends_on:
+      - redis
+      - postgres
+      - qdrant
+    restart: always
+

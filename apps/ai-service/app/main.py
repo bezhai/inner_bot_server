@@ -8,6 +8,8 @@ from app.api.router import api_router
 from app.services.qdrant import init_qdrant_collections
 from app.utils.middlewares import HeaderContextMiddleware
 
+from py_common import hello as shared_hello
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -19,6 +21,7 @@ async def lifespan(app: FastAPI):
     应用生命周期管理
     """
     await init_qdrant_collections()
+    logger.info("shared pkg loaded: %s", shared_hello())
 
     yield
 

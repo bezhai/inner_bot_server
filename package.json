@@ -1,0 +1,9 @@
+{
+  "name": "inner-bot-server",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+

@@ -19,10 +19,13 @@ log() {
 
 # 发送飞书通知
 send_feishu_notification() {
-  # 加载.env文件中的环境变量
-  if [ -f "$PROJECT_DIR/.env" ]; then
-    log "加载环境变量文件"
+  # 兼容：如果脚本被单独调用且未加载环境变量，这里兜底加载一次
+  if [ -z "$DEPLOY_WEBHOOK_URL" ] && [ -f "$PROJECT_DIR/.env" ]; then
+    log "加载环境变量文件（兜底）"
+    set -a
+    # shellcheck disable=SC1090
     source "$PROJECT_DIR/.env"
+    set +a
   fi
   
   # 检查webhook URL是否存在
@@ -73,6 +76,15 @@ PROJECT_DIR="$( cd "$SCRIPT_DIR/.." && pwd )"
 cd $PROJECT_DIR
 log "进入项目目录: $PROJECT_DIR"
 
+# 加载.env文件中的环境变量（并导出），便于多套部署时通过环境变量调整检查项
+if [ -f "$PROJECT_DIR/.env" ]; then
+  log "加载环境变量文件"
+  set -a
+  # shellcheck disable=SC1090
+  source "$PROJECT_DIR/.env"
+  set +a
+fi
+
 # 初始化警报计数器
 if [ ! -f "$ALERT_COUNT_FILE" ]; then
   echo "0" > "$ALERT_COUNT_FILE"
@@ -89,6 +101,11 @@ declare -A SERVICES=(
   ["qdrant"]="localhost:6333"
 )
 
+# 如果在 .env 中配置了 Qdrant 服务地址，则覆盖默认值
+if [ -n "$QDRANT_SERVICE_HOST" ]; then
+  SERVICES["qdrant"]="${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT:-6333}"
+fi
+
 # 检查Docker服务状态
 check_docker_services() {
   log "检查Docker容器状态..."
@@ -97,7 +114,14 @@ check_docker_services() {
   CONTAINERS=$(docker ps --format "{{.Names}}")
   
   FAILED_CONTAINERS=()
-  EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme" "ai-service-arq-worker" "vectorize-worker")
+
+  # 默认检查全量容器；可通过 HEALTHCHECK_CONTAINERS 覆盖（逗号或空格分隔）
+  if [ -n "$HEALTHCHECK_CONTAINERS" ]; then
+    CONTAINERS_STR="${HEALTHCHECK_CONTAINERS//,/ }"
+    read -r -a EXPECTED_CONTAINERS <<< "$CONTAINERS_STR"
+  else
+    EXPECTED_CONTAINERS=("app" "ai-app" "redis" "mongo" "postgres" "elasticsearch" "logstash" "kibana" "meme" "ai-service-arq-worker" "vectorize-worker")
+  fi
   
   for CONTAINER in "${EXPECTED_CONTAINERS[@]}"; do
     if echo "$CONTAINERS" | grep -q "$CONTAINER"; then
@@ -331,12 +355,7 @@ check_qdrant() {
   QDRANT_PORT=$(echo $QDRANT_HOST_PORT | cut -d: -f2)
 
   # 获取API密钥（如果有的话）
-  if [ -f "$PROJECT_DIR/.env" ]; then
-    source "$PROJECT_DIR/.env"
-    if [ ! -z "$QDRANT_SERVICE_API_KEY" ]; then
-      QDRANT_SERVICE_API_KEY="$QDRANT_SERVICE_API_KEY"
-    fi
-  fi
+  # 注：.env 已在脚本开始处加载并导出，这里直接读取环境变量即可
 
   log "使用Qdrant配置: ${QDRANT_HOST}:${QDRANT_PORT}"
   
@@ -387,7 +406,16 @@ perform_health_check() {
   FAILED_SERVICES=()
   
   # 逐个检查服务健康状态
-  for SERVICE in "${!SERVICES[@]}"; do
+  # - 默认检查 SERVICES 全量
+  # - 可通过 HEALTHCHECK_SERVICES 覆盖（逗号或空格分隔）
+  if [ -n "$HEALTHCHECK_SERVICES" ]; then
+    SERVICES_STR="${HEALTHCHECK_SERVICES//,/ }"
+    read -r -a SERVICE_LIST <<< "$SERVICES_STR"
+  else
+    SERVICE_LIST=("${!SERVICES[@]}")
+  fi
+
+  for SERVICE in "${SERVICE_LIST[@]}"; do
     ENDPOINT=${SERVICES[$SERVICE]}
     
     # 根据服务类型选择特定的检查方法

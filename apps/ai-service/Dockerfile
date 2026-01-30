@@ -16,18 +16,22 @@ RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
 # 安装uv
 RUN pip install uv
 
-# 复制项目配置文件
-COPY pyproject.toml uv.lock uv.toml ./
+# 复制项目配置文件（monorepo：apps + packages）
+COPY apps/ai-service/pyproject.toml apps/ai-service/uv.lock apps/ai-service/uv.toml ./apps/ai-service/
+COPY packages/py-common ./packages/py-common
 
 # 配置uv使用阿里云镜像源并同步依赖
-RUN uv sync --index-url https://mirrors.aliyun.com/pypi/simple/ --extra-index-url https://mirrors.aliyun.com/pypi/simple/ --allow-insecure-host mirrors.aliyun.com
+RUN cd apps/ai-service && uv sync --index-url https://mirrors.aliyun.com/pypi/simple/ --extra-index-url https://mirrors.aliyun.com/pypi/simple/ --allow-insecure-host mirrors.aliyun.com
+
+# 安装本地共享包（editable），用于同语言共享代码
+RUN cd apps/ai-service && uv pip install -e ../../packages/py-common
 
 # 复制应用代码
-COPY ./app /app/app
+COPY apps/ai-service/app /app/apps/ai-service/app
 
 # 设置时区为东八区
 ENV TZ=Asia/Shanghai
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/apps/ai-service
 ENV UV_CACHE_DIR=/tmp/uv-cache
 
 RUN mkdir -p /logs/ai-service && chown -R appuser:appuser /logs

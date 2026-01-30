@@ -54,6 +54,7 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
+
 [dependency-groups]
 dev = [
     "factory-boy>=3.3.3",

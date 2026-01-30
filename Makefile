@@ -1,57 +1,66 @@
+COMPOSE ?= docker compose
+COMPOSE_FILES ?= --env-file .env -f compose/docker-compose.infra.yml -f compose/docker-compose.apps.yml
+DC := $(COMPOSE) $(COMPOSE_FILES)
+
+# 部署服务分组（可通过环境变量覆盖，便于一套仓库多套部署）
+INFRA_SERVICES ?= redis mongo postgres elasticsearch meme qdrant
+LOG_SERVICES ?= logstash kibana
+APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker
+
 generate-types:
 	./idl/scripts/generate.sh
 
 start:
-	docker compose up -d --build
+	$(DC) up -d --build
 
 start-dev:
-	docker compose up --build
+	$(DC) up --build
 
 down:
-	docker compose down
+	$(DC) down
 
 # 只重启单个服务
 restart-service:
 	@read -p "请输入要重启的服务名: " service; \
-	docker compose restart $$service
+	$(DC) restart $$service
 
 # 只重启有代码变更的服务
 restart-changed:
 	git pull
-	docker compose up -d --build --no-deps
+	$(DC) up -d --build --no-deps
 
 # 完全重启
 restart-full:
 	git pull
-	docker compose build
-	docker compose down
-	docker compose up -d
+	$(DC) build
+	$(DC) down
+	$(DC) up -d
 
 # 生产环境滚动更新
 deploy:
 	git pull
-	docker compose build
+	$(DC) build
 	# 先更新基础设施服务
-	docker compose up -d --no-deps redis mongo postgres elasticsearch meme qdrant
+	$(DC) up -d --no-deps $(INFRA_SERVICES)
 	sleep 5
 	# 更新日志相关服务
-	docker compose up -d --no-deps logstash kibana
+	$(DC) up -d --no-deps $(LOG_SERVICES)
 	sleep 5
 	# 最后更新应用服务
-	docker compose up -d --no-deps ai-app app ai-service-arq-worker vectorize-worker
+	$(DC) up -d --no-deps $(APP_SERVICES)
 
 # 用于自动部署的生产环境部署命令
 deploy-live:
 	# 只构建和更新有代码变更的服务
-	docker compose build
+	$(DC) build
 	# 先更新基础设施服务（仅当有变更时）
-	docker compose up -d --no-deps --no-recreate redis mongo postgres elasticsearch meme qdrant
+	$(DC) up -d --no-deps --no-recreate $(INFRA_SERVICES)
 	sleep 5
 	# 更新日志相关服务（仅当有变更时）
-	docker compose up -d --no-deps --no-recreate logstash kibana
+	$(DC) up -d --no-deps --no-recreate $(LOG_SERVICES)
 	sleep 5
 	# 最后更新应用服务（仅当有变更时）
-	docker compose up -d --no-deps ai-app app ai-service-arq-worker vectorize-worker
+	$(DC) up -d --no-deps $(APP_SERVICES)
 	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
 
 # 设置自动部署定时任务（每3分钟检查一次）
