@@ -1,5 +1,5 @@
 COMPOSE ?= docker compose
-COMPOSE_FILES ?= --env-file .env -f compose/docker-compose.infra.yml -f compose/docker-compose.apps.yml
+COMPOSE_FILES ?= --env-file .env -f infra/compose/docker-compose.infra.yml -f infra/compose/docker-compose.apps.yml
 DC := $(COMPOSE) $(COMPOSE_FILES)
 
 # 部署服务分组（可通过环境变量覆盖，便于一套仓库多套部署）
@@ -100,7 +100,7 @@ db-sync:
 		export $$(cat .env | grep -v '^#' | xargs) && \
 		atlas schema apply \
 			--url "postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:5432/$${POSTGRES_DB}?sslmode=disable" \
-			--to "file://schema" \
+			--to "file://infra/database" \
 			--dev-url "docker://postgres/15/dev"; \
 	else \
 		echo "错误: .env 文件不存在，请先创建并配置环境变量"; \

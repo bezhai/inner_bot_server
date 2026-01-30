@@ -45,7 +45,7 @@ repos:
       # Docker Compose 构建检查 - 只构建应用服务
       - id: docker-compose-build-check
         name: Check docker-compose build
-        entry: bash -c 'docker compose -f compose/docker-compose.infra.yml -f compose/docker-compose.apps.yml build ai-app app ai-service-arq-worker vectorize-worker'
+        entry: bash -c 'docker compose -f infra/compose/docker-compose.infra.yml -f infra/compose/docker-compose.apps.yml build ai-app app ai-service-arq-worker vectorize-worker'
         language: system
-        files: ^(apps/.*|compose/.*|packages/.*)$
+        files: ^(apps/.*|infra/compose/.*|packages/.*)$
         pass_filenames: false
