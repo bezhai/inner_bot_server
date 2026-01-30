@@ -350,20 +350,20 @@ check_qdrant() {
 
   # 使用SERVICES数组中的配置
   SERVICE_NAME="qdrant"
-  QDRANT_HOST_PORT=${SERVICES[$SERVICE_NAME]}
-  QDRANT_HOST=$(echo $QDRANT_HOST_PORT | cut -d: -f1)
-  QDRANT_PORT=$(echo $QDRANT_HOST_PORT | cut -d: -f2)
+  QDRANT_SERVICE_HOST_PORT=${SERVICES[$SERVICE_NAME]}
+  QDRANT_SERVICE_HOST=$(echo $QDRANT_SERVICE_HOST_PORT | cut -d: -f1)
+  QDRANT_PORT=$(echo $QDRANT_SERVICE_HOST_PORT | cut -d: -f2)
 
   # 获取API密钥（如果有的话）
   # 注：.env 已在脚本开始处加载并导出，这里直接读取环境变量即可
 
-  log "使用Qdrant配置: ${QDRANT_HOST}:${QDRANT_PORT}"
+  log "使用Qdrant配置: ${QDRANT_SERVICE_HOST}:${QDRANT_PORT}"
   
   # 检查端口连通性
-  nc -z -w 5 $QDRANT_HOST $QDRANT_PORT
+  nc -z -w 5 $QDRANT_SERVICE_HOST $QDRANT_PORT
   
   if [ $? -ne 0 ]; then
-    log "❌ Qdrant服务不可连接: ${QDRANT_HOST}:${QDRANT_PORT}"
+    log "❌ Qdrant服务不可连接: ${QDRANT_SERVICE_HOST}:${QDRANT_PORT}"
     return 1
   else
     # 准备API请求头
@@ -374,7 +374,7 @@ check_qdrant() {
     fi
     
     # 尝试调用健康检查API
-    HEALTH_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_HOST}:${QDRANT_PORT}/healthz"
+    HEALTH_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_PORT}/healthz"
     HEALTH_RESPONSE=$(eval $HEALTH_CMD)
     
     if [ "$HEALTH_RESPONSE" == "200" ]; then
@@ -382,7 +382,7 @@ check_qdrant() {
       return 0
     else
       # 尝试集合API，作为备选检查
-      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_HOST}:${QDRANT_PORT}/collections"
+      COLLECTIONS_CMD="curl -s -m 10 -o /dev/null -w \"%{http_code}\" $HEADERS http://${QDRANT_SERVICE_HOST}:${QDRANT_PORT}/collections"
       COLLECTIONS_RESPONSE=$(eval $COLLECTIONS_CMD)
       
       if [ "$COLLECTIONS_RESPONSE" == "200" ]; then
