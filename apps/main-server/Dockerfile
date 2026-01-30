@@ -7,12 +7,12 @@ RUN npm config set registry https://registry.npmmirror.com
 # 先复制工作区元数据，利用 Docker layer cache
 COPY package.json ./
 COPY apps/main-server/package.json ./apps/main-server/package.json
-COPY packages/ts-common/package.json ./packages/ts-common/package.json
+COPY packages/ts-shared/package.json ./packages/ts-shared/package.json
 
 RUN npm install
 
 COPY apps/main-server ./apps/main-server
-COPY packages/ts-common ./packages/ts-common
+COPY packages/ts-shared ./packages/ts-shared
 RUN npm run -w apps/main-server build
 
 RUN npm prune --omit=dev
@@ -28,7 +28,7 @@ WORKDIR /usr/src/app
 
 COPY --from=builder /repo/apps/main-server/dist ./dist
 COPY --from=builder /repo/node_modules ./node_modules
-COPY --from=builder /repo/packages/ts-common ./packages/ts-common
+COPY --from=builder /repo/packages/ts-shared ./packages/ts-shared
 COPY --from=builder /repo/apps/main-server/package.json ./package.json
 
 RUN mkdir -p /var/log/main-server && \
