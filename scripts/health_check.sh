@@ -98,7 +98,7 @@ declare -A SERVICES=(
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
   ["elasticsearch"]="localhost:9200"
-  ["qdrant"]="localhost:6333"
+  # ["qdrant"]="localhost:6333"  # 已禁用 qdrant 健康检查
 )
 
 # 如果在 .env 中配置了 Qdrant 服务地址，则覆盖默认值
