@@ -8,7 +8,7 @@ from app.api.router import api_router
 from app.services.qdrant import init_qdrant_collections
 from app.utils.middlewares import HeaderContextMiddleware
 
-from py_common import hello as shared_hello
+from inner_shared import hello as shared_hello
 
 load_dotenv()
 

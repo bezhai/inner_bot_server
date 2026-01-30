@@ -18,13 +18,13 @@ RUN pip install uv
 
 # 复制项目配置文件（monorepo：apps + packages）
 COPY apps/ai-service/pyproject.toml apps/ai-service/uv.lock apps/ai-service/uv.toml ./apps/ai-service/
-COPY packages/py-common ./packages/py-common
+COPY packages/py-shared ./packages/py-shared
 
 # 配置uv使用阿里云镜像源并同步依赖
 RUN cd apps/ai-service && uv sync --index-url https://mirrors.aliyun.com/pypi/simple/ --extra-index-url https://mirrors.aliyun.com/pypi/simple/ --allow-insecure-host mirrors.aliyun.com
 
 # 安装本地共享包（editable），用于同语言共享代码
-RUN cd apps/ai-service && uv pip install -e ../../packages/py-common
+RUN cd apps/ai-service && uv pip install -e ../../packages/py-shared
 
 # 复制应用代码
 COPY apps/ai-service/app /app/apps/ai-service/app

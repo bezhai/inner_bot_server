@@ -1,7 +1,26 @@
 """
-工具模块，包含工具函数，如文本分词。
+Utils module - includes utility functions and re-exports from inner_shared.
 """
 
+# Local utilities
 from .split_word import BatchExtractRequest, ExtractResult, extract_batch
 
-__all__ = ["extract_batch", "BatchExtractRequest", "ExtractResult"]
+# Re-export from inner_shared for convenience
+from inner_shared import (
+    AsyncIntervalChecker,
+    BackfillWindow,
+    TimeRangeParser,
+    split_time,
+)
+
+__all__ = [
+    # Local
+    "extract_batch",
+    "BatchExtractRequest",
+    "ExtractResult",
+    # From inner_shared
+    "AsyncIntervalChecker",
+    "BackfillWindow",
+    "TimeRangeParser",
+    "split_time",
+]

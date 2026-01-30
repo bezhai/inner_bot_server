@@ -56,18 +56,21 @@
 
 ```
 inner_bot_server/
-├── main-server/          # Node.js 飞书机器人服务
-│   ├── src/
-│   │   ├── services/     # 业务逻辑
-│   │   ├── dal/         # 数据访问
-│   │   └── types/       # 类型定义
-│   └── package.json
-├── ai-service/          # Python AI对话服务
-│   ├── app/
-│   │   ├── api/         # HTTP接口
-│   │   ├── services/    # 核心服务
-│   │   └── agents/      # AI代理
-│   └── pyproject.toml
+├── apps/
+│   ├── main-server/      # Node.js 飞书机器人服务
+│   │   ├── src/
+│   │   │   ├── services/ # 业务逻辑
+│   │   │   ├── dal/      # 数据访问
+│   │   │   └── types/    # 类型定义
+│   │   └── package.json
+│   └── ai-service/       # Python AI对话服务
+│       ├── api/         # HTTP接口
+│       ├── services/    # 核心服务
+│       └── agents/      # AI代理
+│       └── pyproject.toml
+├── packages/            # 公共包
+│   ├── ts-shared/       # TypeScript 公共模块 (@inner/shared)
+│   └── py-shared/       # Python 公共模块 (inner-shared)
 ├── docker-compose.yml   # 容器编排
 ├── docs/               # 文档
 ├── scripts/            # 部署脚本

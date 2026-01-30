@@ -11,3 +11,6 @@ export const traceMiddleware = async (ctx: Context, next: Next) => {
         await next();
     });
 };
+
+// Re-export from shared for convenience
+export { createTraceMiddleware, TraceMiddlewareOptions } from '@inner/shared';

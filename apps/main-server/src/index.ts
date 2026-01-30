@@ -1,8 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { sharedHello } from '@inner/ts-common';
-
 // 初始化日志系统
 import { LoggerFactory } from './infrastructure/logger';
 
@@ -28,7 +26,7 @@ import {
         await app.initialize();
         await app.start();
 
-        console.info('Application started successfully!', sharedHello());
+        console.info('Application started successfully!');
     } catch (error) {
         console.error('Error during application startup:', error);
         process.exit(1);

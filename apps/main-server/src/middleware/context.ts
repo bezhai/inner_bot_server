@@ -1,41 +1,44 @@
-import { AsyncLocalStorage } from 'async_hooks';
+import {
+    asyncLocalStorage as baseAsyncLocalStorage,
+    context as baseContext,
+    BaseRequestContext,
+} from '@inner/shared';
 import { v4 as uuidv4 } from 'uuid';
 
-interface RequestContext {
-    traceId: string;
+/**
+ * Extended request context with bot-specific fields
+ */
+export interface RequestContext extends BaseRequestContext {
     botName?: string;
 }
 
-export const asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+// Re-export the base asyncLocalStorage for compatibility
+export const asyncLocalStorage = baseAsyncLocalStorage;
 
+/**
+ * Extended context utilities with bot-specific methods
+ */
 export const context = {
-    getTraceId: () => {
-        const store = asyncLocalStorage.getStore();
-        return store?.traceId || '';
-    },
+    ...baseContext,
     getBotName: () => {
-        const store = asyncLocalStorage.getStore();
+        const store = asyncLocalStorage.getStore() as RequestContext | undefined;
         return store?.botName || '';
     },
     getAll: () => {
-        return asyncLocalStorage.getStore() || { traceId: '' };
+        return (asyncLocalStorage.getStore() as RequestContext) || { traceId: '' };
     },
     set: (updates: Partial<RequestContext>) => {
-        const current = asyncLocalStorage.getStore() || { traceId: '' };
+        const current = (asyncLocalStorage.getStore() as RequestContext) || { traceId: '' };
         return { ...current, ...updates };
     },
     /**
      * 手动运行AsyncLocalStorage上下文，主要用于WebSocket模式
-     * @param contextData 要设置的上下文数据
-     * @param callback 要在上下文中执行的回调函数
      */
     run: async <T>(contextData: RequestContext, callback: () => Promise<T>): Promise<T> => {
         return asyncLocalStorage.run(contextData, callback);
     },
     /**
      * 创建带有traceId和botName的上下文数据
-     * @param botName 机器人名称
-     * @param traceId 追踪ID，如果不提供则自动生成
      */
     createContext: (botName?: string, traceId?: string): RequestContext => {
         return {
