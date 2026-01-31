@@ -98,11 +98,11 @@ declare -A SERVICES=(
   ["mongo"]="localhost:27017"
   ["postgres"]="localhost:5432"
   ["elasticsearch"]="localhost:9200"
-  # ["qdrant"]="localhost:6333"  # 已禁用 qdrant 健康检查
+  ["qdrant"]="localhost:6333"
 )
 
-# 如果在 .env 中配置了 Qdrant 服务地址，则覆盖默认值
-# 已禁用 qdrant 健康检查
+# 注意：qdrant 健康检查强制使用 localhost，不从环境变量读取
+# 因为健康检查脚本在宿主机运行，而 QDRANT_SERVICE_HOST 通常是 Docker 容器名
 # if [ -n "$QDRANT_SERVICE_HOST" ]; then
 #   SERVICES["qdrant"]="${QDRANT_SERVICE_HOST}:${QDRANT_SERVICE_PORT:-6333}"
 # fi
@@ -347,9 +347,31 @@ check_system_resources() {
 
 # 检查Qdrant服务健康状态
 check_qdrant() {
-  # 已禁用 qdrant 健康检查，直接返回成功
-  log "⚠️ qdrant 健康检查已禁用，跳过检查"
-  return 0
+  SERVICE_NAME="qdrant"
+  # 强制使用 localhost，因为健康检查在宿主机运行，不能用 Docker 容器名
+  HOST="localhost"
+  PORT="6333"
+
+  log "检查 $SERVICE_NAME 健康状态 ($HOST:$PORT)..."
+
+  # 检查端口连通性
+  nc -z -w 5 $HOST $PORT
+
+  if [ $? -ne 0 ]; then
+    log "❌ $SERVICE_NAME 端口不可连接"
+    return 1
+  fi
+
+  # 尝试调用健康检查API
+  RESPONSE=$(curl -s -m 10 -o /dev/null -w "%{http_code}" "http://$HOST:$PORT/healthz")
+
+  if [ "$RESPONSE" == "200" ]; then
+    log "✅ $SERVICE_NAME 服务健康"
+    return 0
+  else
+    log "⚠️ $SERVICE_NAME 端口可连接，但健康检查API返回 HTTP $RESPONSE"
+    return 0
+  fi
 }
 
 # 执行健康检查
