@@ -4,8 +4,8 @@ ENV TZ=Asia/Shanghai
 
 WORKDIR /app
 
-# 复制根目录的 package.json 和 package-lock.json（包含 workspaces 配置）
-COPY package*.json ./
+# 创建只包含 cronjob 和 ts-shared 的 workspace 配置
+RUN echo '{"name":"cronjob-build","private":true,"workspaces":["apps/cronjob","packages/ts-shared"]}' > package.json
 
 # 复制 ts-shared 包
 COPY packages/ts-shared ./packages/ts-shared
