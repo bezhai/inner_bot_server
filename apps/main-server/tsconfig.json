@@ -36,7 +36,8 @@
             "@lark/*": ["infrastructure/integrations/lark/*"],
             "@lark-client": ["infrastructure/integrations/lark-client"],
             "@aliyun/*": ["infrastructure/integrations/aliyun/*"],
-            "@volcengine/*": ["infrastructure/integrations/volcengine/*"]
+            "@volcengine/*": ["infrastructure/integrations/volcengine/*"],
+            "@config/*": ["config/*"]
         }
     },
     "include": ["src/**/*.ts"],

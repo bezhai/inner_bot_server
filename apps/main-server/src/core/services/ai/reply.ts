@@ -3,34 +3,56 @@ import { sseChat } from './chat';
 import { CardLifecycleManager } from '@lark/basic/card-lifecycle-manager';
 import { getBotUnionId } from '@core/services/bot/bot-var';
 import dayjs from 'dayjs';
+import { getStrategyFactory, ReplyStrategyContext, CardReplyStrategy, MultiMessageReplyStrategy } from './strategies';
 
 export async function makeCardReply(message: Message): Promise<void> {
-    const cardManager = CardLifecycleManager.init();
+    // 构建策略上下文
+    const context: ReplyStrategyContext = {
+        messageId: message.messageId,
+        chatId: message.chatId,
+        userId: message.senderInfo?.union_id,
+        isP2P: message.isP2P(),
+        rootId: message.rootId,
+    };
 
-    cardManager.appendCardContext({
-        parent_message_id: message.messageId, // 这里的parent_message_id后面用来换重新请求的msgId, 卡片是bot发的, 所以这里叫parent_message_id
-        chat_id: message.chatId,
-        root_id: message.rootId,
-        is_p2p: message.isP2P(),
-        union_id: message.senderInfo?.union_id,
-    });
+    // 使用策略工厂创建策略
+    const strategy = await getStrategyFactory().create(context);
+    const callbacks = strategy.getCallbacks();
 
+    // 构建保存消息的回调
     const onSaveMessage = async (content: string) => {
-        if (!cardManager.getMessageId()) {
+        // 根据策略类型获取消息ID和创建时间
+        let messageId: string | undefined;
+        let createTime: number;
+
+        if (strategy instanceof CardReplyStrategy) {
+            messageId = strategy.getMessageId();
+            createTime = strategy.getCreateTime();
+        } else if (strategy instanceof MultiMessageReplyStrategy) {
+            messageId = strategy.getMessageId();
+            createTime = strategy.getCreateTime();
+        } else {
+            // 默认情况
+            messageId = message.messageId;
+            createTime = dayjs().valueOf();
+        }
+
+        if (!messageId) {
             return undefined;
         }
+
         return {
             user_id: getBotUnionId(),
             user_name: '赤尾',
             content,
             is_mention_bot: false,
             role: 'assistant',
-            message_id: cardManager.getMessageId()!,
+            message_id: messageId,
             chat_id: message.chatId,
             chat_type: message.isP2P() ? 'p2p' : 'group',
-            create_time: String(dayjs(cardManager.getCreateTime()).valueOf()),
+            create_time: String(dayjs(createTime).valueOf()),
             root_message_id: message.rootId,
-            reply_message_id: message.messageId, // 机器人回复消息就是用户消息的id
+            reply_message_id: message.messageId,
         } as const;
     };
 
@@ -39,7 +61,7 @@ export async function makeCardReply(message: Message): Promise<void> {
             message_id: message.messageId,
             is_canary: message.basicChatInfo?.permission_config?.is_canary,
         },
-        ...cardManager.createAdvancedCallbacks(message.messageId),
+        ...callbacks,
         onSaveMessage,
     });
 }
@@ -51,6 +73,7 @@ export async function reCreateCard(
     rootId: string,
     isP2P: boolean,
 ): Promise<void> {
+    // reCreateCard 仍然使用卡片模式，因为它是重试现有卡片
     const cardManager = await CardLifecycleManager.loadFromMessage(messageId);
 
     if (!cardManager) {
@@ -79,7 +102,7 @@ export async function reCreateCard(
             chat_type: isP2P ? 'p2p' : 'group',
             create_time: String(dayjs(cardManager.getCreateTime()).valueOf()),
             root_message_id: rootId,
-            reply_message_id: parentMessageId, // 机器人回复消息就是用户消息的id
+            reply_message_id: parentMessageId,
         } as const;
     };
 
