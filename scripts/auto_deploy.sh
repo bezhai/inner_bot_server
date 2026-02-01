@@ -19,6 +19,8 @@ log() {
 # 发送飞书通知
 send_feishu_notification() {
   MESSAGE="$1"
+  RESULT="${2:-成功}"
+  RESULT_COLOR="${3:-green}"
 
   if [ -z "$DEPLOY_WEBHOOK_URL" ]; then
     log "DEPLOY_WEBHOOK_URL 未配置，跳过飞书通知"
@@ -30,21 +32,41 @@ send_feishu_notification() {
     return 0
   fi
 
-  # 完全交给 Python 处理 JSON 构造与换行转换：
-  # - 支持调用方传入真实换行
-  # - 也支持传入字面量 "\\n"，这里会转换成真正的换行符
+  # 使用 Python 构造交互式卡片 JSON
   export FEISHU_MESSAGE="$MESSAGE"
+  export FEISHU_RESULT="$RESULT"
+  export FEISHU_RESULT_COLOR="$RESULT_COLOR"
   PAYLOAD=$(python3 << 'EOF'
 import json, os
 
 msg = os.environ.get("FEISHU_MESSAGE", "")
+result = os.environ.get("FEISHU_RESULT", "成功")
+result_color = os.environ.get("FEISHU_RESULT_COLOR", "green")
+
 # 把字面量 \n/\t/\r 转成真实控制符，方便在 Shell 侧书写
 msg = msg.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
 
-print(json.dumps({"msg_type": "text", "content": {"text": msg}}, ensure_ascii=False))
+payload = {
+    "msg_type": "interactive",
+    "card": {
+        "type": "template",
+        "data": {
+            "template_id": "AAq2s8Vp2lwpz",
+            "template_variable": {
+                "result": result,
+                "result_color": result_color,
+                "detail": msg
+            }
+        }
+    }
+}
+
+print(json.dumps(payload, ensure_ascii=False))
 EOF
   )
   unset FEISHU_MESSAGE
+  unset FEISHU_RESULT
+  unset FEISHU_RESULT_COLOR
 
   # 发送通知
   RESPONSE_FILE=$(mktemp)
@@ -201,23 +223,23 @@ if [ "$LOCAL" != "$REMOTE" ]; then
   if [ $DEPLOY_STATUS -eq 124 ]; then
     log "部署超时（超过${TIMEOUT}秒），请手动检查服务状态"
     unset_proxy
-    send_feishu_notification "⚠️ 部署超时警告：部署操作超过${TIMEOUT}秒，请检查服务状态。"
+    send_feishu_notification "部署操作超过${TIMEOUT}秒，请检查服务状态。" "超时" "orange"
   elif [ $DEPLOY_STATUS -ne 0 ]; then
     log "部署失败，退出码: $DEPLOY_STATUS"
     unset_proxy
-    send_feishu_notification "❌ 部署失败：从 $OLD_VERSION 更新到 $NEW_VERSION 失败，退出码: $DEPLOY_STATUS"
+    send_feishu_notification "从 $OLD_VERSION 更新到 $NEW_VERSION 失败，退出码: $DEPLOY_STATUS" "失败" "red"
   else
     log "部署成功：从 $OLD_VERSION 更新到 $NEW_VERSION"
     # 发送部署成功的飞书通知
     if [ "$BASE" = "$LOCAL" ]; then
       # 正常更新
-      NOTIFICATION_MESSAGE="✅ 服务已部署成功！\n从版本 $OLD_VERSION 更新到 $NEW_VERSION\n\n📝 变更内容:\n$CHANGES"
+      NOTIFICATION_MESSAGE="服务已部署成功！\n从版本 $OLD_VERSION 更新到 $NEW_VERSION\n\n📝 变更内容:\n$CHANGES"
     else
       # 强制同步
-      NOTIFICATION_MESSAGE="✅ 服务已部署成功（强制同步）！\n从版本 $OLD_VERSION 同步到 $NEW_VERSION\n\n⚠️ 检测到远程分支历史变更，已强制同步\n\n📝 变更差异:\n$CHANGES"
+      NOTIFICATION_MESSAGE="服务已部署成功（强制同步）！\n从版本 $OLD_VERSION 同步到 $NEW_VERSION\n\n⚠️ 检测到远程分支历史变更，已强制同步\n\n📝 变更差异:\n$CHANGES"
     fi
     unset_proxy
-    send_feishu_notification "$NOTIFICATION_MESSAGE"
+    send_feishu_notification "$NOTIFICATION_MESSAGE" "成功" "green"
   fi
 else
   log "没有检测到代码更新，跳过部署"
