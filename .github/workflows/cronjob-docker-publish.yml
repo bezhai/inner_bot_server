@@ -1,9 +1,13 @@
-name: Build and Push Docker Image
+name: Build and Push Cronjob Docker Image
 
 on:
   push:
     branches:
       - main
+      - master
+    paths:
+      - 'apps/cronjob/**'
+      - 'packages/ts-shared/**'
 
 jobs:
   build:
@@ -17,7 +21,7 @@ jobs:
         run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
 
       - name: Build Docker Image
-        run: docker build -t chiwiio/cronjob-work:latest .
+        run: docker build -f apps/cronjob/Dockerfile -t chiwiio/cronjob-work:latest .
 
       - name: Push Docker Image
         run: docker push chiwiio/cronjob-work:latest

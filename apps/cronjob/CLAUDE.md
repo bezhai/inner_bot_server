@@ -39,12 +39,8 @@ npm run build
 # Run locally (requires .env)
 node dist/index.js
 
-# Docker development
-make all          # Pull, build, and run container
-make build        # Build Docker image only
-make run          # Run container
-make stop         # Stop container
-make clean        # Clean up containers and images
+# 一键部署（从 GitHub 获取最新部署脚本）
+curl -sSL https://raw.githubusercontent.com/bezhai/inner_bot_server/master/apps/cronjob/deploy.sh | bash
 ```
 
 ### Environment Setup
