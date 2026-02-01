@@ -1,6 +1,7 @@
 import { cloudSkipWords } from './word-utils';
 import _ from 'lodash';
-import http, { requestWithRetry } from '@http/client';
+import http from '@http/client';
+import { requestWithRetry } from '@inner/shared';
 
 /**
  * 检查一个词是否有意义

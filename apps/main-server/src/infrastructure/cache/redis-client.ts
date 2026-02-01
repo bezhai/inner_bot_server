@@ -1,8 +1,5 @@
 import Redis from 'ioredis';
 
-// Re-export class-based client from shared for new code
-export { RedisClient, RedisConfig, createDefaultRedisConfig, getRedisClient } from '@inner/shared';
-
 // Redis配置选项
 const redisConfig = {
     host: process.env.REDIS_HOST || 'localhost',

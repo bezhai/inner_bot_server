@@ -1,6 +1,6 @@
 import { StreamAction } from 'types/ai';
 import { ChatMessage, ChatRequest, ChatResponse, Step } from 'types/chat';
-import { SSEClient } from 'utils/sse/client';
+import { SSEClient } from '@inner/shared';
 import { ChatStateMachineManager } from './chat-state-machine';
 import { context } from '@middleware/context';
 import { storeMessage } from '@integrations/memory';

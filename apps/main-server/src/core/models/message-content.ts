@@ -1,4 +1,4 @@
-import { TextUtils } from 'utils/text/text-utils';
+import { TextUtils } from '@inner/shared';
 import { getBotUnionId } from '@core/services/bot/bot-var';
 
 export enum ContentType {

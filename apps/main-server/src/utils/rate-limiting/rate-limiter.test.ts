@@ -1,4 +1,4 @@
-import { RateLimiter } from '@utils/rate-limiting/rate-limiter';
+import { RateLimiter } from '@inner/shared';
 
 jest.useFakeTimers();
 

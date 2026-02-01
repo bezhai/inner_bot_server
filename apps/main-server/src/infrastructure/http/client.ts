@@ -1,8 +1,5 @@
-import { createHttpClient, requestWithRetry, HeaderProvider, HttpClientOptions, RetryOptions } from '@inner/shared';
+import { createHttpClient } from '@inner/shared';
 import { context } from '@middleware/context';
-
-// Re-export types from shared
-export { HeaderProvider, HttpClientOptions, RetryOptions, requestWithRetry } from '@inner/shared';
 
 // Create HTTP client with context-aware headers
 const http = createHttpClient({

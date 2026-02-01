@@ -1,8 +1,5 @@
-import { LoggerFactory, LoggerConfig, LoggerTransportFactory } from '@inner/shared';
+import { LoggerFactory } from '@inner/shared';
 import { context } from '@middleware/context';
-
-// Re-export types from shared
-export { LoggerConfig, LoggerTransportFactory } from '@inner/shared';
 
 // Create logger with context provider that includes botName
 const logger = LoggerFactory.createLogger({

@@ -7,9 +7,6 @@ import {
     getLocalCacheSize,
 } from '@inner/shared';
 
-// Re-export types and utilities from shared
-export { CacheOptions, RedisCacheOperations, clearLocalCache, getLocalCacheSize } from '@inner/shared';
-
 // Create Redis cache operations using local redis functions
 const redisOps: RedisCacheOperations = {
     get: redisGet,

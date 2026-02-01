@@ -1,9 +1,6 @@
 import type { Context, Next } from 'koa';
 import logger from '@logger/index';
-import { AppError as BaseAppError, createErrorHandler } from '@inner/shared';
-
-// Re-export AppError from shared
-export { AppError } from '@inner/shared';
+import { createErrorHandler } from '@inner/shared';
 
 /**
  * 统一错误处理中间件

@@ -1,9 +1,6 @@
 import { setWithExpire, evalScript } from './redis-client';
 import { createRedisLock, LockOptions, RedisLockOperations } from '@inner/shared';
 
-// Re-export types from shared
-export { LockOptions, RedisLockOperations } from '@inner/shared';
-
 // Create Redis lock decorator using local redis functions
 const redisOps: RedisLockOperations = {
     setWithExpire: async (key: string, value: string, seconds: number) => {

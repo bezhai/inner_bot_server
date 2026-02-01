@@ -1,5 +1,6 @@
 import type { Context, Next } from 'koa';
-import { errorHandler, AppError } from '@middleware/error-handler';
+import { errorHandler } from '@middleware/error-handler';
+import { AppError } from '@inner/shared';
 import logger from '@logger/index';
 
 // Mock logger to assert calls
