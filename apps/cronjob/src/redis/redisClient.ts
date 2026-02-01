@@ -1,14 +1,6 @@
-import Redis from 'ioredis';
+import { getRedisClient, RedisClient } from '@inner/shared';
 
-
-const redisClient = new Redis({
-  host: process.env.REDIS_HOST!,
-  port: 6379,
-  password: process.env.REDIS_PASSWORD,
-});
-
-redisClient.on('error', (err) => {
-  console.error('Redis Client Error', err);
-});
+// 使用共享的 Redis 客户端
+const redisClient: RedisClient = getRedisClient();
 
 export default redisClient;

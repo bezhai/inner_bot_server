@@ -9,6 +9,10 @@ export async function fetchUploadedImages(params: ListPixivImageDto): Promise<Im
 
     for (const image of images) {
         if (!image.image_key) {
+            if (!image.tos_file_name) {
+                console.error(`Missing tos_file_name for image: ${image.pixiv_addr}`);
+                continue;
+            }
             const imageFile = await getOss().getFile(image.tos_file_name);
             if (!imageFile) {
                 console.error(`Failed to retrieve file for OSS file name: ${image.tos_file_name}`);

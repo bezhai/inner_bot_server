@@ -8,14 +8,20 @@ RUN npm config set registry https://registry.npmmirror.com
 COPY package.json ./
 COPY apps/main-server/package.json ./apps/main-server/package.json
 COPY packages/ts-shared/package.json ./packages/ts-shared/package.json
+COPY packages/pixiv-client/package.json ./packages/pixiv-client/package.json
+COPY packages/lark-utils/package.json ./packages/lark-utils/package.json
 
 RUN npm install
 
 COPY apps/main-server ./apps/main-server
 COPY packages/ts-shared ./packages/ts-shared
+COPY packages/pixiv-client ./packages/pixiv-client
+COPY packages/lark-utils ./packages/lark-utils
 
 # 先构建共享包
 RUN npm run -w @inner/shared build
+RUN npm run -w @inner/pixiv-client build
+RUN npm run -w @inner/lark-utils build
 
 # 再构建主服务
 RUN npm run -w apps/main-server build
@@ -34,6 +40,8 @@ WORKDIR /usr/src/app
 COPY --from=builder /repo/apps/main-server/dist ./dist
 COPY --from=builder /repo/node_modules ./node_modules
 COPY --from=builder /repo/packages/ts-shared ./packages/ts-shared
+COPY --from=builder /repo/packages/pixiv-client ./packages/pixiv-client
+COPY --from=builder /repo/packages/lark-utils ./packages/lark-utils
 COPY --from=builder /repo/apps/main-server/package.json ./package.json
 
 RUN mkdir -p /var/log/main-server && \

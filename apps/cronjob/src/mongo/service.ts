@@ -6,7 +6,7 @@ import {
   UpdateOptions,
   UpdateResult,
 } from "mongodb";
-import { MongoCollection } from "./collection";
+import { MongoCollection } from "@inner/shared";
 import {
   DownloadTask,
   DownloadTaskStatus,

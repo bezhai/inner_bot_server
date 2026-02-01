@@ -12,3 +12,6 @@ export * from './http';
 
 // Utils exports
 export * from './utils';
+
+// MongoDB exports
+export * from './mongo';
