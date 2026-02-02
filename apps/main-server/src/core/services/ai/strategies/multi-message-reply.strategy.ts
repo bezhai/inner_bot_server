@@ -17,12 +17,14 @@ function sleep(ms: number): Promise<void> {
  * 将 AI 回复拆分为多条独立消息发送
  */
 export class MultiMessageReplyStrategy implements ReplyStrategy {
-    private buffer = '';
+    /** 已发送内容的长度（用于计算增量） */
+    private sentLength = 0;
     private lastSendTime = 0;
     private messagesSent = 0;
     private isFirstMessage = true;
     private createTime: number;
     private firstMessageId?: string;
+    /** 当前累积的完整内容 */
     private fullContent = '';
 
     constructor(
@@ -34,7 +36,7 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
 
     async onStartReply(): Promise<void> {
         // 多消息模式不创建卡片，只初始化状态
-        this.buffer = '';
+        this.sentLength = 0;
         this.lastSendTime = 0;
         this.messagesSent = 0;
         this.isFirstMessage = true;
@@ -48,14 +50,14 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
             return;
         }
 
-        this.buffer += action.content;
-        this.fullContent += action.content;
+        // action.content 是累积的完整内容，直接使用
+        this.fullContent = action.content;
         await this.flushCompleteMessages();
     }
 
     async onSuccess(content: string): Promise<void> {
-        // 发送 buffer 中剩余内容
-        const remaining = this.buffer.trim();
+        // 发送剩余未发送的内容
+        const remaining = this.fullContent.substring(this.sentLength).replace(new RegExp(this.config.splitMarker, 'g'), '').trim();
         if (remaining) {
             await this.sendWithDelay(remaining);
         }
@@ -78,7 +80,8 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
 
     async onEnd(): Promise<void> {
         // 清理状态
-        this.buffer = '';
+        this.fullContent = '';
+        this.sentLength = 0;
         console.debug('[MultiMessageStrategy] 多消息回复结束');
     }
 
@@ -120,31 +123,34 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
 
     /**
      * 刷新并发送完整的消息
+     * 基于累积内容和已发送长度计算待处理内容
      */
     private async flushCompleteMessages(): Promise<void> {
         const { splitMarker, maxMessages } = this.config;
 
-        while (this.buffer.includes(splitMarker)) {
-            const splitIndex = this.buffer.indexOf(splitMarker);
-            const message = this.buffer.substring(0, splitIndex);
-            const rest = this.buffer.substring(splitIndex + splitMarker.length);
-            const trimmed = message.trim();
+        // 获取未处理的内容（从已发送位置开始）
+        let pending = this.fullContent.substring(this.sentLength);
 
-            if (trimmed) {
+        while (pending.includes(splitMarker)) {
+            const splitIndex = pending.indexOf(splitMarker);
+            const message = pending.substring(0, splitIndex).trim();
+
+            if (message) {
                 // 检查是否需要合并（超过阈值）
                 if (this.messagesSent >= maxMessages - 1) {
                     // 已发送 maxMessages-1 条，剩余内容合并到最后一条
                     console.debug(
                         `[MultiMessageStrategy] 已达到最大消息数 ${maxMessages}，剩余内容将合并`,
                     );
-                    this.buffer = rest;
                     return;
                 }
 
-                await this.sendWithDelay(trimmed);
+                await this.sendWithDelay(message);
             }
 
-            this.buffer = rest;
+            // 更新已发送长度（包括分隔符）
+            this.sentLength += splitIndex + splitMarker.length;
+            pending = this.fullContent.substring(this.sentLength);
         }
     }
 
