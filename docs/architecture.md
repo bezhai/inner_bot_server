@@ -6,60 +6,50 @@
 
 项目采用**双服务器部署**模式，服务分布在两个不同的环境中：
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         主服务器（私有环境）                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌───────────────────────────────┐   │
-│  │ Main Server │  │ AI Service  │  │ 基础设施                       │   │
-│  │ (Node.js)   │  │ (Python)    │  │ PostgreSQL/MongoDB/Redis/     │   │
-│  │             │  │             │  │ Elasticsearch/Qdrant/Kibana   │   │
-│  └──────┬──────┘  └──────┬──────┘  └───────────────────────────────┘   │
-│         │                │                                              │
-│         └────────────────┴──────────────────────────────────────────────┤
-│                                                                         │
-│  配置文件: docker-compose.yml                                            │
-└─────────────────────────────────────────────────────────────────────────┘
-          │                              ▲
-          │ 调用 OpenAPI                 │ 事件推送 (HTTP/WebSocket)
-          ▼                              │
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           飞书服务器                                     │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph private["🖥️ 主服务器（私有环境）"]
+        direction TB
+        subgraph apps["应用服务"]
+            direction LR
+            MS["Main Server<br/>(Node.js)"]
+            AI["AI Service<br/>(Python)"]
+        end
+        subgraph infra["基础设施"]
+            direction LR
+            PG[(PostgreSQL)]
+            MG[(MongoDB)]
+            RD[(Redis)]
+            ES[(Elasticsearch)]
+            QD[(Qdrant)]
+        end
+    end
 
+    subgraph cloud["☁️ 轻量应用服务器（云环境）"]
+        direction TB
+        subgraph storage["元数据存储"]
+            direction LR
+            MG2[(MongoDB)]
+            RD2[(Redis)]
+            MY[(MySQL)]
+        end
+        CJ["Cronjob 服务<br/>• Pixiv 下载<br/>• Bangumi 同步"]
+    end
 
-┌─────────────────────────────────────────────────────────────────────────┐
-│                      轻量应用服务器（云环境）                             │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  docker-compose.cloud.yml                                       │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │   │
-│  │  │  MongoDB    │  │   Redis     │  │   MySQL     │  元数据存储  │   │
-│  │  └──────┬──────┘  └──────┬──────┘  └─────────────┘             │   │
-│  └─────────┼────────────────┼──────────────────────────────────────┘   │
-│            │                │                                          │
-│            ▼                ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  Cronjob 服务（单独 Docker 部署）                                │   │
-│  │  • Pixiv 下载  • Bangumi 同步  • 不对外提供接口                  │   │
-│  └──────────────────────────┬──────────────────────────────────────┘   │
-│                             │                                          │
-│  配置文件: infra/cloud/ + apps/cronjob/docker-compose.yml                    │
-└─────────────────────────────┼──────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          Proxy FaaS                                     │
-│  • 代理能力：访问 Pixiv 等外部 API（防封禁）                             │
-└─────────────────────────────┬───────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          外部服务                                        │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐                     │
-│  │   Pixiv     │  │ 阿里云 OSS  │  │  其他 API   │                     │
-│  │             │  │ （图片存储） │  │             │                     │
-│  └─────────────┘  └─────────────┘  └─────────────┘                     │
-└─────────────────────────────────────────────────────────────────────────┘
+    Lark{{"🐦 飞书服务器"}}
+    Proxy["Proxy FaaS"]
+
+    subgraph external["🌐 外部服务"]
+        direction LR
+        Pixiv["Pixiv"]
+        OSS["阿里云 OSS"]
+        Other["其他 API"]
+    end
+
+    MS <-->|"OpenAPI<br/>事件推送"| Lark
+    MS <-->|SSE| AI
+    storage --> CJ
+    CJ --> Proxy --> external
 ```
 
 ### 服务器职责
@@ -92,55 +82,59 @@
 
 Inner Bot Server 采用 **微服务架构 + 事件驱动** 模式，由三个主要应用服务和多个共享包组成。
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           客户端层                                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│     飞书客户端          │      Web 界面        │      API 客户端         │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           应用层 (Apps)                                  │
-├─────────────────────────────────────────────────────────────────────────┤
-│  ┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐   │
-│  │   Main Server     │  │    AI Service     │  │      Cronjob      │   │
-│  │   (Node.js)       │  │    (Python)       │  │    (Node.js)      │   │
-│  │                   │  │                   │  │                   │   │
-│  │ • 飞书事件处理     │  │ • 对话引擎        │  │ • Pixiv 下载      │   │
-│  │ • 规则引擎        │  │ • 工具调用系统     │  │ • Bangumi 同步    │   │
-│  │ • 媒体处理        │  │ • 记忆管理        │  │ • 定时推送        │   │
-│  │ • 卡片生命周期     │  │ • 向量检索        │  │ • 任务队列        │   │
-│  │ • HTTP/WS 接入    │  │ • 长期任务        │  │ • 限流控制        │   │
-│  └─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘   │
-│            │                      │                      │             │
-│            └──────────────────────┼──────────────────────┘             │
-│                                   │                                     │
-│                          SSE 流式通信                                    │
-└───────────────────────────────────┼─────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          共享包层 (Packages)                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│  @inner/shared      │  @inner/lark-utils  │  @inner/pixiv-client       │
-│  (TypeScript)       │  (TypeScript)       │  (TypeScript)              │
-│  • Redis 客户端     │  • 飞书 API 封装     │  • Pixiv API 客户端        │
-│  • MongoDB 工具     │  • 消息发送         │  • 认证工具                │
-│  • 日志系统         │  • 群组管理         │  • 作品获取                │
-│  • 中间件           │  • 用户查询         │                            │
-├─────────────────────┴─────────────────────┴────────────────────────────┤
-│  inner-shared (Python)                                                  │
-│  • 装饰器工具  • 中间件  • 日志配置  • 异步模式                          │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         基础设施层 (Infrastructure)                      │
-├─────────────────────────────────────────────────────────────────────────┤
-│ PostgreSQL │ MongoDB │ Redis │ Elasticsearch │ Qdrant │ Logstash │ Kibana│
-│ (主数据)   │ (消息)  │ (缓存) │ (日志搜索)    │ (向量) │ (日志收集)│ (可视化)│
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Client["📱 客户端层"]
+        direction LR
+        C1["飞书客户端"]
+        C2["Web 界面"]
+        C3["API 客户端"]
+    end
+
+    subgraph Apps["⚙️ 应用层 (Apps)"]
+        direction LR
+        MainServer["**Main Server**<br/>(Node.js)<br/>───────────<br/>飞书事件处理<br/>规则引擎<br/>媒体处理<br/>卡片生命周期"]
+        AIService["**AI Service**<br/>(Python)<br/>───────────<br/>对话引擎<br/>工具调用系统<br/>记忆管理<br/>向量检索"]
+        Cronjob["**Cronjob**<br/>(Node.js)<br/>───────────<br/>Pixiv 下载<br/>Bangumi 同步<br/>定时推送<br/>任务队列"]
+        MainServer <-.->|"SSE 流式通信"| AIService
+    end
+
+    subgraph Packages["📦 共享包层 (Packages)"]
+        direction LR
+        subgraph TSPkgs["TypeScript"]
+            direction TB
+            P1["@inner/shared<br/>Redis · MongoDB · 日志"]
+            P2["@inner/lark-utils<br/>飞书 API 封装"]
+            P3["@inner/pixiv-client<br/>Pixiv API"]
+        end
+        subgraph PyPkgs["Python"]
+            P4["inner-shared<br/>装饰器 · 中间件"]
+        end
+    end
+
+    subgraph Infra["🗄️ 基础设施层"]
+        direction LR
+        subgraph DB["数据存储"]
+            direction TB
+            PG[(PostgreSQL)]
+            MG[(MongoDB)]
+            RD[(Redis)]
+        end
+        subgraph Search["搜索 & 向量"]
+            direction TB
+            ES[(Elasticsearch)]
+            QD[(Qdrant)]
+        end
+        subgraph Log["日志系统"]
+            direction TB
+            LS[Logstash]
+            KB[Kibana]
+        end
+    end
+
+    Client --> Apps
+    Apps --> Packages
+    Packages --> Infra
 ```
 
 ---
@@ -317,74 +311,55 @@ cronjob/src/
 
 ### 聊天消息处理流程
 
-```
-┌──────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│ 飞书客户端 │───▶│ Main Server  │───▶│  规则引擎    │───▶│  AI Service  │
-└──────────┘    └──────────────┘    └──────────────┘    └──────────────┘
-                       │                    │                   │
-                       │                    │                   │
-                       ▼                    ▼                   ▼
-                ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-                │ 消息解析      │    │ 规则匹配      │    │ 上下文构建    │
-                │ 上下文注入    │    │ 命中处理      │    │ 模型调用      │
-                └──────────────┘    └──────────────┘    │ 工具执行      │
-                                                        └──────────────┘
-                                                               │
-                       ┌───────────────────────────────────────┘
-                       │ SSE 流式响应
-                       ▼
-                ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-                │ 卡片更新      │───▶│ 消息持久化    │───▶│ 飞书客户端    │
-                │ 状态机驱动    │    │ MongoDB      │    │ 显示回复      │
-                └──────────────┘    └──────────────┘    └──────────────┘
+```mermaid
+sequenceDiagram
+    participant Client as 飞书客户端
+    participant MainServer as Main Server
+    participant RuleEngine as 规则引擎
+    participant AIService as AI Service
+    participant CardUpdate as 卡片更新
+    participant MongoDB as MongoDB
+
+    Client->>MainServer: 发送消息
+    MainServer->>MainServer: 消息解析<br/>上下文注入
+    MainServer->>RuleEngine: 传递消息
+    RuleEngine->>RuleEngine: 规则匹配<br/>命中处理
+    RuleEngine->>AIService: 转发到AI服务
+    AIService->>AIService: 上下文构建<br/>模型调用<br/>工具执行
+    AIService-->>CardUpdate: SSE 流式响应
+    CardUpdate->>CardUpdate: 状态机驱动
+    CardUpdate->>MongoDB: 消息持久化
+    CardUpdate->>Client: 显示回复
 ```
 
 ### 聊天状态机
 
-```
-                    ┌─────────┐
-                    │ ACCEPT  │
-                    └────┬────┘
-                         │
-                         ▼
-                ┌─────────────────┐
-                │  START_REPLY    │
-                └────────┬────────┘
-                         │
-                         ▼
-                    ┌─────────┐
-                    │  SEND   │
-                    └────┬────┘
-                         │
-              ┌──────────┴──────────┐
-              │                     │
-              ▼                     ▼
-        ┌─────────┐           ┌─────────┐
-        │ SUCCESS │           │ FAILED  │
-        └────┬────┘           └────┬────┘
-              │                     │
-              └──────────┬──────────┘
-                         │
-                         ▼
-                    ┌─────────┐
-                    │   END   │
-                    └─────────┘
+```mermaid
+stateDiagram-v2
+    [*] --> ACCEPT
+    ACCEPT --> START_REPLY
+    START_REPLY --> SEND
+    SEND --> SUCCESS
+    SEND --> FAILED
+    SUCCESS --> END
+    FAILED --> END
+    END --> [*]
 ```
 
 ### Pixiv 下载流程
 
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│   Cronjob   │───▶│ Proxy FaaS  │───▶│   Pixiv     │───▶│ 阿里云 OSS  │
-│  定时触发    │    │  代理请求    │    │  获取图片    │    │  存储图片    │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-       │
-       │ 更新元数据
-       ▼
-┌─────────────┐
-│  MongoDB    │
-│ (云服务器)   │
-└─────────────┘
+```mermaid
+sequenceDiagram
+    participant Cronjob as Cronjob<br/>定时触发
+    participant ProxyFaaS as Proxy FaaS<br/>代理请求
+    participant Pixiv as Pixiv<br/>获取图片
+    participant OSS as 阿里云 OSS<br/>存储图片
+    participant MongoDB as MongoDB<br/>云服务器
+
+    Cronjob->>ProxyFaaS: 请求
+    ProxyFaaS->>Pixiv: 代理请求
+    Pixiv->>OSS: 图片数据
+    Cronjob->>MongoDB: 更新元数据
 ```
 
 ---
@@ -426,16 +401,13 @@ cronjob/src/
 
 ### 飞书交互
 
-```
-┌─────────────────┐                       ┌─────────────────┐
-│   飞书服务器     │                       │   Main Server   │
-│                 │                       │                 │
-│  事件推送 ──────┼──────────────────────▶│  接收事件       │
-│  (HTTP/WS)      │                       │  处理消息       │
-│                 │                       │                 │
-│  OpenAPI ◀──────┼───────────────────────│  发送消息       │
-│                 │                       │  获取用户信息    │
-└─────────────────┘                       └─────────────────┘
+```mermaid
+sequenceDiagram
+    participant Lark as 飞书服务器
+    participant MainServer as Main Server
+
+    Lark->>MainServer: 事件推送 (HTTP/WS)<br/>接收事件<br/>处理消息
+    MainServer->>Lark: OpenAPI<br/>发送消息<br/>获取用户信息
 ```
 
 - **事件推送**: 飞书通过 HTTP 回调或 WebSocket 推送消息、进出群等事件
@@ -443,21 +415,22 @@ cronjob/src/
 
 ### 服务间通信
 
-```
-┌─────────────────┐         SSE          ┌─────────────────┐
-│   Main Server   │ ◀───────────────────▶│   AI Service    │
-│                 │                       │                 │
-│  • 发起聊天请求  │                       │  • 流式返回响应  │
-│  • 接收流式响应  │                       │  • 工具调用结果  │
-└─────────────────┘                       └─────────────────┘
-         │                                         │
-         │                                         │
-         ▼                                         ▼
-┌─────────────────┐                       ┌─────────────────┐
-│     Redis       │                       │     Redis       │
-│  • 事件发布订阅  │ ◀───────────────────▶│  • 事件发布订阅  │
-│  • 分布式锁     │                       │  • 分布式锁     │
-└─────────────────┘                       └─────────────────┘
+```mermaid
+graph TB
+    subgraph MainServerGroup["Main Server"]
+        MS[Main Server<br/>• 发起聊天请求<br/>• 接收流式响应]
+        MSRedis[(Redis<br/>• 事件发布订阅<br/>• 分布式锁)]
+    end
+
+    subgraph AIServiceGroup["AI Service"]
+        AI[AI Service<br/>• 流式返回响应<br/>• 工具调用结果]
+        AIRedis[(Redis<br/>• 事件发布订阅<br/>• 分布式锁)]
+    end
+
+    MS <-->|SSE| AI
+    MS --> MSRedis
+    AI --> AIRedis
+    MSRedis <--> AIRedis
 ```
 
 ### 事件系统模式
