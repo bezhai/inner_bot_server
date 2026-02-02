@@ -2,12 +2,12 @@ services:
   # AI 服务
   ai-app:
     build:
-      context: ../..
+      context: ../../..
       dockerfile: apps/ai-service/Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      - ../../.env:/app/apps/ai-service/.env
+      - ../../../.env:/app/apps/ai-service/.env
       - ai_service_logs:/logs/ai-service
     restart: always
     healthcheck:
@@ -20,7 +20,7 @@ services:
   # Main Server 服务
   app:
     build:
-      context: ../..
+      context: ../../..
       dockerfile: apps/main-server/Dockerfile
     ports:
       - "3001:3000"
@@ -31,7 +31,7 @@ services:
       - LOG_LEVEL=info
       - LOG_DIR=/var/log/main-server
     env_file:
-      - ../../.env
+      - ../../../.env
     volumes:
       - main_server_logs:/var/log/main-server
     depends_on:
@@ -49,7 +49,7 @@ services:
 
   ai-service-arq-worker:
     build:
-      context: ../..
+      context: ../../..
       dockerfile: apps/ai-service/Dockerfile
     command: bash -lc "uv run --no-sync arq app.workers.unified_worker.UnifiedWorkerSettings"
     environment:
@@ -65,7 +65,7 @@ services:
       - L2_SCAN_INTERVAL_MINUTES=${L2_SCAN_INTERVAL_MINUTES:-5}
       - L2_QUEUE_MAX_LEN=${L2_QUEUE_MAX_LEN:-200}
     volumes:
-      - ../../.env:/app/apps/ai-service/.env
+      - ../../../.env:/app/apps/ai-service/.env
     depends_on:
       - redis
       - postgres
@@ -74,7 +74,7 @@ services:
   # 向量化 Worker - 消费 Redis Stream 进行消息向量化
   vectorize-worker:
     build:
-      context: ../..
+      context: ../../..
       dockerfile: apps/ai-service/Dockerfile
 
     command: bash -lc "uv run --no-sync python -m app.workers.vectorize_worker"
@@ -88,7 +88,7 @@ services:
       - QDRANT_SERVICE_HOST=${QDRANT_SERVICE_HOST}
       - QDRANT_SERVICE_API_KEY=${QDRANT_SERVICE_API_KEY}
     volumes:
-      - ../../.env:/app/apps/ai-service/.env
+      - ../../../.env:/app/apps/ai-service/.env
     depends_on:
       - redis
       - postgres

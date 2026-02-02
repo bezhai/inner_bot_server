@@ -65,14 +65,14 @@ services:
     environment:
       - LS_JAVA_OPTS=-Xms1g -Xmx1g
     env_file:
-      - ../../.env
+      - ../../../.env
     ports:
       - "5044:5044/tcp"
       - "5000:5000/tcp"
       - "9600:9600"
     volumes:
-      - ../logstash/pipeline:/usr/share/logstash/pipeline
-      - ../logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ../conf/logstash/pipeline:/usr/share/logstash/pipeline
+      - ../conf/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
       - ai_service_logs:/logs/ai-service
       - main_server_logs:/var/log/main-server
     depends_on:
