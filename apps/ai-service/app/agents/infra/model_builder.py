@@ -135,8 +135,8 @@ class ModelBuilder:
             elif client_type == "google":
                 # 使用 CustomChatGoogleGenerativeAI
                 chat_params = {
-                    "google_api_key": model_info["api_key"],
-                    "base_url": model_info["base_url"],
+                    "api_key": model_info["api_key"],
+                    "client_options": model_info["base_url"],
                     "model": model_info["model_name"],
                     **kwargs,
                 }
