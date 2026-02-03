@@ -9,6 +9,8 @@ from typing import Any
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
+from app.agents.clients.google_client import CustomChatGoogleGenerativeAI
+
 from .exceptions import ModelBuilderError, ModelConfigError, UnsupportedModelError
 
 logger = logging.getLogger(__name__)
@@ -130,6 +132,21 @@ class ModelBuilder:
                 )
 
                 return AzureChatOpenAI(**chat_params)
+            elif client_type == "google":
+                # 使用 CustomChatGoogleGenerativeAI
+                chat_params = {
+                    "google_api_key": model_info["api_key"],
+                    "base_url": model_info["base_url"],
+                    "model": model_info["model_name"],
+                    **kwargs,
+                }
+
+                logger.info(
+                    f"为模型 {model_id} 构建CustomChatGoogleGenerativeAI实例，"
+                    f"参数: {list(chat_params.keys())}"
+                )
+
+                return CustomChatGoogleGenerativeAI(**chat_params)
             else:
                 # 默认使用 ChatOpenAI
                 chat_params = {

@@ -32,11 +32,13 @@ class ClientType:
     - "openai": OpenAI 兼容客户端
     - "ark": 火山引擎 Ark Runtime 客户端
     - "azure-http": 仅支持生图的 HTTP 客户端
+    - "google": Google Generative AI 客户端
     """
 
     OPENAI = "openai"
     ARK = "ark"
     AZURE_HTTP = "azure-http"
+    GOOGLE = "google"
 
 
 class BaseAIClient(ABC, Generic[ClientT]):
