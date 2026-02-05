@@ -19,6 +19,9 @@ class AIMessageChunkProcessor:
     def process_chunk(self, chunk) -> str | None:
         """处理AIMessageChunk，状态变化时返回提示消息，否则返回None"""
 
+        if hasattr(chunk, "type"):
+            print(f"Processing chunk of type: {chunk.type}")
+
         # 检查工具调用
         tool_calls = []
         if hasattr(chunk, "tool_calls") and chunk.tool_calls:
@@ -31,7 +34,7 @@ class AIMessageChunkProcessor:
             tool_name = first_tool.get("name")
 
             new_state = tool_name if tool_name else "tool_calling"
-        elif hasattr(chunk, "content") and chunk.content and chunk.content.strip():
+        elif hasattr(chunk, "text") and chunk.text and chunk.text.strip():
             new_state = "replying"
         else:
             new_state = "thinking"

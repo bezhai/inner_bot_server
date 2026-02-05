@@ -41,6 +41,7 @@ dependencies = [
     "pytz>=2025.2",
     "bidict>=0.23.1",
     "volcengine-python-sdk[ark]>=5.0.3",
+    "inner-shared",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +56,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv.sources]
+inner-shared = { path = "../../packages/py-shared", editable = true }
 
 
 [dependency-groups]

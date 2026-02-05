@@ -3,12 +3,11 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from inner_shared import hello as shared_hello
 
 from app.api.router import api_router
 from app.services.qdrant import init_qdrant_collections
 from app.utils.middlewares import HeaderContextMiddleware
-
-from inner_shared import hello as shared_hello
 
 load_dotenv()
 
