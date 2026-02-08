@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from langchain.messages import AIMessage, HumanMessage
 
-from app.agents.infra.langfuse import get_prompt
+from app.agents.infra.langfuse_client import get_prompt
 from app.clients.image_client import image_client
 from app.orm.crud import fetch_group_profile, fetch_user_profiles
 from app.services.quick_search import QuickSearchResult, quick_search
@@ -349,10 +349,17 @@ async def _build_context_from_messages(
         "\n".join(history_messages) if history_messages else "（暂无历史记录）"
     )
 
-    group_profile = await fetch_group_profile(chat_id) if chat_id else None
-    user_profiles = (
-        await fetch_user_profiles(list(user_ids.keys())) if user_ids else None
-    )
+    group_task = None
+    user_task = None
+
+    async with asyncio.TaskGroup() as tg:
+        if chat_id:
+            group_task = tg.create_task(fetch_group_profile(chat_id))
+        if user_ids:
+            user_task = tg.create_task(fetch_user_profiles(list(user_ids.keys())))
+
+    group_profile = group_task.result() if group_task else None
+    user_profiles = user_task.result() if user_task else None
 
     after_reduce_user_profiles = (
         "\n------------------\n".join(

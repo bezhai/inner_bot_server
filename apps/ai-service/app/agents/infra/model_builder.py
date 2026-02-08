@@ -4,6 +4,7 @@
 """
 
 import logging
+import time
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -12,6 +13,20 @@ from langchain_openai import AzureChatOpenAI, ChatOpenAI
 from .exceptions import ModelBuilderError, ModelConfigError, UnsupportedModelError
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# 模块级 TTL 缓存（asyncio 单线程安全，无需锁）
+# ---------------------------------------------------------------------------
+_CACHE_TTL_SECONDS: int = 300  # 5 分钟
+_SENTINEL = object()  # 区分"未缓存"和"缓存了 None"
+
+# { model_id: (value, expire_at) }
+_model_info_cache: dict[str, tuple[Any, float]] = {}
+
+
+def clear_model_info_cache() -> None:
+    """清空 model_info 缓存（供测试和 admin 接口使用）"""
+    _model_info_cache.clear()
 
 
 class ModelBuilder:
@@ -25,10 +40,16 @@ class ModelBuilder:
     @staticmethod
     async def _get_model_and_provider_info(model_id: str) -> dict[str, Any] | None:
         """
-        从数据库获取供应商信息
+        从数据库获取供应商信息（带 TTL 缓存）
 
         解析model_id格式："{供应商名称}:模型原名"
         如果找不到供应商名称，则使用默认的302.ai
+
+        缓存策略：
+        - 命中且未过期 → 直接返回
+        - 未命中或已过期 → 查 DB → 写入缓存
+        - DB 异常 → 不缓存（允许下次重试），返回 None
+        - DB 正常返回 None → 缓存（防穿透）
 
         Args:
             model_id: 格式为"供应商名称/模型原名"的字符串
@@ -36,13 +57,28 @@ class ModelBuilder:
         Returns:
             Dict: 包含模型和供应商信息的字典，如果未找到返回None
         """
+        now = time.monotonic()
+
+        # 查缓存
+        cached = _model_info_cache.get(model_id, _SENTINEL)
+        if cached is not _SENTINEL:
+            value, expire_at = cached
+            if now < expire_at:
+                return value
+
+        # 未命中或已过期 → 查 DB
         try:
             from app.orm.crud import get_model_and_provider_info
 
-            return await get_model_and_provider_info(model_id)
+            result = await get_model_and_provider_info(model_id)
         except Exception as e:
             logger.error(f"数据库查询错误: {e}")
+            # DB 异常不缓存，允许下次重试
             return None
+
+        # 写入缓存（包括 None 结果，防穿透）
+        _model_info_cache[model_id] = (result, now + _CACHE_TTL_SECONDS)
+        return result
 
     @staticmethod
     async def get_basic_model_params(model_id: str) -> dict[str, Any] | None:

@@ -15,7 +15,7 @@ from app.agents.graphs.pre.state import (
     ComplexityResult,
     PreState,
 )
-from app.agents.infra.langfuse import get_prompt
+from app.agents.infra.langfuse_client import get_prompt
 from app.agents.infra.model_builder import ModelBuilder
 
 logger = logging.getLogger(__name__)

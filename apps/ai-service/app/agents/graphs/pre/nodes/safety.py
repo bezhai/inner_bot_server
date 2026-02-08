@@ -11,7 +11,7 @@ import logging
 from pydantic import BaseModel, Field
 
 from app.agents.graphs.pre.state import BlockReason, PreState, SafetyResult
-from app.agents.infra.langfuse import get_prompt
+from app.agents.infra.langfuse_client import get_prompt
 from app.agents.infra.model_builder import ModelBuilder
 from app.services.banned_word import check_banned_word
 

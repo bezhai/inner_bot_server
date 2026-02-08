@@ -12,7 +12,7 @@ from langchain_core.runnables import RunnableConfig
 from langfuse.langchain import CallbackHandler
 
 from app.agents.core.context import ContextSchema
-from app.agents.infra.langfuse import get_prompt
+from app.agents.infra.langfuse_client import get_prompt
 from app.agents.infra.model_builder import ModelBuilder
 
 
