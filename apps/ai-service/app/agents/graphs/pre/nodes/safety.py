@@ -66,7 +66,9 @@ async def check_prompt_injection(state: PreState, config) -> dict:
         langfuse_prompt = get_prompt("guard_prompt_injection")
         messages = langfuse_prompt.compile(message=message)
 
-        model = await ModelBuilder.build_chat_model("guard-model")
+        model = await ModelBuilder.build_chat_model(
+            "guard-model", reasoning_effort="low"
+        )
         structured_model = model.with_structured_output(PromptInjectionResult)
 
         result: PromptInjectionResult = await structured_model.ainvoke(
@@ -100,7 +102,9 @@ async def check_sensitive_politics(state: PreState, config) -> dict:
         langfuse_prompt = get_prompt("guard_sensitive_politics")
         messages = langfuse_prompt.compile(message=message)
 
-        model = await ModelBuilder.build_chat_model("guard-model")
+        model = await ModelBuilder.build_chat_model(
+            "guard-model", reasoning_effort="low"
+        )
         structured_model = model.with_structured_output(PoliticsCheckResult)
 
         result: PoliticsCheckResult = await structured_model.ainvoke(

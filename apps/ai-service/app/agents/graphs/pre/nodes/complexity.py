@@ -40,7 +40,9 @@ async def classify_complexity(state: PreState, config) -> dict:
         langfuse_prompt = get_prompt("pre_complexity_classification")
         messages = langfuse_prompt.compile(message=message)
 
-        model = await ModelBuilder.build_chat_model("pre-complexity-model")
+        model = await ModelBuilder.build_chat_model(
+            "pre-complexity-model", reasoning_effort="low"
+        )
         structured_model = model.with_structured_output(ComplexityClassification)
 
         result: ComplexityClassification = await structured_model.ainvoke(
