@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator
 from datetime import datetime
 
 from langchain.messages import AIMessageChunk
+from langfuse import get_client as get_langfuse
 from langfuse import propagate_attributes
 
 from app.agents.core import ChatAgent, ContextSchema
@@ -43,59 +44,63 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     Yields:
         ChatStreamChunk: 聊天流式响应块
     """
-    # 0. 生成请求级 session_id，关联 pre 和 main 的 Langfuse trace
+    # 0. 创建父 trace，pre 和 main 的 CallbackHandler 会自动嵌套其下
+    langfuse = get_langfuse()
     request_id = str(uuid.uuid4())
 
-    with propagate_attributes(session_id=request_id):
-        # 1. 获取消息内容
-        message_content = await get_message_content(message_id)
-        if not message_content:
-            logger.warning(f"No message found for message_id: {message_id}")
-            yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
-            return
-
-        # 2. 获取 gray_config（需要提前获取以决定 pre 模式）
-        gray_config = (await get_gray_config(message_id)) or {}
-        pre_blocking = gray_config.get("pre_blocking", True)
-
-        # 3. 启动 pre task（asyncio.create_task 会复制当前 context，继承 session_id）
-        pre_task = asyncio.create_task(run_pre(message_content))
-
-        if pre_blocking:
-            # === 保守模式：等 pre 完成再继续 ===
-            pre_result = await pre_task
-
-            if pre_result["is_blocked"]:
-                logger.info(
-                    f"消息被拦截: message_id={message_id}, "
-                    f"reason={pre_result['block_reason']}"
-                )
-                yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
+    with langfuse.start_as_current_observation(
+        as_type="span", name="chat-request"
+    ):
+        with propagate_attributes(session_id=request_id):
+            # 1. 获取消息内容
+            message_content = await get_message_content(message_id)
+            if not message_content:
+                logger.warning(f"No message found for message_id: {message_id}")
+                yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
                 return
 
-            complexity_result = pre_result["complexity_result"]
-            complexity = (
-                complexity_result.complexity
-                if complexity_result
-                else Complexity.SIMPLE
-            )
-            logger.info(f"复杂度路由: complexity={complexity.value}")
+            # 2. 获取 gray_config（需要提前获取以决定 pre 模式）
+            gray_config = (await get_gray_config(message_id)) or {}
+            pre_blocking = gray_config.get("pre_blocking", True)
 
-            async for chunk in _build_and_stream(
-                message_id, complexity, gray_config
-            ):
-                yield chunk
-        else:
-            # === 并行模式：pre 在后台运行，主模型同时流式生成 ===
-            logger.info(f"并行模式启动: message_id={message_id}")
-            raw_stream = _build_and_stream(
-                message_id, Complexity.SIMPLE, gray_config
-            )
+            # 3. 启动 pre task（create_task 复制当前 context，继承父 trace）
+            pre_task = asyncio.create_task(run_pre(message_content))
 
-            async for chunk in _buffer_until_pre(
-                raw_stream, pre_task, message_id
-            ):
-                yield chunk
+            if pre_blocking:
+                # === 保守模式：等 pre 完成再继续 ===
+                pre_result = await pre_task
+
+                if pre_result["is_blocked"]:
+                    logger.info(
+                        f"消息被拦截: message_id={message_id}, "
+                        f"reason={pre_result['block_reason']}"
+                    )
+                    yield ChatStreamChunk(content=GUARD_REJECT_MESSAGE)
+                    return
+
+                complexity_result = pre_result["complexity_result"]
+                complexity = (
+                    complexity_result.complexity
+                    if complexity_result
+                    else Complexity.SIMPLE
+                )
+                logger.info(f"复杂度路由: complexity={complexity.value}")
+
+                async for chunk in _build_and_stream(
+                    message_id, complexity, gray_config
+                ):
+                    yield chunk
+            else:
+                # === 并行模式：pre 在后台运行，主模型同时流式生成 ===
+                logger.info(f"并行模式启动: message_id={message_id}")
+                raw_stream = _build_and_stream(
+                    message_id, Complexity.SIMPLE, gray_config
+                )
+
+                async for chunk in _buffer_until_pre(
+                    raw_stream, pre_task, message_id
+                ):
+                    yield chunk
 
 
 async def _buffer_until_pre(
