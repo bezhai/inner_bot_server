@@ -1,4 +1,5 @@
 import { Message } from 'core/models/message';
+import { MessageContentUtils } from 'core/models/message-content';
 import { sseChat } from './chat';
 import { CardLifecycleManager } from '@lark/basic/card-lifecycle-manager';
 import { getBotUnionId } from '@core/services/bot/bot-var';
@@ -44,7 +45,7 @@ export async function makeCardReply(message: Message): Promise<void> {
         return {
             user_id: getBotUnionId(),
             user_name: '赤尾',
-            content,
+            content: MessageContentUtils.wrapTextAsV2(content),
             is_mention_bot: false,
             role: 'assistant',
             message_id: messageId,
@@ -94,7 +95,7 @@ export async function reCreateCard(
         return {
             user_id: getBotUnionId(),
             user_name: '赤尾',
-            content,
+            content: MessageContentUtils.wrapTextAsV2(content),
             is_mention_bot: false,
             role: 'assistant',
             message_id: cardManager.getMessageId()!,

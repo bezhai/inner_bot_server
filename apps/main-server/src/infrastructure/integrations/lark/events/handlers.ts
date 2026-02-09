@@ -74,7 +74,7 @@ export class LarkEventHandlers {
 
             await storeMessage({
                 user_id: message.sender,
-                content: message.toMarkdown(),
+                content: message.toStorageFormat(),
                 role: 'user',
                 message_id: message.messageId,
                 chat_id: message.chatId,

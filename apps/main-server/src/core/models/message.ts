@@ -155,6 +155,18 @@ export class Message {
         return MessageContentUtils.toMarkdown(this.content, this.allowDownloadResource());
     }
 
+    toStorageFormat(): string {
+        return JSON.stringify({
+            v: 2,
+            text: this.toMarkdown(),
+            items: this.content.items.map((item) => ({
+                type: item.type,
+                value: item.value,
+                ...(item.meta ? { meta: item.meta } : {}),
+            })),
+        });
+    }
+
     allowDownloadResource(): boolean {
         return this.metadata.groupChatInfo
             ? this.metadata.groupChatInfo.download_has_permission_setting === 'all_members'

@@ -5,7 +5,6 @@
 
 import asyncio
 import logging
-import re
 from dataclasses import dataclass
 
 from langchain.messages import AIMessage, HumanMessage
@@ -14,6 +13,7 @@ from app.agents.infra.langfuse_client import get_prompt
 from app.clients.image_client import image_client
 from app.orm.crud import fetch_group_profile, fetch_user_profiles
 from app.services.quick_search import QuickSearchResult, quick_search
+from app.utils.content_parser import parse_content
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +49,8 @@ async def build_chat_context(
 
     # 提取所有图片keys
     for msg in l1_results:
-        image_keys = re.findall(r"!\[image\]\(([^)]+)\)", msg.content)
-        for key in image_keys:
+        parsed = parse_content(msg.content)
+        for key in parsed.image_keys:
             all_image_keys.append((key, msg.message_id, msg.role))
 
     # 批量处理所有图片，建立key到URL的映射
@@ -146,11 +146,10 @@ async def _build_p2p_messages(
     for idx, msg in enumerate(messages):
         message_index = idx + 1
 
-        # 提取消息中的图片keys
-        image_keys = re.findall(r"!\[image\]\(([^)]+)\)", msg.content)
-
-        # 移除消息中的图片标记，只保留文本
-        text_content = re.sub(r"!\[image\]\([^)]+\)", "", msg.content).strip()
+        # 提取消息中的图片keys和纯文本
+        parsed = parse_content(msg.content)
+        image_keys = parsed.image_keys
+        text_content = parsed.text
 
         # 格式化消息元信息
         time_str = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -204,6 +203,8 @@ def _extract_and_replace_images(
 ) -> tuple[str, list[str]]:
     """从消息内容中提取图片keys，替换为【图片N】标记
 
+    兼容 v1 (markdown) 和 v2 (JSON) 格式。
+
     Args:
         content: 原始消息内容
         start_index: 起始图片编号
@@ -211,21 +212,18 @@ def _extract_and_replace_images(
     Returns:
         tuple[str, list[str]]: (处理后的文本, 图片keys列表)
     """
-    # 提取所有图片keys
-    image_keys = re.findall(r"!\[image\]\(([^)]+)\)", content)
+    parsed = parse_content(content)
+    if not parsed.image_keys:
+        # v2 有 items 时返回纯文本，v1 返回原始内容
+        return parsed.text if parsed.items else content, []
 
-    if not image_keys:
-        return content, []
-
-    # 逐个替换为【图片N】标记
-    processed_content = content
-    for i, key in enumerate(image_keys):
+    # v2 的 text 字段仍然包含 ![image](key)，所以 replace 逻辑兼容
+    processed = parsed.text if parsed.items else content
+    for i, key in enumerate(parsed.image_keys):
         img_index = start_index + i + 1
-        processed_content = processed_content.replace(
-            f"![image]({key})", f"【图片{img_index}】", 1
-        )
+        processed = processed.replace(f"![image]({key})", f"【图片{img_index}】", 1)
 
-    return processed_content, image_keys
+    return processed, parsed.image_keys
 
 
 @dataclass

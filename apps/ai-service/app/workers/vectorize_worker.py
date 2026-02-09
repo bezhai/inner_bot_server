@@ -13,7 +13,6 @@
 import asyncio
 import logging
 import os
-import re
 import signal
 import uuid
 
@@ -28,6 +27,7 @@ from app.clients.redis import AsyncRedisClient
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage
 from app.services.qdrant import qdrant_service
+from app.utils.content_parser import parse_content
 
 logger = logging.getLogger(__name__)
 
@@ -99,8 +99,9 @@ async def vectorize_message(message: ConversationMessage) -> bool:
         bool: True 表示成功处理，False 表示内容为空需跳过
     """
     # 1. 解析消息内容：提取文本和图片keys
-    image_keys = re.findall(r"!\[image\]\(([^)]+)\)", message.content)
-    text_content = re.sub(r"!\[image\]\([^)]+\)", "", message.content).strip()
+    parsed = parse_content(message.content)
+    image_keys = parsed.image_keys
+    text_content = parsed.text
 
     # 2. 判断是否为空内容（文本为空且无图片）
     if not text_content and not image_keys:

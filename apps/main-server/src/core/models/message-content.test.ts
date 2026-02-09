@@ -119,3 +119,30 @@ describe('MessageContentUtils filter methods with new types', () => {
         expect(MessageContentUtils.isStickerOnly(content)).toBe(false);
     });
 });
+
+describe('MessageContentUtils.wrapTextAsV2', () => {
+    it('should wrap plain text in v2 format', () => {
+        const result = MessageContentUtils.wrapTextAsV2('hello world');
+        const parsed = JSON.parse(result);
+        expect(parsed).toEqual({
+            v: 2,
+            text: 'hello world',
+            items: [{ type: 'text', value: 'hello world' }],
+        });
+    });
+
+    it('should handle empty string', () => {
+        const result = MessageContentUtils.wrapTextAsV2('');
+        const parsed = JSON.parse(result);
+        expect(parsed.v).toBe(2);
+        expect(parsed.text).toBe('');
+        expect(parsed.items).toEqual([{ type: 'text', value: '' }]);
+    });
+
+    it('should handle text with special characters', () => {
+        const text = 'hello "world" \n new line';
+        const result = MessageContentUtils.wrapTextAsV2(text);
+        const parsed = JSON.parse(result);
+        expect(parsed.text).toBe(text);
+    });
+});

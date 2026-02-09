@@ -116,4 +116,12 @@ export class MessageContentUtils {
     static isStickerOnly(content: MessageContent): boolean {
         return content.items.length === 1 && content.items[0].type === ContentType.Sticker;
     }
+
+    static wrapTextAsV2(text: string): string {
+        return JSON.stringify({
+            v: 2,
+            text,
+            items: [{ type: ContentType.Text, value: text }],
+        });
+    }
 }
