@@ -47,6 +47,7 @@ export class MessageBuilder {
             rootId: event.message.root_id || event.message.message_id,
             threadId: event.message.thread_id,
             isRobotMessage: false,
+            messageType: event.message.message_type,
             basicChatInfo: finalBasicChatInfo ?? undefined,
             groupChatInfo: groupChatInfo ?? undefined,
             senderInfo: senderInfo ?? undefined,

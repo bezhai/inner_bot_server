@@ -78,6 +78,10 @@ export class Message {
         return this.metadata.isRobotMessage;
     }
 
+    get messageType(): string | undefined {
+        return this.metadata.messageType;
+    }
+
     get basicChatInfo(): LarkBaseChatInfo | undefined {
         return this.metadata.basicChatInfo;
     }

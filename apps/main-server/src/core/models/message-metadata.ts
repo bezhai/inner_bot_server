@@ -11,6 +11,7 @@ export interface MessageMetadata {
     parentMessageId?: string;
     chatType: string;
     isRobotMessage: boolean;
+    messageType?: string;
     createTime?: string;
     basicChatInfo?: LarkBaseChatInfo;
     groupChatInfo?: LarkGroupChatInfo;

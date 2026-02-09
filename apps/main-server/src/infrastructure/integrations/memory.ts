@@ -42,6 +42,7 @@ export async function storeMessage(message: ChatMessage): Promise<void> {
             chat_id: message.chat_id,
             chat_type: message.chat_type,
             create_time: message.create_time,
+            message_type: message.message_type || 'text',
             vector_status: isEmpty ? 'skipped' : 'pending',
             bot_name: botName,
         });

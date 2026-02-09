@@ -5,11 +5,16 @@ export enum ContentType {
     Text = 'text',
     Image = 'image',
     Sticker = 'sticker',
+    Media = 'media',
+    File = 'file',
+    Audio = 'audio',
+    Unsupported = 'unsupported',
 }
 
 export interface ContentItem {
     type: ContentType;
     value: string;
+    meta?: Record<string, unknown>;
 }
 
 export interface MessageContent {
@@ -39,6 +44,20 @@ export class MessageContentUtils {
                 }
                 if (item.type === ContentType.Sticker) {
                     return `[表情包]`;
+                }
+                if (item.type === ContentType.Media) {
+                    const fileName = item.meta?.file_name as string | undefined;
+                    return fileName ? `[视频: ${fileName}]` : '[视频]';
+                }
+                if (item.type === ContentType.File) {
+                    const fileName = item.meta?.file_name as string | undefined;
+                    return fileName ? `[文件: ${fileName}]` : '[文件]';
+                }
+                if (item.type === ContentType.Audio) {
+                    return '[语音]';
+                }
+                if (item.type === ContentType.Unsupported) {
+                    return item.value;
                 }
             })
             .join('');

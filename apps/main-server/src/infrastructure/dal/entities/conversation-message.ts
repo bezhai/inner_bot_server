@@ -33,6 +33,9 @@ export class ConversationMessage {
     @Column({ type: 'bigint' })
     create_time!: string;
 
+    @Column({ length: 30, nullable: true, default: 'text' })
+    message_type?: string;
+
     /**
      * 向量化状态
      * - pending: 待处理

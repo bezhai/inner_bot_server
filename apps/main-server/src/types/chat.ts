@@ -53,6 +53,11 @@ export interface ChatMessage {
     create_time: string;
 
     /**
+     * 飞书原始消息类型
+     */
+    message_type?: string;
+
+    /**
      * 机器人名称（用于多 bot 场景）
      */
     bot_name?: string;

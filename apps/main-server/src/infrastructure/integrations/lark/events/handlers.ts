@@ -50,7 +50,12 @@ export class LarkEventHandlers {
         try {
             const message = await MessageTransferer.transfer(params);
             if (!message) {
-                throw new Error('Failed to build message');
+                console.warn(
+                    'Failed to build message, skipping:',
+                    params.message.message_id,
+                    params.message.message_type,
+                );
+                return;
             }
 
             if (message.allowDownloadResource()) {
@@ -77,6 +82,7 @@ export class LarkEventHandlers {
                 create_time: message.createTime ?? '0',
                 root_message_id: message.rootId,
                 reply_message_id: message.parentMessageId,
+                message_type: message.messageType,
             });
 
             await runRules(message);
