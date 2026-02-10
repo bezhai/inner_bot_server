@@ -18,6 +18,7 @@ from app.agents.graphs.pre import Complexity, run_pre
 from app.orm.crud import get_gray_config, get_message_content
 from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
+from app.utils.content_parser import parse_content
 from app.utils.status_processor import AIMessageChunkProcessor
 
 logger = logging.getLogger(__name__)
@@ -53,18 +54,21 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
     ):
         with propagate_attributes(session_id=request_id):
             # 1. 获取消息内容
-            message_content = await get_message_content(message_id)
-            if not message_content:
+            raw_content = await get_message_content(message_id)
+            if not raw_content:
                 logger.warning(f"No message found for message_id: {message_id}")
                 yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
                 return
+
+            # 解析 v2 内容，提取纯文本供 pre 使用
+            parsed = parse_content(raw_content)
 
             # 2. 获取 gray_config（需要提前获取以决定 pre 模式）
             gray_config = (await get_gray_config(message_id)) or {}
             pre_blocking = gray_config.get("pre_blocking", True)
 
             # 3. 启动 pre task（create_task 复制当前 context，继承父 trace）
-            pre_task = asyncio.create_task(run_pre(message_content))
+            pre_task = asyncio.create_task(run_pre(parsed.render()))
 
             if pre_blocking:
                 # === 保守模式：等 pre 完成再继续 ===

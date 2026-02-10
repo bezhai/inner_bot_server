@@ -101,7 +101,7 @@ async def vectorize_message(message: ConversationMessage) -> bool:
     # 1. 解析消息内容：提取文本和图片keys
     parsed = parse_content(message.content)
     image_keys = parsed.image_keys
-    text_content = parsed.text
+    text_content = parsed.render()
 
     # 2. 判断是否为空内容（文本为空且无图片）
     if not text_content and not image_keys:

@@ -14,6 +14,7 @@ from app.agents.infra.embedding import InstructionBuilder, Modality
 from app.orm.base import AsyncSessionLocal
 from app.orm.models import ConversationMessage, LarkUser
 from app.services.qdrant import qdrant_service
+from app.utils.content_parser import parse_content
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ async def search_group_history(
                 lines.append("\n--- 时间间隔 ---\n")
 
             time_str = _format_timestamp(msg.create_time)
-            content = _truncate(msg.content)
+            content = _truncate(parse_content(msg.content).render())
 
             # 标记锚点消息
             marker = "→ " if msg.message_id in anchor_set else "  "
@@ -235,7 +236,7 @@ async def search_messages(
             lines = [f"找到 {len(rows)} 条消息：\n"]
             for msg, user in reversed(rows):
                 time_str = _format_timestamp(msg.create_time)
-                content = _truncate(msg.content, 100)
+                content = _truncate(parse_content(msg.content).render(), 100)
                 lines.append(f"[{time_str}] {user.name}: {content}")
 
             return "\n".join(lines)
@@ -319,7 +320,7 @@ async def search_messages_semantic(
         lines = [f"找到 {len(sorted_messages)} 条相关消息：\n"]
         for msg, user in sorted_messages:
             time_str = _format_timestamp(msg.create_time)
-            content = _truncate(msg.content, 100)
+            content = _truncate(parse_content(msg.content).render(), 100)
             lines.append(f"[{time_str}] {user.name}: {content}")
 
         return "\n".join(lines)

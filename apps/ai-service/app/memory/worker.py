@@ -10,6 +10,7 @@ from app.memory.l2_topic_service import (
     update_topic_memory,
 )
 from app.memory.l3_memory_service import evolve_group_profile, fetch_active_chat_ids
+from app.utils.content_parser import parse_content
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ async def task_update_topic_memory(ctx, chat_id: str) -> None:
             await redis.delete(queue_key)
             return
 
-        new_slice = [message.content for message, username in messages]
+        new_slice = [parse_content(message.content).render() for message, username in messages]
         logger.info(f"处理 {len(new_slice)} 条新消息用于话题更新: {chat_id}")
 
         # 4. 使用这些新消息进行话题重写

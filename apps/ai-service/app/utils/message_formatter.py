@@ -10,6 +10,7 @@ from datetime import datetime
 from bidict import bidict
 
 from app.services.quick_search import QuickSearchResult
+from app.utils.content_parser import parse_content
 
 
 def format_message_to_str(
@@ -126,9 +127,9 @@ def format_messages_to_strings(
         if hasattr(msg, "reply_message_id") and msg.reply_message_id:
             reply_index = message_id_map.get(msg.reply_message_id)
 
-        # 格式化消息
+        # 格式化消息（从 v2 结构化内容渲染纯文本）
         formatted = format_message_to_str(
-            content=msg.content,
+            content=parse_content(msg.content).render(),
             role=msg.role,
             index=message_id_map.get(msg.message_id, 0),
             username=msg.username,

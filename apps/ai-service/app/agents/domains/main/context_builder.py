@@ -146,10 +146,10 @@ async def _build_p2p_messages(
     for idx, msg in enumerate(messages):
         message_index = idx + 1
 
-        # 提取消息中的图片keys和纯文本
+        # 提取消息中的图片keys和纯文本（render() 跳过图片，图片作为独立 content block 发送）
         parsed = parse_content(msg.content)
         image_keys = parsed.image_keys
-        text_content = parsed.text
+        text_content = parsed.render()
 
         # 格式化消息元信息
         time_str = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -203,27 +203,18 @@ def _extract_and_replace_images(
 ) -> tuple[str, list[str]]:
     """从消息内容中提取图片keys，替换为【图片N】标记
 
-    兼容 v1 (markdown) 和 v2 (JSON) 格式。
-
     Args:
-        content: 原始消息内容
+        content: 原始消息内容（v2 JSON 格式）
         start_index: 起始图片编号
 
     Returns:
         tuple[str, list[str]]: (处理后的文本, 图片keys列表)
     """
     parsed = parse_content(content)
-    if not parsed.image_keys:
-        # v2 有 items 时返回纯文本，v1 返回原始内容
-        return parsed.text if parsed.items else content, []
-
-    # v2 的 text 字段仍然包含 ![image](key)，所以 replace 逻辑兼容
-    processed = parsed.text if parsed.items else content
-    for i, key in enumerate(parsed.image_keys):
-        img_index = start_index + i + 1
-        processed = processed.replace(f"![image]({key})", f"【图片{img_index}】", 1)
-
-    return processed, parsed.image_keys
+    rendered = parsed.render(
+        image_fn=lambda i, _key: f"【图片{start_index + i + 1}】"
+    )
+    return rendered, parsed.image_keys
 
 
 @dataclass
