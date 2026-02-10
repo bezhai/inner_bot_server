@@ -65,7 +65,7 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
 
             # 2. 获取 gray_config（需要提前获取以决定 pre 模式）
             gray_config = (await get_gray_config(message_id)) or {}
-            pre_blocking = gray_config.get("pre_blocking", "true")
+            pre_blocking = gray_config.get("pre_blocking", "false")
 
             # 3. 启动 pre task（create_task 复制当前 context，继承父 trace）
             pre_task = asyncio.create_task(run_pre(parsed.render()))
