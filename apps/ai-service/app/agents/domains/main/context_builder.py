@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 async def build_chat_context(
     message_id: str, limit: int = 10
-) -> tuple[list[HumanMessage | AIMessage], list[str], str]:
+) -> tuple[list[HumanMessage | AIMessage], list[str], str, str, str]:
     """构建聊天上下文，支持私聊和群聊使用不同组装策略
 
     群聊: 使用系统Prompt进行上下文组装成一条HumanMessage
@@ -33,14 +33,14 @@ async def build_chat_context(
         limit: 获取的历史消息数量限制
 
     Returns:
-        tuple[list[HumanMessage | AIMessage], list[str]]: 消息列表和图片URL列表
+        tuple: (消息列表, 图片URL列表, chat_id, 触发用户名, 聊天类型)
     """
     # L1: 使用 quick_search 拉取近期历史
     l1_results = await quick_search(message_id=message_id, limit=limit)
 
     if not l1_results:
         logger.warning(f"No results found for message_id: {message_id}")
-        return [], [], ""
+        return [], [], "", "", "p2p"
 
     chat_type = l1_results[-1].chat_type or "p2p"  # 默认私聊
 
@@ -81,7 +81,10 @@ async def build_chat_context(
     # 提取所有成功的图片URL列表（用于context）
     image_urls = list(image_key_to_url.values())
 
-    return messages, image_urls, l1_results[0].chat_id or ""
+    # 提取触发消息的用户名（最后一条消息即为触发消息）
+    trigger_username = l1_results[-1].username or ""
+
+    return messages, image_urls, l1_results[0].chat_id or "", trigger_username, chat_type
 
 
 async def _build_group_messages(
@@ -140,41 +143,18 @@ async def _build_p2p_messages(
     """
     result: list[HumanMessage | AIMessage] = []
 
-    # 构建消息ID到编号的映射（用于回复关系标注）
-    message_id_map = _build_message_id_map(messages)
-
-    for idx, msg in enumerate(messages):
-        message_index = idx + 1
-
+    for msg in messages:
         # 提取消息中的图片keys和纯文本（render() 跳过图片，图片作为独立 content block 发送）
         parsed = parse_content(msg.content)
         image_keys = parsed.image_keys
         text_content = parsed.render()
 
-        # 格式化消息元信息
-        time_str = msg.create_time.strftime("%Y-%m-%d %H:%M:%S")
-        username = msg.username or "未知用户"
-
-        # 构建回复标注
-        reply_tag = ""
-        if msg.reply_message_id:
-            if msg.reply_message_id in message_id_map:
-                # 回复的消息在上下文中
-                parent_index = message_id_map[msg.reply_message_id]
-                reply_tag = f" [↪️回复消息{parent_index}]"
-            else:
-                # 回复的消息不在上下文中
-                reply_tag = " [↪️回复(消息已不在上下文)]"
-
-        # 组装完整的格式化文本
-        formatted_text = f"【消息{message_index}】[{time_str}] [User: {username}]{reply_tag}: {text_content}"
-
         # 构建消息内容块
         content_blocks: list = []
 
-        # 添加格式化的文本内容
-        if formatted_text:
-            content_blocks.append({"type": "text", "text": formatted_text})
+        # 添加纯文本内容（不包含元信息前缀，避免 LLM 模仿格式）
+        if text_content:
+            content_blocks.append({"type": "text", "text": text_content})
 
         # 添加该消息对应的图片（只添加成功获取URL的图片）
         for key in image_keys:

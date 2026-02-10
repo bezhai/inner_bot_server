@@ -189,6 +189,7 @@ async def _build_and_stream(
         "complexity_hint": COMPLEXITY_HINTS.get(complexity, ""),
         "curr_date": now.strftime("%Y-%m-%d"),
         "curr_time": now.strftime("%H:%M"),
+        "user_info": "",
     }
 
     # 创建 agent
@@ -204,12 +205,18 @@ async def _build_and_stream(
     )
 
     # 构建上下文
-    messages, image_urls, chat_id = await build_chat_context(message_id)
+    messages, image_urls, chat_id, trigger_username, chat_type = (
+        await build_chat_context(message_id)
+    )
 
     if not messages:
         logger.warning(f"No results found for message_id: {message_id}")
         yield ChatStreamChunk(content="抱歉，未找到相关消息记录")
         return
+
+    # 私聊时注入用户信息，帮助模型了解对话对象
+    if chat_type == "p2p" and trigger_username:
+        prompt_vars["user_info"] = f"你正在和 {trigger_username} 私聊。"
 
     accumulate_chunk = ChatStreamChunk(
         content="",
