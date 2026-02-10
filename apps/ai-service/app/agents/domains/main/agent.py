@@ -7,10 +7,6 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
-from langchain.messages import AIMessageChunk
-from langfuse import get_client as get_langfuse
-from langfuse import propagate_attributes
-
 from app.agents.core import ChatAgent, ContextSchema
 from app.agents.domains.main.context_builder import build_chat_context
 from app.agents.domains.main.tools import ALL_TOOLS
@@ -20,6 +16,9 @@ from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
 from app.utils.content_parser import parse_content
 from app.utils.status_processor import AIMessageChunkProcessor
+from langchain.messages import AIMessageChunk
+from langfuse import get_client as get_langfuse
+from langfuse import propagate_attributes
 
 logger = logging.getLogger(__name__)
 
@@ -261,6 +260,8 @@ async def _build_and_stream(
 
                 if interval_checker.check():
                     yield accumulate_chunk
+                    
+        yield accumulate_chunk
 
     except Exception as e:
         import traceback
