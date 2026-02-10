@@ -324,6 +324,58 @@ class TestRender:
         result = parse_content(raw)
         assert result.render() == "fallback text"
 
+    def test_mentions_parsed_from_v2(self):
+        """v2 格式解析 mentions 用户信息"""
+        raw = json.dumps(
+            {
+                "v": 2,
+                "text": "@杜中成 每日一图",
+                "items": [
+                    {"type": "text", "value": "@杜中成 每日一图"},
+                ],
+                "mentions": [{"user_id": "ou_xxx", "name": "杜中成"}],
+            }
+        )
+        result = parse_content(raw)
+        assert result.mentions == [{"user_id": "ou_xxx", "name": "杜中成"}]
+        assert result.render() == "@杜中成 每日一图"
+
+    def test_mentions_multiple_users(self):
+        """多个 @mention 用户信息都保留"""
+        raw = json.dumps(
+            {
+                "v": 2,
+                "text": "@张三 @李四 你们好",
+                "items": [
+                    {"type": "text", "value": "@张三 @李四 你们好"},
+                ],
+                "mentions": [
+                    {"user_id": "ou_aaa", "name": "张三"},
+                    {"user_id": "ou_bbb", "name": "李四"},
+                ],
+            }
+        )
+        result = parse_content(raw)
+        assert len(result.mentions) == 2
+        assert result.mentions[0]["name"] == "张三"
+        assert result.mentions[1]["user_id"] == "ou_bbb"
+        assert result.render() == "@张三 @李四 你们好"
+
+    def test_no_mentions_field(self):
+        """无 mentions 字段时默认空列表"""
+        raw = json.dumps(
+            {
+                "v": 2,
+                "text": "@杜中成 每日一图",
+                "items": [
+                    {"type": "text", "value": "@杜中成 每日一图"},
+                ],
+            }
+        )
+        result = parse_content(raw)
+        assert result.mentions == []
+        assert result.render() == "@杜中成 每日一图"
+
     def test_render_non_v2_returns_raw(self):
         """非 v2 输入，render() 返回原始文本"""
         result = parse_content("plain text")

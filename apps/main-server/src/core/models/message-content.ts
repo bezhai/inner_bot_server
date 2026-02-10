@@ -62,17 +62,23 @@ export class MessageContentUtils {
             })
             .join('');
 
-        content.mentions.forEach((mention, index) => {
-            const mentionInfo = content.mentionMap?.[mention]!;
-            const botUnionId = getBotUnionId();
-            const displayName = mention === botUnionId ? '赤尾' : mentionInfo.name;
-            markdown = markdown.replace(`@_user_${index + 1}`, `@${displayName}`);
-        });
-
-        return markdown;
+        return this.resolveMentions(markdown, content);
     }
 
-    static texts(content: MessageContent): string[] { 
+    static resolveMentions(text: string, content: MessageContent): string {
+        let result = text;
+        content.mentions.forEach((mention, index) => {
+            const mentionInfo = content.mentionMap?.[mention];
+            if (mentionInfo) {
+                const botUnionId = getBotUnionId();
+                const displayName = mention === botUnionId ? '赤尾' : mentionInfo.name;
+                result = result.replace(`@_user_${index + 1}`, `@${displayName}`);
+            }
+        });
+        return result;
+    }
+
+    static texts(content: MessageContent): string[] {
         return content.items
             .filter((item) => item.type === ContentType.Text)
             .map((item) => item.value);
