@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     main_server_base_url: str | None = None  # Main-server服务基础URL
     main_server_timeout: int = 10  # 超时时间，默认10秒
 
+    # RabbitMQ
+    rabbitmq_url: str | None = None
+
     langfuse_public_key: str | None = None
     langfuse_secret_key: str | None = None
     langfuse_host: str | None = None

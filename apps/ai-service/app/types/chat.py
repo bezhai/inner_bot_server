@@ -57,6 +57,7 @@ class ChatRequest(BaseModel):
     """
 
     message_id: str  # 消息id / Message ID
+    session_id: str | None = None  # 会话追踪 ID / Session tracking ID
     is_canary: bool | None = False  # 是否开启灰度
 
 

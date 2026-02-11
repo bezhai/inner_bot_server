@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -6,6 +7,7 @@ from fastapi import FastAPI
 from inner_shared import hello as shared_hello
 
 from app.api.router import api_router
+from app.config import settings
 from app.services.qdrant import init_qdrant_collections
 from app.utils.middlewares import HeaderContextMiddleware
 
@@ -22,9 +24,29 @@ async def lifespan(app: FastAPI):
     await init_qdrant_collections()
     logger.info("shared pkg loaded: %s", shared_hello())
 
+    # 启动 post safety consumer（仅当 RabbitMQ 配置存在时）
+    consumer_task = None
+    if settings.rabbitmq_url:
+        from app.workers.post_consumer import start_post_consumer
+
+        consumer_task = asyncio.create_task(start_post_consumer())
+        logger.info("Post safety consumer started")
+
     yield
 
-    # pass
+    # 关闭 consumer
+    if consumer_task:
+        consumer_task.cancel()
+        try:
+            await consumer_task
+        except asyncio.CancelledError:
+            pass
+    # 关闭 RabbitMQ 连接
+    if settings.rabbitmq_url:
+        from app.clients.rabbitmq import RabbitMQClient
+
+        client = RabbitMQClient()
+        await client.close()
 
 
 app = FastAPI(lifespan=lifespan)

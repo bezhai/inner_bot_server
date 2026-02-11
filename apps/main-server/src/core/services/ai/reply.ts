@@ -4,11 +4,32 @@ import { sseChat } from './chat';
 import { CardLifecycleManager } from '@lark/basic/card-lifecycle-manager';
 import { getBotUnionId } from '@core/services/bot/bot-var';
 import dayjs from 'dayjs';
+import { v4 as uuidv4 } from 'uuid';
 import { getStrategyFactory, ReplyStrategyContext, CardReplyStrategy, MultiMessageReplyStrategy } from './strategies';
+import { AgentResponseRepository } from '@repositories/repositories';
+import { AgentResponse } from '@entities/agent-response';
 
 export async function makeCardReply(message: Message): Promise<void> {
+    // 生成 session_id 用于追踪
+    const sessionId = uuidv4();
+
+    // 创建 agent_responses 记录
+    try {
+        const agentResponse = AgentResponseRepository.create({
+            session_id: sessionId,
+            trigger_message_id: message.messageId,
+            chat_id: message.chatId,
+            bot_name: undefined,
+            status: 'created',
+        } as Partial<AgentResponse>);
+        await AgentResponseRepository.save(agentResponse);
+    } catch (e) {
+        // 非阻塞：记录失败不影响主流程
+        console.error('Failed to create agent_response:', e);
+    }
+
     // 构建策略上下文
-    const context: ReplyStrategyContext = {
+    const strategyCtx: ReplyStrategyContext = {
         messageId: message.messageId,
         chatId: message.chatId,
         userId: message.senderInfo?.union_id,
@@ -17,7 +38,7 @@ export async function makeCardReply(message: Message): Promise<void> {
     };
 
     // 使用策略工厂创建策略
-    const strategy = await getStrategyFactory().create(context);
+    const strategy = await getStrategyFactory().create(strategyCtx);
     const callbacks = strategy.getCallbacks();
 
     // 构建保存消息的回调
@@ -61,10 +82,39 @@ export async function makeCardReply(message: Message): Promise<void> {
     await sseChat({
         req: {
             message_id: message.messageId,
+            session_id: sessionId,
             is_canary: message.basicChatInfo?.permission_config?.is_canary,
         },
         ...callbacks,
-        onSaveMessage,
+        onSaveMessage: async (content: string) => {
+            const result = await onSaveMessage(content);
+
+            // 更新 agent_responses
+            try {
+                const replyMessageId =
+                    strategy instanceof CardReplyStrategy
+                        ? strategy.getMessageId()
+                        : strategy instanceof MultiMessageReplyStrategy
+                          ? strategy.getMessageId()
+                          : undefined;
+
+                await AgentResponseRepository.createQueryBuilder()
+                    .update(AgentResponse)
+                    .set({
+                        response_text: content,
+                        replies: (replyMessageId
+                            ? [{ message_id: replyMessageId, content_type: 'card', sent_at: new Date().toISOString() }]
+                            : []) as any,
+                        status: 'completed',
+                    })
+                    .where('session_id = :sessionId', { sessionId })
+                    .execute();
+            } catch (e) {
+                console.error('Failed to update agent_response:', e);
+            }
+
+            return result;
+        },
     });
 }
 

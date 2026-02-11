@@ -10,3 +10,4 @@ export * from './response-feedback';
 export * from './bot-config';
 export * from './user-blacklist';
 export * from './conversation-message';
+export * from './agent-response';

@@ -9,6 +9,9 @@ services:
     volumes:
       - ../../../.env:/app/apps/ai-service/.env
       - ai_service_logs:/logs/ai-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -93,5 +96,20 @@ services:
       - redis
       - postgres
       - qdrant
+    restart: always
+
+  # Recall Worker - 消费 RabbitMQ recall 队列撤回不安全消息
+  recall-worker:
+    build:
+      context: ../../..
+      dockerfile: apps/main-server/Dockerfile
+    command: node dist/workers/recall-worker.js
+    env_file:
+      - ../../../.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     restart: always
 

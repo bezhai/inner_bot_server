@@ -10,6 +10,7 @@ import {
     ResponseFeedback,
     UserBlacklist,
     ConversationMessage,
+    AgentResponse,
 } from '@entities';
 import { UserGroupBindingRepository as CustomUserGroupBindingRepository } from './user-group-binding-repository';
 
@@ -24,3 +25,4 @@ export const UserGroupBindingRepository = new CustomUserGroupBindingRepository(A
 export const ResponseFeedbackRepository = AppDataSource.getRepository(ResponseFeedback);
 export const UserBlacklistRepository = AppDataSource.getRepository(UserBlacklist);
 export const ConversationMessageRepository = AppDataSource.getRepository(ConversationMessage);
+export const AgentResponseRepository = AppDataSource.getRepository(AgentResponse);

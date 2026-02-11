@@ -35,18 +35,21 @@ COMPLEXITY_HINTS = {
 }
 
 
-async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
+async def stream_chat(
+    message_id: str, session_id: str | None = None
+) -> AsyncGenerator[ChatStreamChunk, None]:
     """主聊天流式响应入口
 
     Args:
         message_id: 触发消息的 ID
+        session_id: 会话追踪 ID（由 main-server 生成）
 
     Yields:
         ChatStreamChunk: 聊天流式响应块
     """
     # 0. 创建父 trace，pre 和 main 的 CallbackHandler 会自动嵌套其下
     langfuse = get_langfuse()
-    request_id = str(uuid.uuid4())
+    request_id = session_id or str(uuid.uuid4())
 
     with langfuse.start_as_current_observation(
         as_type="span", name="chat-request"
@@ -90,14 +93,14 @@ async def stream_chat(message_id: str) -> AsyncGenerator[ChatStreamChunk, None]:
                 logger.info(f"复杂度路由: complexity={complexity.value}")
 
                 async for chunk in _build_and_stream(
-                    message_id, complexity, gray_config
+                    message_id, complexity, gray_config, request_id
                 ):
                     yield chunk
             else:
                 # === 并行模式：pre 在后台运行，主模型同时流式生成 ===
                 logger.info(f"并行模式启动: message_id={message_id}")
                 raw_stream = _build_and_stream(
-                    message_id, Complexity.SIMPLE, gray_config
+                    message_id, Complexity.SIMPLE, gray_config, request_id
                 )
 
                 async for chunk in _buffer_until_pre(
@@ -180,6 +183,7 @@ async def _build_and_stream(
     message_id: str,
     complexity: Complexity,
     gray_config: dict,
+    session_id: str | None = None,
 ) -> AsyncGenerator[ChatStreamChunk, None]:
     """构建 agent + 上下文，执行流式生成（两种模式共用）"""
     # 构建 prompt 变量（注入复杂度引导）
@@ -263,8 +267,42 @@ async def _build_and_stream(
                     
         yield accumulate_chunk
 
+        # Fire-and-forget: publish to post safety check queue
+        full_response = accumulate_chunk.content or ""
+        if full_response and session_id:
+            asyncio.create_task(
+                _publish_post_check(
+                    session_id, full_response, chat_id, message_id
+                )
+            )
+
     except Exception as e:
         import traceback
 
         logger.error(f"stream_chat error: {str(e)}\n{traceback.format_exc()}")
         yield ChatStreamChunk(content="赤尾好像遇到了一些问题呢QAQ")
+
+
+async def _publish_post_check(
+    session_id: str,
+    response_text: str,
+    chat_id: str,
+    trigger_message_id: str,
+) -> None:
+    """发布 post safety check 消息到 RabbitMQ"""
+    try:
+        from app.clients.rabbitmq import RabbitMQClient, RK_SAFETY_CHECK
+
+        client = RabbitMQClient()
+        await client.publish(
+            RK_SAFETY_CHECK,
+            {
+                "session_id": session_id,
+                "response_text": response_text,
+                "chat_id": chat_id,
+                "trigger_message_id": trigger_message_id,
+            },
+        )
+        logger.info(f"Published post safety check: session_id={session_id}")
+    except Exception as e:
+        logger.error(f"Failed to publish post safety check: {e}")

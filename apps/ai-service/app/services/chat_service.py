@@ -52,7 +52,9 @@ class ChatService:
             last_reason_content = ""  # 用于跟踪最后的思维链内容
 
             # 使用原有服务
-            async for chunk in stream_chat(request.message_id):
+            async for chunk in stream_chat(
+                request.message_id, session_id=request.session_id
+            ):
                 if chunk.status_message:
                     yield ChatStatusResponse(
                         step=Step.SEND, status_message=chunk.status_message
