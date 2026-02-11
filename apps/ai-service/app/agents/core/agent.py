@@ -3,6 +3,8 @@
 保留原有的 ChatAgent 实现，作为核心的 Agent 抽象。
 """
 
+import asyncio
+import logging
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
@@ -10,10 +12,31 @@ from langchain.agents import create_agent
 from langchain.messages import AIMessage, AIMessageChunk, ToolMessage
 from langchain_core.runnables import RunnableConfig
 from langfuse.langchain import CallbackHandler
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    InternalServerError,
+    RateLimitError,
+)
 
 from app.agents.core.context import ContextSchema
 from app.agents.infra.langfuse_client import get_prompt
 from app.agents.infra.model_builder import ModelBuilder
+
+logger = logging.getLogger(__name__)
+
+# Agent 级可重试异常（SDK 级重试由 max_retries 处理，这里处理更上层的重试）
+RETRYABLE_EXCEPTIONS = (
+    APITimeoutError,
+    APIConnectionError,
+    InternalServerError,
+    RateLimitError,
+)
+
+# 默认 agent 级重试配置
+_DEFAULT_MAX_RETRIES = 2
+_BACKOFF_BASE = 2  # 秒
+_BACKOFF_MAX = 8  # 秒
 
 
 class ChatAgent:
@@ -73,6 +96,7 @@ class ChatAgent:
         context: ContextSchema | None = None,
         prompt_vars: dict | None = None,
         config: RunnableConfig | None = None,
+        max_retries: int = _DEFAULT_MAX_RETRIES,
     ) -> AsyncGenerator[AIMessageChunk | ToolMessage, None]:
         """流式生成响应
 
@@ -81,6 +105,7 @@ class ChatAgent:
             context: Agent 执行上下文
             prompt_vars: Prompt 模板变量
             config: 运行配置（用于继承 trace）
+            max_retries: agent 级重试次数（默认 2），仅对可重试异常生效
 
         Yields:
             AIMessageChunk 或 ToolMessage
@@ -91,16 +116,33 @@ class ChatAgent:
 
         assert self._agent is not None  # for mypy type checking
 
-        async for (
-            token,
-            _,
-        ) in self._agent.astream(  # pyright: ignore[reportOptionalMemberAccess]
-            {"messages": messages},
-            context=context,
-            stream_mode="messages",
-            config=run_config,  # pyright: ignore[reportArgumentType]
-        ):
-            yield token  # type: ignore
+        for attempt in range(1, max_retries + 1):
+            tokens_yielded = False
+            try:
+                async for (
+                    token,
+                    _,
+                ) in self._agent.astream(  # pyright: ignore[reportOptionalMemberAccess]
+                    {"messages": messages},
+                    context=context,
+                    stream_mode="messages",
+                    config=run_config,  # pyright: ignore[reportArgumentType]
+                ):
+                    tokens_yielded = True
+                    yield token  # type: ignore
+                return  # 成功完成
+            except RETRYABLE_EXCEPTIONS as e:
+                if tokens_yielded:
+                    raise  # 已输出 token 则不重试，防止内容重复
+                if attempt < max_retries:
+                    delay = min(_BACKOFF_BASE**attempt, _BACKOFF_MAX)
+                    logger.warning(
+                        f"stream() attempt {attempt}/{max_retries} failed: {e}, "
+                        f"retrying in {delay}s"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
 
     async def run(
         self,
@@ -108,6 +150,7 @@ class ChatAgent:
         context: ContextSchema | None = None,
         prompt_vars: dict | None = None,
         config: RunnableConfig | None = None,
+        max_retries: int = _DEFAULT_MAX_RETRIES,
     ) -> AIMessage:
         """同步执行并返回最终响应
 
@@ -116,6 +159,7 @@ class ChatAgent:
             context: Agent 执行上下文
             prompt_vars: Prompt 模板变量
             config: 运行配置（用于继承 trace）
+            max_retries: agent 级重试次数（默认 2），仅对可重试异常生效
 
         Returns:
             最终的 AI 响应消息
@@ -126,9 +170,24 @@ class ChatAgent:
 
         assert self._agent is not None  # for mypy type checking
 
-        all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
-            {"messages": messages},
-            context=context,
-            config=run_config,  # pyright: ignore[reportArgumentType]
-        )
-        return all_message["messages"][-1]
+        for attempt in range(1, max_retries + 1):
+            try:
+                all_message = await self._agent.ainvoke(  # pyright: ignore[reportOptionalMemberAccess]
+                    {"messages": messages},
+                    context=context,
+                    config=run_config,  # pyright: ignore[reportArgumentType]
+                )
+                return all_message["messages"][-1]
+            except RETRYABLE_EXCEPTIONS as e:
+                if attempt < max_retries:
+                    delay = min(_BACKOFF_BASE**attempt, _BACKOFF_MAX)
+                    logger.warning(
+                        f"run() attempt {attempt}/{max_retries} failed: {e}, "
+                        f"retrying in {delay}s"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise
+
+        # Unreachable but satisfies type checker
+        raise RuntimeError("Unexpected: all retry attempts exhausted without raise")

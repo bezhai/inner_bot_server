@@ -110,12 +110,15 @@ class ModelBuilder:
         }
 
     @staticmethod
-    async def build_chat_model(model_id: str, **kwargs) -> BaseChatModel:
+    async def build_chat_model(
+        model_id: str, *, max_retries: int = 3, **kwargs
+    ) -> BaseChatModel:
         """
         根据model_id构建BaseChatModel实例
 
         Args:
             model_id: 内部模型ID，对应数据库中的model_id
+            max_retries: SDK 层面的自动重试次数（针对瞬时网络错误），默认 3
 
         Returns:
             BaseChatModel实例，可直接用于langgraph
@@ -125,6 +128,9 @@ class ModelBuilder:
             UnsupportedModelError: 不支持的模型类型
             ModelBuilderError: 其他构建错误
         """
+        # 允许 kwargs 覆盖 max_retries
+        max_retries = kwargs.pop("max_retries", max_retries)
+
         try:
             # 从数据库获取模型信息
             model_info = await ModelBuilder._get_model_and_provider_info(model_id)
@@ -157,6 +163,7 @@ class ModelBuilder:
                     "azure_endpoint": model_info["base_url"],
                     "openai_api_key": model_info["api_key"],
                     "deployment_name": model_info["model_name"],
+                    "max_retries": max_retries,
                     **kwargs,
                 }
 
@@ -175,6 +182,7 @@ class ModelBuilder:
                     "api_key": model_info["api_key"],
                     "client_options": model_info["base_url"],
                     "model": model_info["model_name"],
+                    "max_retries": max_retries,
                     **kwargs,
                 }
 
@@ -190,6 +198,7 @@ class ModelBuilder:
                     "api_key": model_info["api_key"],
                     "base_url": model_info["base_url"],
                     "model": model_info["model_name"],
+                    "max_retries": max_retries,
                     **kwargs,
                 }
 
