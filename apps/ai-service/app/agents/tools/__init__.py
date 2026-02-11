@@ -9,8 +9,6 @@ from app.agents.tools.decorators import tool_error_handler
 from app.agents.tools.history import (
     HISTORY_TOOLS,
     list_group_members,
-    search_messages,
-    search_messages_semantic,
 )
 from app.agents.tools.image import generate_image
 from app.agents.tools.memory import PROFILE_TOOLS, get_profiles, update_profiles
@@ -37,8 +35,6 @@ __all__ = [
     "search_donjin_event",
     # History tools
     "HISTORY_TOOLS",
-    "search_messages",
-    "search_messages_semantic",
     "list_group_members",
     # Image tools
     "generate_image",
