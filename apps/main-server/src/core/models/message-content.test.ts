@@ -146,3 +146,77 @@ describe('MessageContentUtils.wrapTextAsV2', () => {
         expect(parsed.text).toBe(text);
     });
 });
+
+describe('MessageContentUtils.wrapMarkdownAsV2', () => {
+    it('should parse plain text without images', () => {
+        const result = MessageContentUtils.wrapMarkdownAsV2('hello world');
+        const parsed = JSON.parse(result);
+        expect(parsed).toEqual({
+            v: 2,
+            text: 'hello world',
+            items: [{ type: 'text', value: 'hello world' }],
+        });
+    });
+
+    it('should parse single image', () => {
+        const markdown = '![image](img_key_123)';
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(markdown));
+        expect(parsed.items).toEqual([{ type: 'image', value: 'img_key_123' }]);
+        expect(parsed.text).toBe(markdown);
+    });
+
+    it('should parse text + image mixed content', () => {
+        const markdown = '看这张图\n\n![image](img_v3_abc)\n\n好看吧';
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(markdown));
+        expect(parsed.items).toEqual([
+            { type: 'text', value: '看这张图\n\n' },
+            { type: 'image', value: 'img_v3_abc' },
+            { type: 'text', value: '\n\n好看吧' },
+        ]);
+    });
+
+    it('should parse multiple images', () => {
+        const markdown = '图1: ![image](key1) 图2: ![photo](key2)';
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(markdown));
+        expect(parsed.items).toEqual([
+            { type: 'text', value: '图1: ' },
+            { type: 'image', value: 'key1' },
+            { type: 'text', value: ' 图2: ' },
+            { type: 'image', value: 'key2' },
+        ]);
+    });
+
+    it('should handle the real-world AI response case', () => {
+        const markdown =
+            '欸嘿嘿~~\n\n![image](img_v3_02uq_c9ea9d44-6b45-464b-a9e0-bbb1799f010g)\n\n好看吧(*˘︶˘*)♡';
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(markdown));
+        expect(parsed.items).toEqual([
+            { type: 'text', value: '欸嘿嘿~~\n\n' },
+            { type: 'image', value: 'img_v3_02uq_c9ea9d44-6b45-464b-a9e0-bbb1799f010g' },
+            { type: 'text', value: '\n\n好看吧(*˘︶˘*)♡' },
+        ]);
+    });
+
+    it('should handle empty string', () => {
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(''));
+        expect(parsed.items).toEqual([{ type: 'text', value: '' }]);
+    });
+
+    it('should be the inverse of toMarkdown for image content', () => {
+        const original: MessageContent = {
+            items: [
+                { type: ContentType.Text, value: 'look: ' },
+                { type: ContentType.Image, value: 'img_key' },
+                { type: ContentType.Text, value: ' nice' },
+            ],
+            mentions: [],
+        };
+        const markdown = MessageContentUtils.toMarkdown(original, true);
+        const parsed = JSON.parse(MessageContentUtils.wrapMarkdownAsV2(markdown));
+        expect(parsed.items).toEqual([
+            { type: 'text', value: 'look: ' },
+            { type: 'image', value: 'img_key' },
+            { type: 'text', value: ' nice' },
+        ]);
+    });
+});

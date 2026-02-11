@@ -45,7 +45,7 @@ export async function makeCardReply(message: Message): Promise<void> {
         return {
             user_id: getBotUnionId(),
             user_name: '赤尾',
-            content: MessageContentUtils.wrapTextAsV2(content),
+            content: MessageContentUtils.wrapMarkdownAsV2(content),
             is_mention_bot: false,
             role: 'assistant',
             message_id: messageId,
@@ -95,7 +95,7 @@ export async function reCreateCard(
         return {
             user_id: getBotUnionId(),
             user_name: '赤尾',
-            content: MessageContentUtils.wrapTextAsV2(content),
+            content: MessageContentUtils.wrapMarkdownAsV2(content),
             is_mention_bot: false,
             role: 'assistant',
             message_id: cardManager.getMessageId()!,

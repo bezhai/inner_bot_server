@@ -130,4 +130,48 @@ export class MessageContentUtils {
             items: [{ type: ContentType.Text, value: text }],
         });
     }
+
+    /**
+     * 将 LLM 输出的 markdown 解析为 v2 结构化 content。
+     * 识别 ![image](image_key) 模式，拆分为 text + image 混合 items。
+     * 这是 toMarkdown 的逆操作。
+     */
+    static wrapMarkdownAsV2(markdown: string): string {
+        const IMAGE_PATTERN = /!\[.*?\]\(([^)]+)\)/g;
+        const items: ContentItem[] = [];
+
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        while ((match = IMAGE_PATTERN.exec(markdown)) !== null) {
+            // match 之前的文本部分
+            if (match.index > lastIndex) {
+                items.push({
+                    type: ContentType.Text,
+                    value: markdown.slice(lastIndex, match.index),
+                });
+            }
+            // image item
+            items.push({
+                type: ContentType.Image,
+                value: match[1],
+            });
+            lastIndex = match.index + match[0].length;
+        }
+
+        // 剩余文本
+        if (lastIndex < markdown.length) {
+            items.push({
+                type: ContentType.Text,
+                value: markdown.slice(lastIndex),
+            });
+        }
+
+        // 无图片，退化为纯文本
+        if (items.length === 0) {
+            items.push({ type: ContentType.Text, value: markdown });
+        }
+
+        return JSON.stringify({ v: 2, text: markdown, items });
+    }
 }
