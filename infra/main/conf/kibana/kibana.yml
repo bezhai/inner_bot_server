@@ -1,0 +1,21 @@
+# Kibana 配置文件
+
+# Elasticsearch 连接配置
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.username: "elastic"
+elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
+
+# 服务器配置
+server.host: "0.0.0.0"
+server.name: "kibana"
+
+# 默认语言和时区设置
+i18n.locale: "zh-CN"
+
+# 预设默认的 Advanced Settings
+# 将默认时区设置为北京时间 (UTC+8)
+uiSettings.overrides:
+  "dateFormat:tz": "Asia/Shanghai"
+
+# 日志级别
+logging.root.level: info
