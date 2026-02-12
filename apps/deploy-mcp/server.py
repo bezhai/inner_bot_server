@@ -1,7 +1,9 @@
 """Deploy MCP Server — remote deployment and observability for Claude Code.
 
-Runs on the production machine, exposes MCP tools via HTTP (Streamable HTTP).
+Runs on the production machine, exposes MCP tools via SSE.
 Claude Code connects remotely to trigger deploys and check service health.
+
+Auth: Bearer token via DEPLOY_MCP_TOKEN env var (reuses INNER_HTTP_SECRET).
 """
 
 import asyncio
@@ -10,21 +12,37 @@ import os
 import time
 
 import httpx
+import uvicorn
 from fastmcp import FastMCP
+from mcp.server.sse import SseServerTransport
+from starlette.applications import Starlette
+from starlette.middleware import Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.routing import Mount, Route
 
-mcp = FastMCP("deploy")
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
 
+DEPLOY_MCP_TOKEN = os.environ.get("DEPLOY_MCP_TOKEN", "")
 REPO_DIR = os.environ.get("REPO_DIR", "/data/inner_bot_server")
 COMPOSE_CMD = (
     "docker compose --env-file .env"
     " -f infra/main/compose/docker-compose.infra.yml"
     " -f infra/main/compose/docker-compose.apps.yml"
 )
-
 HEALTH_ENDPOINTS = [
     ("main-server", "http://localhost:3001/api/health"),
     ("ai-service", "http://localhost:8000/health"),
 ]
+
+# ---------------------------------------------------------------------------
+# FastMCP — tool definitions
+# ---------------------------------------------------------------------------
+
+mcp = FastMCP("deploy")
 
 
 async def run_command(
@@ -66,11 +84,9 @@ async def deploy(timeout: int = 600) -> dict:
     Returns:
         Dict with success status, deployed commits, build output, and health check results.
     """
-    # 1. Record current HEAD before pull
     old_head_result = await run_command("git rev-parse HEAD", timeout=10)
     old_head = old_head_result["stdout"].strip()
 
-    # 2. Git pull
     pull = await run_command("git pull --ff-only", timeout=60)
     if pull["returncode"] != 0:
         return {
@@ -79,7 +95,6 @@ async def deploy(timeout: int = 600) -> dict:
             "error": pull["stderr"] or pull["stdout"],
         }
 
-    # 3. Get new commits since last HEAD
     new_head_result = await run_command("git rev-parse HEAD", timeout=10)
     new_head = new_head_result["stdout"].strip()
 
@@ -94,7 +109,6 @@ async def deploy(timeout: int = 600) -> dict:
         f"git log --oneline {old_head}..HEAD", timeout=10
     )
 
-    # 4. Run make deploy-live
     deploy_result = await run_command("make deploy-live", timeout=timeout)
     if deploy_result["returncode"] != 0:
         return {
@@ -105,7 +119,6 @@ async def deploy(timeout: int = 600) -> dict:
             or deploy_result["stdout"][-2000:],
         }
 
-    # 5. Wait for all services to become healthy
     health = await wait_for_healthy(timeout=120)
 
     return {
@@ -119,7 +132,6 @@ async def deploy(timeout: int = 600) -> dict:
 @mcp.tool()
 async def get_container_status() -> list[dict]:
     """Get running status, health, uptime, and restart count for all Docker Compose containers."""
-    # Get container list in JSON format
     ps_result = await run_command(
         f"{COMPOSE_CMD} ps --format json", timeout=15
     )
@@ -138,7 +150,6 @@ async def get_container_status() -> list[dict]:
 
         name = c.get("Name", c.get("name", "unknown"))
 
-        # Get restart count via docker inspect
         inspect_result = await run_command(
             f"docker inspect --format '{{{{.RestartCount}}}}' {name}",
             timeout=5,
@@ -225,18 +236,14 @@ async def wait_for_healthy(timeout: int = 120) -> dict:
         Dict with all_healthy flag, per-service health, container status, and timeout info.
     """
     deadline = time.time() + timeout
-    health = []
-    containers = []
+    health: list[dict] = []
+    containers: list[dict] = []
 
     while time.time() < deadline:
         health = await check_services_health()
         containers = await get_container_status()
 
-        all_services_ok = all(
-            s.get("status") == 200
-            for s in health
-        )
-        # Check containers are running (not restarting)
+        all_services_ok = all(s.get("status") == 200 for s in health)
         all_containers_ok = all(
             c.get("state") in ("running",)
             for c in containers
@@ -261,6 +268,62 @@ async def wait_for_healthy(timeout: int = 120) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# Auth middleware
+# ---------------------------------------------------------------------------
+
+
+class BearerAuthMiddleware(BaseHTTPMiddleware):
+    """Reject requests without a valid Bearer token (skips /health)."""
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path == "/health":
+            return await call_next(request)
+        if DEPLOY_MCP_TOKEN:
+            auth = request.headers.get("authorization", "")
+            if auth != f"Bearer {DEPLOY_MCP_TOKEN}":
+                return JSONResponse(
+                    {"error": "unauthorized"}, status_code=401
+                )
+        return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
+# ASGI app — manual SSE wiring so we can inject auth middleware
+# ---------------------------------------------------------------------------
+
+sse_transport = SseServerTransport("/messages/")
+
+
+async def handle_sse(request: Request):
+    """SSE endpoint: long-lived connection for MCP communication."""
+    async with sse_transport.connect_sse(
+        request.scope, request.receive, request._send
+    ) as (read_stream, write_stream):
+        await mcp._mcp_server.run(
+            read_stream,
+            write_stream,
+            mcp._mcp_server.create_initialization_options(),
+        )
+
+
+async def health_check(request: Request):
+    return JSONResponse({"status": "ok"})
+
+
+middlewares = []
+if DEPLOY_MCP_TOKEN:
+    middlewares.append(Middleware(BearerAuthMiddleware))
+
+app = Starlette(
+    routes=[
+        Route("/health", health_check),
+        Route("/sse", handle_sse),
+        Mount("/messages/", app=sse_transport.handle_post_message),
+    ],
+    middleware=middlewares,
+)
+
 if __name__ == "__main__":
     port = int(os.environ.get("DEPLOY_MCP_PORT", "9090"))
-    mcp.run(transport="sse", host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)

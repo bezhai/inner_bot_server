@@ -144,6 +144,7 @@ services:
     network_mode: host
     environment:
       - DEPLOY_MCP_PORT=${DEPLOY_MCP_PORT:-9090}
+      - DEPLOY_MCP_TOKEN=${INNER_HTTP_SECRET}
       - REPO_DIR=/data/inner_bot_server
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
