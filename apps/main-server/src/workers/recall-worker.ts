@@ -66,30 +66,45 @@ async function handleRecall(msg: ConsumeMessage): Promise<void> {
     // 设置 bot context 以使用正确的 Lark client
     const botName = agentResponse.bot_name;
     const contextData = context.createContext(botName || undefined);
+    let recalledCount = 0;
+    let failedCount = 0;
+
     await context.run(contextData, async () => {
         // 逐条撤回
         for (const reply of agentResponse.replies) {
             try {
                 await deleteMessage(reply.message_id);
+                recalledCount++;
                 console.info(`[RecallWorker] Recalled message: ${reply.message_id}`);
             } catch (e) {
+                failedCount++;
                 console.error(`[RecallWorker] Failed to recall message: ${reply.message_id}`, e);
             }
         }
     });
 
-    // 更新 safety_status
+    // 仅当实际撤回了消息才标记为 recalled
+    const status = recalledCount > 0 ? 'recalled' : 'recall_failed';
     await repo.update(
         { session_id },
         {
-            safety_status: 'recalled',
+            safety_status: status,
             safety_result: {
                 reason,
                 detail,
+                recalled: recalledCount,
+                failed: failedCount,
                 checked_at: new Date().toISOString(),
             },
         },
     );
+
+    if (failedCount > 0) {
+        console.error(
+            `[RecallWorker] Partial failure: session_id=${session_id}, ` +
+                `recalled=${recalledCount}, failed=${failedCount}`,
+        );
+    }
 
     rabbitmqClient.ack(msg);
     console.info(`[RecallWorker] Recall completed: session_id=${session_id}`);

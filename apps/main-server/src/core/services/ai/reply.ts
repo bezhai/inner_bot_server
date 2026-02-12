@@ -3,6 +3,7 @@ import { MessageContentUtils } from 'core/models/message-content';
 import { sseChat } from './chat';
 import { CardLifecycleManager } from '@lark/basic/card-lifecycle-manager';
 import { getBotUnionId } from '@core/services/bot/bot-var';
+import { context } from '@middleware/context';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid';
 import { getStrategyFactory, ReplyStrategyContext, CardReplyStrategy, MultiMessageReplyStrategy } from './strategies';
@@ -19,7 +20,7 @@ export async function makeCardReply(message: Message): Promise<void> {
             session_id: sessionId,
             trigger_message_id: message.messageId,
             chat_id: message.chatId,
-            bot_name: undefined,
+            bot_name: context.getBotName() || undefined,
             status: 'created',
         } as Partial<AgentResponse>);
         await AgentResponseRepository.save(agentResponse);

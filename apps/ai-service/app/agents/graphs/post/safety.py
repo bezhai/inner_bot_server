@@ -6,6 +6,7 @@
 import logging
 from dataclasses import dataclass
 
+from langfuse.langchain import CallbackHandler
 from pydantic import BaseModel, Field
 
 from app.agents.infra.langfuse_client import get_prompt
@@ -61,7 +62,13 @@ async def run_post_safety(response_text: str) -> PostSafetyResult:
             "guard-model", reasoning_effort="low"
         )
         structured_model = model.with_structured_output(OutputSafetyResult)
-        result: OutputSafetyResult = await structured_model.ainvoke(messages)
+        langfuse_config = {
+            "callbacks": [CallbackHandler()],
+            "run_name": "post-safety-check",
+        }
+        result: OutputSafetyResult = await structured_model.ainvoke(
+            messages, config=langfuse_config
+        )
 
         if result.is_unsafe and result.confidence >= 0.7:
             logger.warning("输出安全检测: unsafe, confidence=%.2f", result.confidence)

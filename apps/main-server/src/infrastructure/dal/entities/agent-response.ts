@@ -10,6 +10,8 @@ export interface SafetyResult {
     reason?: string;
     detail?: string;
     confidence?: number;
+    recalled?: number;
+    failed?: number;
     checked_at?: string;
 }
 
