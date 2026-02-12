@@ -39,8 +39,9 @@ async def lifespan(app: FastAPI):
         consumer_task.cancel()
         try:
             await consumer_task
-        except asyncio.CancelledError:
-            pass
+        except (asyncio.CancelledError, Exception) as e:
+            if not isinstance(e, asyncio.CancelledError):
+                logger.warning("Post consumer task ended with error: %s", e)
     # 关闭 RabbitMQ 连接
     if settings.rabbitmq_url:
         from app.clients.rabbitmq import RabbitMQClient

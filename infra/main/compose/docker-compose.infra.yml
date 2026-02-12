@@ -120,10 +120,11 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: rabbitmq-diagnostics -q ping
+      test: rabbitmq-diagnostics -q check_port_connectivity
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 15s
     restart: always
 
 volumes:
