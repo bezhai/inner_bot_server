@@ -1,0 +1,17 @@
+[Unit]
+Description=Deploy MCP Server (FastMCP SSE)
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/data/inner_bot_server/apps/deploy-mcp
+EnvironmentFile=/data/inner_bot_server/.env
+Environment=REPO_DIR=/data/inner_bot_server
+Environment=DEPLOY_MCP_PORT=9090
+ExecStart=/data/inner_bot_server/apps/deploy-mcp/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

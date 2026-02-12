@@ -26,7 +26,9 @@ from starlette.routing import Mount, Route
 # Config
 # ---------------------------------------------------------------------------
 
-DEPLOY_MCP_TOKEN = os.environ.get("DEPLOY_MCP_TOKEN", "")
+DEPLOY_MCP_TOKEN = os.environ.get("DEPLOY_MCP_TOKEN") or os.environ.get(
+    "INNER_HTTP_SECRET", ""
+)
 REPO_DIR = os.environ.get("REPO_DIR", "/data/inner_bot_server")
 COMPOSE_CMD = (
     "docker compose --env-file .env"

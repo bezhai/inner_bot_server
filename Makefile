@@ -6,8 +6,6 @@ DC := $(COMPOSE) $(COMPOSE_FILES)
 INFRA_SERVICES ?= redis mongo postgres elasticsearch meme qdrant rabbitmq
 LOG_SERVICES ?= logstash kibana
 APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker recall-worker monitor-dashboard
-# deploy-mcp 独立管理，不随 APP_SERVICES 一起重建（避免部署时重启自身）
-TOOL_SERVICES ?= deploy-mcp
 
 generate-types:
 	./idl/scripts/generate.sh
@@ -109,15 +107,22 @@ db-sync:
 		exit 1; \
 	fi
 
-# 单独管理 deploy-mcp（不随 deploy-live 重建）
-deploy-mcp-up:
-	$(DC) up -d --build $(TOOL_SERVICES)
+# deploy-mcp: runs as a systemd service on the host (not in Docker)
+deploy-mcp-setup:
+	cd apps/deploy-mcp && uv sync
+	sudo cp apps/deploy-mcp/deploy-mcp.service /etc/systemd/system/
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now deploy-mcp
 
 deploy-mcp-restart:
-	$(DC) up -d --build --force-recreate $(TOOL_SERVICES)
+	cd apps/deploy-mcp && uv sync
+	sudo systemctl restart deploy-mcp
 
 deploy-mcp-logs:
-	$(DC) logs -f --tail=50 $(TOOL_SERVICES)
+	journalctl -u deploy-mcp -f --no-pager -n 50
+
+deploy-mcp-status:
+	systemctl status deploy-mcp
 
 # 集成测试
 test-integration:
