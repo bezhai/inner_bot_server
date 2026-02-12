@@ -121,7 +121,7 @@ async def deploy(timeout: int = 600) -> dict:
             or deploy_result["stdout"][-2000:],
         }
 
-    health = await wait_for_healthy(timeout=120)
+    health = await _wait_for_healthy(timeout=120)
 
     return {
         "success": health["all_healthy"],
@@ -131,8 +131,7 @@ async def deploy(timeout: int = 600) -> dict:
     }
 
 
-@mcp.tool()
-async def get_container_status() -> list[dict]:
+async def _get_container_status() -> list[dict]:
     """Get running status, health, uptime, and restart count for all Docker Compose containers."""
     ps_result = await run_command(
         f"{COMPOSE_CMD} ps --format json", timeout=15
@@ -176,8 +175,7 @@ async def get_container_status() -> list[dict]:
     return containers
 
 
-@mcp.tool()
-async def check_services_health() -> list[dict]:
+async def _check_services_health() -> list[dict]:
     """Call health endpoints of all application services and return their status."""
     results = []
     async with httpx.AsyncClient(timeout=5) as client:
@@ -227,23 +225,15 @@ async def get_deploy_log(lines: int = 100) -> dict:
     return result
 
 
-@mcp.tool()
-async def wait_for_healthy(timeout: int = 120) -> dict:
-    """Poll until all services are healthy or timeout is reached.
-
-    Args:
-        timeout: Max seconds to wait (default 120).
-
-    Returns:
-        Dict with all_healthy flag, per-service health, container status, and timeout info.
-    """
+async def _wait_for_healthy(timeout: int = 120) -> dict:
+    """Poll until all services are healthy or timeout is reached."""
     deadline = time.time() + timeout
     health: list[dict] = []
     containers: list[dict] = []
 
     while time.time() < deadline:
-        health = await check_services_health()
-        containers = await get_container_status()
+        health = await _check_services_health()
+        containers = await _get_container_status()
 
         all_services_ok = all(s.get("status") == 200 for s in health)
         all_containers_ok = all(
@@ -268,6 +258,31 @@ async def wait_for_healthy(timeout: int = 120) -> dict:
         "services": health,
         "containers": containers,
     }
+
+
+@mcp.tool()
+async def get_container_status() -> list[dict]:
+    """Get running status, health, uptime, and restart count for all Docker Compose containers."""
+    return await _get_container_status()
+
+
+@mcp.tool()
+async def check_services_health() -> list[dict]:
+    """Call health endpoints of all application services and return their status."""
+    return await _check_services_health()
+
+
+@mcp.tool()
+async def wait_for_healthy(timeout: int = 120) -> dict:
+    """Poll until all services are healthy or timeout is reached.
+
+    Args:
+        timeout: Max seconds to wait (default 120).
+
+    Returns:
+        Dict with all_healthy flag, per-service health, container status, and timeout info.
+    """
+    return await _wait_for_healthy(timeout=timeout)
 
 
 # ---------------------------------------------------------------------------
