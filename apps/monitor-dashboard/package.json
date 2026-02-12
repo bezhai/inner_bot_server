@@ -1,0 +1,37 @@
+{
+  "name": "monitor-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently \"TS_NODE_PROJECT=tsconfig.server.json node --watch -r ts-node/register server/index.ts\" \"npm --prefix client run dev\"",
+    "build": "tsc -p tsconfig.server.json && npm --prefix client run build",
+    "start": "node dist-server/index.js"
+  },
+  "dependencies": {
+    "@koa/cors": "^5.0.0",
+    "@koa/router": "^12.0.1",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "koa": "^2.15.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-static": "^5.0.0",
+    "mongodb": "^6.3.0",
+    "pg": "^8.11.5",
+    "reflect-metadata": "^0.1.14",
+    "typeorm": "^0.3.17"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/koa": "^2.15.0",
+    "@types/koa__cors": "^5.0.0",
+    "@types/koa__router": "^12.0.4",
+    "@types/koa-bodyparser": "^4.3.12",
+    "@types/koa-static": "^4.0.4",
+    "@types/node": "^18.19.20",
+    "concurrently": "^8.2.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

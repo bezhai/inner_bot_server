@@ -8,6 +8,11 @@ elasticsearch.password: "${ELASTICSEARCH_PASSWORD}"
 # 服务器配置
 server.host: "0.0.0.0"
 server.name: "kibana"
+server.publicBaseUrl: "${KIBANA_PUBLIC_BASE_URL}"
+
+# 允许被 iframe 嵌入
+csp.strict: false
+csp.warnLegacyBrowsers: false
 
 # 默认语言和时区设置
 i18n.locale: "zh-CN"

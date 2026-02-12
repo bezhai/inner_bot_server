@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "rootDir": "./server",
+    "outDir": "./dist-server",
+    "esModuleInterop": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "types": ["node", "koa-bodyparser"],
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["server/**/*", "server/types.d.ts"]
+}

@@ -22,6 +22,7 @@ pids/
 
 # Output directories (for transpiled code)
 dist/
+dist-server/
 build/
 
 # TypeScript compile output
