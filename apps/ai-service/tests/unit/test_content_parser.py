@@ -2,7 +2,7 @@
 
 import json
 
-from app.utils.content_parser import ParsedContent, parse_content
+from app.utils.content_parser import parse_content
 
 
 class TestParseContentV2:
@@ -65,9 +65,7 @@ class TestParseContentV2:
         assert result.items == []
 
     def test_v2_missing_text_field(self):
-        raw = json.dumps(
-            {"v": 2, "items": [{"type": "text", "value": "hello"}]}
-        )
+        raw = json.dumps({"v": 2, "items": [{"type": "text", "value": "hello"}]})
         result = parse_content(raw)
         assert result.text == ""
         assert result.items == [{"type": "text", "value": "hello"}]
@@ -200,9 +198,7 @@ class TestRender:
         )
         result = parse_content(raw)
         start = 3
-        rendered = result.render(
-            image_fn=lambda i, _k: f"【图片{start + i + 1}】"
-        )
+        rendered = result.render(image_fn=lambda i, _k: f"【图片{start + i + 1}】")
         assert rendered == "【图片4】"
 
     def test_render_media_with_filename(self):
@@ -277,9 +273,7 @@ class TestRender:
             {
                 "v": 2,
                 "text": "[不支持的消息]",
-                "items": [
-                    {"type": "unsupported", "value": "[不支持的消息]"}
-                ],
+                "items": [{"type": "unsupported", "value": "[不支持的消息]"}],
             }
         )
         result = parse_content(raw)

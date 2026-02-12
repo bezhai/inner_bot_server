@@ -28,7 +28,9 @@ class ParsedContent:
     text: str  # v2 原始 text 字段（含 markdown 标记，一般不直接使用）
     image_keys: list[str]  # 图片 key 列表
     items: list[dict] = field(default_factory=list)  # v2 原始 items
-    mentions: list[dict] = field(default_factory=list)  # @提及的用户列表 [{user_id, name}]
+    mentions: list[dict] = field(
+        default_factory=list
+    )  # @提及的用户列表 [{user_id, name}]
 
     def render(self, image_fn: ImageRenderFn | None = None) -> str:
         """从 items 结构化渲染文本

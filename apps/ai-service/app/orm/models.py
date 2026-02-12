@@ -70,7 +70,9 @@ class ConversationMessage(Base):
     chat_id: Mapped[str] = mapped_column(String(100))
     chat_type: Mapped[str] = mapped_column(String(10))
     create_time: Mapped[int] = mapped_column(BigInteger)
-    message_type: Mapped[str | None] = mapped_column(String(30), nullable=True, default="text")
+    message_type: Mapped[str | None] = mapped_column(
+        String(30), nullable=True, default="text"
+    )
     # 向量化状态: pending(待处理) | completed(已完成) | failed(失败)
     vector_status: Mapped[str] = mapped_column(String(20), default="pending")
     # 机器人名称（用于多 bot 场景下载图片等）

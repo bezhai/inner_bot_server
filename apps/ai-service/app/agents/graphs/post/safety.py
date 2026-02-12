@@ -64,9 +64,7 @@ async def run_post_safety(response_text: str) -> PostSafetyResult:
         result: OutputSafetyResult = await structured_model.ainvoke(messages)
 
         if result.is_unsafe and result.confidence >= 0.7:
-            logger.warning(
-                "输出安全检测: unsafe, confidence=%.2f", result.confidence
-            )
+            logger.warning("输出安全检测: unsafe, confidence=%.2f", result.confidence)
             return PostSafetyResult(
                 blocked=True,
                 reason="output_unsafe",

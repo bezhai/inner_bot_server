@@ -3,8 +3,6 @@ Utils module - includes utility functions and re-exports from inner_shared.
 """
 
 # Local utilities
-from .split_word import BatchExtractRequest, ExtractResult, extract_batch
-
 # Re-export from inner_shared for convenience
 from inner_shared import (
     AsyncIntervalChecker,
@@ -12,6 +10,8 @@ from inner_shared import (
     TimeRangeParser,
     split_time,
 )
+
+from .split_word import BatchExtractRequest, ExtractResult, extract_batch
 
 __all__ = [
     # Local

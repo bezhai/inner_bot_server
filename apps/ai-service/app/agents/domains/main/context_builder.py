@@ -84,7 +84,13 @@ async def build_chat_context(
     # 提取触发消息的用户名（最后一条消息即为触发消息）
     trigger_username = l1_results[-1].username or ""
 
-    return messages, image_urls, l1_results[0].chat_id or "", trigger_username, chat_type
+    return (
+        messages,
+        image_urls,
+        l1_results[0].chat_id or "",
+        trigger_username,
+        chat_type,
+    )
 
 
 async def _build_group_messages(
@@ -191,9 +197,7 @@ def _extract_and_replace_images(
         tuple[str, list[str]]: (处理后的文本, 图片keys列表)
     """
     parsed = parse_content(content)
-    rendered = parsed.render(
-        image_fn=lambda i, _key: f"【图片{start_index + i + 1}】"
-    )
+    rendered = parsed.render(image_fn=lambda i, _key: f"【图片{start_index + i + 1}】")
     return rendered, parsed.image_keys
 
 

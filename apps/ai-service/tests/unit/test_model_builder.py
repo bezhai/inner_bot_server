@@ -37,7 +37,9 @@ class TestCacheHit:
         assert result1 == result2
         assert mock_db_query.call_count == 1  # 只查了一次 DB
 
-    async def test_different_model_ids_are_cached_independently(self, model_info_factory):
+    async def test_different_model_ids_are_cached_independently(
+        self, model_info_factory
+    ):
         factory_a = model_info_factory(model_id="model-a", model_name="gpt-4")
         factory_b = model_info_factory(model_id="model-b", model_name="gpt-3.5")
 

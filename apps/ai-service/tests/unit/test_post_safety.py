@@ -6,7 +6,6 @@ import pytest
 
 from app.agents.graphs.post.safety import (
     OutputSafetyResult,
-    PostSafetyResult,
     run_post_safety,
 )
 

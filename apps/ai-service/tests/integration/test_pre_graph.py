@@ -14,7 +14,6 @@ import pytest
 from app.agents.graphs.pre.state import (
     BlockReason,
     Complexity,
-    SafetyResult,
 )
 
 pytestmark = pytest.mark.integration
@@ -51,12 +50,12 @@ class TestPreGraphNormalMessage:
 
     async def test_normal_message_passes(self):
         """正常消息应通过所有安全检查"""
+        from app.agents.graphs.pre.nodes.complexity import (
+            ComplexityClassification,
+        )
         from app.agents.graphs.pre.nodes.safety import (
             PoliticsCheckResult,
             PromptInjectionResult,
-        )
-        from app.agents.graphs.pre.nodes.complexity import (
-            ComplexityClassification,
         )
 
         result_map = {
@@ -120,12 +119,12 @@ class TestPreGraphBannedWord:
 
     async def test_banned_word_blocks_message(self):
         """包含封禁词的消息应被拦截"""
+        from app.agents.graphs.pre.nodes.complexity import (
+            ComplexityClassification,
+        )
         from app.agents.graphs.pre.nodes.safety import (
             PoliticsCheckResult,
             PromptInjectionResult,
-        )
-        from app.agents.graphs.pre.nodes.complexity import (
-            ComplexityClassification,
         )
 
         result_map = {
@@ -187,12 +186,12 @@ class TestPreGraphPromptInjection:
 
     async def test_prompt_injection_blocks_message(self):
         """LLM 检测到注入时应拦截"""
+        from app.agents.graphs.pre.nodes.complexity import (
+            ComplexityClassification,
+        )
         from app.agents.graphs.pre.nodes.safety import (
             PoliticsCheckResult,
             PromptInjectionResult,
-        )
-        from app.agents.graphs.pre.nodes.complexity import (
-            ComplexityClassification,
         )
 
         result_map = {

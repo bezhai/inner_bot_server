@@ -5,22 +5,22 @@ repos:
       # Run the linter with auto-fixes (kept for semantic fixes like unused imports).
       - id: ruff
         args: [--fix]
-        files: ^ai-service/.*\.py$
+        files: ^apps/ai-service/.*\.py$
 
   - repo: local
     hooks:
       # 强兜底：全量格式化（覆盖原 ruff-format 的作用）
       - id: ai-service-format-fix
         name: Fix ai-service format (global)
-        entry: bash -c 'cd ai-service && uv run ruff format .'
+        entry: bash -c 'cd apps/ai-service && uv run ruff format .'
         language: system
-        files: ^ai-service/.*\.py$
+        files: ^apps/ai-service/.*\.py$
         pass_filenames: false
       - id: ai-service-build-check
         name: Check ai-service build
-        entry: bash -c 'cd ai-service && uv build'
+        entry: bash -c 'cd apps/ai-service && uv build'
         language: system
-        files: ^ai-service/.*\.py$
+        files: ^apps/ai-service/.*\.py$
         pass_filenames: false
 
   - repo: local
@@ -28,16 +28,16 @@ repos:
       # 强兜底方案：仅保留全量 ESLint 与 Build 检查，移除 lint-staged 与全量 format-fix
       - id: main-server-lint-check
         name: Check main-server lint (full project)
-        entry: bash -c 'cd main-server && npx eslint src --ext .ts'
+        entry: bash -c 'cd apps/main-server && npx eslint src --ext .ts'
         language: system
-        files: ^main-server/.*\.(ts|tsx|js|jsx)$
+        files: ^apps/main-server/.*\.(ts|tsx|js|jsx)$
         pass_filenames: false
 
       - id: main-server-build-check
         name: Check main-server build
-        entry: bash -c 'cd main-server && npm run build'
+        entry: bash -c 'cd apps/main-server && npm run build'
         language: system
-        files: ^main-server/.*\.(ts|tsx|js|jsx)$
+        files: ^apps/main-server/.*\.(ts|tsx|js|jsx)$
         pass_filenames: false
 
   - repo: local
@@ -45,7 +45,7 @@ repos:
       # Docker Compose 构建检查 - 只构建应用服务
       - id: docker-compose-build-check
         name: Check docker-compose build
-        entry: bash -c 'docker compose -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml build ai-app app ai-service-arq-worker vectorize-worker'
+        entry: bash -c 'docker compose -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml build ai-app app ai-service-arq-worker vectorize-worker recall-worker'
         language: system
         files: ^(apps/.*|infra/main/compose/.*|packages/.*)$
         pass_filenames: false

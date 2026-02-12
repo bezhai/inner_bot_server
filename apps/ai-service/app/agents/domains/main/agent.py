@@ -7,6 +7,10 @@ import uuid
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
+from langchain.messages import AIMessageChunk
+from langfuse import get_client as get_langfuse
+from langfuse import propagate_attributes
+
 from app.agents.core import ChatAgent, ContextSchema
 from app.agents.domains.main.context_builder import build_chat_context
 from app.agents.domains.main.tools import ALL_TOOLS
@@ -16,9 +20,6 @@ from app.types.chat import ChatStreamChunk
 from app.utils.async_interval import AsyncIntervalChecker
 from app.utils.content_parser import parse_content
 from app.utils.status_processor import AIMessageChunkProcessor
-from langchain.messages import AIMessageChunk
-from langfuse import get_client as get_langfuse
-from langfuse import propagate_attributes
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +52,7 @@ async def stream_chat(
     langfuse = get_langfuse()
     request_id = session_id or str(uuid.uuid4())
 
-    with langfuse.start_as_current_observation(
-        as_type="span", name="chat-request"
-    ):
+    with langfuse.start_as_current_observation(as_type="span", name="chat-request"):
         with propagate_attributes(session_id=request_id):
             # 1. 获取消息内容
             raw_content = await get_message_content(message_id)
@@ -103,9 +102,7 @@ async def stream_chat(
                     message_id, Complexity.SIMPLE, gray_config, request_id
                 )
 
-                async for chunk in _buffer_until_pre(
-                    raw_stream, pre_task, message_id
-                ):
+                async for chunk in _buffer_until_pre(raw_stream, pre_task, message_id):
                     yield chunk
 
 
@@ -208,9 +205,13 @@ async def _build_and_stream(
     )
 
     # 构建上下文
-    messages, image_urls, chat_id, trigger_username, chat_type = (
-        await build_chat_context(message_id)
-    )
+    (
+        messages,
+        image_urls,
+        chat_id,
+        trigger_username,
+        chat_type,
+    ) = await build_chat_context(message_id)
 
     if not messages:
         logger.warning(f"No results found for message_id: {message_id}")
@@ -264,16 +265,14 @@ async def _build_and_stream(
 
                 if interval_checker.check():
                     yield accumulate_chunk
-                    
+
         yield accumulate_chunk
 
         # Fire-and-forget: publish to post safety check queue
         full_response = accumulate_chunk.content or ""
         if full_response and session_id:
             asyncio.create_task(
-                _publish_post_check(
-                    session_id, full_response, chat_id, message_id
-                )
+                _publish_post_check(session_id, full_response, chat_id, message_id)
             )
 
     except Exception as e:
@@ -291,7 +290,7 @@ async def _publish_post_check(
 ) -> None:
     """发布 post safety check 消息到 RabbitMQ"""
     try:
-        from app.clients.rabbitmq import RabbitMQClient, RK_SAFETY_CHECK
+        from app.clients.rabbitmq import RK_SAFETY_CHECK, RabbitMQClient
 
         client = RabbitMQClient()
         await client.publish(
