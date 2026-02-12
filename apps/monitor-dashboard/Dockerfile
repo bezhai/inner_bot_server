@@ -10,10 +10,11 @@ RUN npm run build
 FROM node:22-alpine AS server-build
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm install
 COPY tsconfig.server.json ./
 COPY server/ ./server/
 RUN npx tsc -p tsconfig.server.json
+RUN npm prune --omit=dev
 
 # Stage 3: Production
 FROM node:22-alpine

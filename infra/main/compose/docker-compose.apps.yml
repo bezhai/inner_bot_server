@@ -115,8 +115,8 @@ services:
 
   monitor-dashboard:
     build:
-      context: ../../..
-      dockerfile: apps/monitor-dashboard/Dockerfile
+      context: ../../../apps/monitor-dashboard
+      dockerfile: Dockerfile
     container_name: monitor-dashboard
     env_file:
       - ../../../.env
