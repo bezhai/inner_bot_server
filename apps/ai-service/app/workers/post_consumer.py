@@ -1,13 +1,16 @@
 """Post-processing MQ consumer
 
 消费 safety_check queue，执行输出安全检测，
-不安全时发布 recall 消息到 main-server worker。
+不安全时发布 recall 消息到 main-server worker，
+通过时更新 agent_responses.safety_status = 'passed'。
 """
 
 import json
 import logging
+from datetime import UTC, datetime
 
 from aio_pika.abc import AbstractIncomingMessage
+from sqlalchemy import text
 
 from app.agents.graphs.post import run_post_safety
 from app.clients.rabbitmq import (
@@ -15,8 +18,34 @@ from app.clients.rabbitmq import (
     RK_RECALL,
     RabbitMQClient,
 )
+from app.orm.base import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
+
+
+async def _update_safety_status(
+    session_id: str, status: str, result_json: dict | None = None
+) -> None:
+    """更新 agent_responses 表的 safety_status"""
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(
+                text(
+                    "UPDATE agent_responses "
+                    "SET safety_status = :status, "
+                    "    safety_result = :result::jsonb, "
+                    "    updated_at = NOW() "
+                    "WHERE session_id = :session_id"
+                ),
+                {
+                    "status": status,
+                    "result": json.dumps(result_json) if result_json else None,
+                    "session_id": session_id,
+                },
+            )
+            await session.commit()
+    except Exception as e:
+        logger.error("Failed to update safety_status: session_id=%s, %s", session_id, e)
 
 
 async def handle_safety_check(message: AbstractIncomingMessage) -> None:
@@ -31,6 +60,7 @@ async def handle_safety_check(message: AbstractIncomingMessage) -> None:
         logger.info("Post safety check: session_id=%s", session_id)
 
         result = await run_post_safety(response_text)
+        checked_at = datetime.now(UTC).isoformat()
 
         if result.blocked:
             logger.warning(
@@ -51,6 +81,11 @@ async def handle_safety_check(message: AbstractIncomingMessage) -> None:
             )
         else:
             logger.info("Post safety passed: session_id=%s", session_id)
+            await _update_safety_status(
+                session_id,
+                "passed",
+                {"checked_at": checked_at},
+            )
 
 
 async def start_post_consumer() -> None:

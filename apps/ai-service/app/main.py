@@ -46,7 +46,7 @@ async def lifespan(app: FastAPI):
     if settings.rabbitmq_url:
         from app.clients.rabbitmq import RabbitMQClient
 
-        client = RabbitMQClient()
+        client = RabbitMQClient.get_instance()
         await client.close()
 
 
