@@ -113,3 +113,23 @@ services:
         condition: service_started
     restart: always
 
+  monitor-dashboard:
+    build:
+      context: ../../..
+      dockerfile: apps/monitor-dashboard/Dockerfile
+    container_name: monitor-dashboard
+    env_file:
+      - ../../../.env
+    ports:
+      - "${DASHBOARD_PORT:-3002}:3002"
+    depends_on:
+      postgres:
+        condition: service_started
+      mongo:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/api/config"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

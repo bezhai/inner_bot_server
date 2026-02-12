@@ -5,7 +5,7 @@ DC := $(COMPOSE) $(COMPOSE_FILES)
 # 部署服务分组（可通过环境变量覆盖，便于一套仓库多套部署）
 INFRA_SERVICES ?= redis mongo postgres elasticsearch meme qdrant rabbitmq
 LOG_SERVICES ?= logstash kibana
-APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker recall-worker
+APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker recall-worker monitor-dashboard
 
 generate-types:
 	./idl/scripts/generate.sh
