@@ -122,7 +122,7 @@ deploy-mcp-setup:
 	@echo "WorkingDirectory=$(REPO_ROOT)/apps/deploy-mcp" >> /tmp/deploy-mcp.service
 	@echo "EnvironmentFile=$(REPO_ROOT)/.env" >> /tmp/deploy-mcp.service
 	@echo "Environment=REPO_DIR=$(REPO_ROOT)" >> /tmp/deploy-mcp.service
-	@echo "Environment=DEPLOY_MCP_PORT=9090" >> /tmp/deploy-mcp.service
+	@echo "Environment=DEPLOY_MCP_PORT=9099" >> /tmp/deploy-mcp.service
 	@echo "ExecStart=$(REPO_ROOT)/apps/deploy-mcp/.venv/bin/python server.py" >> /tmp/deploy-mcp.service
 	@echo "Restart=on-failure" >> /tmp/deploy-mcp.service
 	@echo "RestartSec=5" >> /tmp/deploy-mcp.service
