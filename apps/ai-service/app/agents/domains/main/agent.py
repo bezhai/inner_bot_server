@@ -292,7 +292,7 @@ async def _publish_post_check(
     try:
         from app.clients.rabbitmq import RK_SAFETY_CHECK, RabbitMQClient
 
-        client = RabbitMQClient()
+        client = RabbitMQClient.get_instance()
         await client.publish(
             RK_SAFETY_CHECK,
             {
