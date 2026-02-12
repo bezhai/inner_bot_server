@@ -33,7 +33,7 @@ async def _update_safety_status(
                 text(
                     "UPDATE agent_responses "
                     "SET safety_status = :status, "
-                    "    safety_result = :result::jsonb, "
+                    "    safety_result = CAST(:result AS jsonb), "
                     "    updated_at = NOW() "
                     "WHERE session_id = :session_id"
                 ),
