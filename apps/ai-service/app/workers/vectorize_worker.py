@@ -14,6 +14,7 @@ import asyncio
 import logging
 import os
 import signal
+import time
 import uuid
 
 from redis.asyncio import Redis
@@ -25,7 +26,7 @@ from app.agents import InstructionBuilder, create_client
 from app.clients.image_client import image_client
 from app.clients.redis import AsyncRedisClient
 from app.orm.base import AsyncSessionLocal
-from app.orm.models import ConversationMessage
+from app.orm.models import ConversationMessage, LarkGroupChatInfo
 from app.services.qdrant import qdrant_service
 from app.utils.content_parser import parse_content
 
@@ -56,6 +57,44 @@ def _get_semaphore() -> asyncio.Semaphore:
     if _semaphore is None:
         _semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
     return _semaphore
+
+
+# 下载权限缓存: chat_id -> (allows_download, expire_time)
+_download_permission_cache: dict[str, tuple[bool, float]] = {}
+_PERMISSION_CACHE_TTL = 600  # 10 分钟
+
+
+async def check_group_allows_download(chat_id: str, chat_type: str) -> bool:
+    """检查群聊是否允许下载资源（带缓存）
+
+    - P2P 直接返回 True
+    - group 类型查 DB，download_has_permission_setting != 'not_anyone' 时允许
+    - DB 查询失败时 fail-open（返回 True）
+    """
+    if chat_type == "p2p":
+        return True
+
+    now = time.monotonic()
+    cached = _download_permission_cache.get(chat_id)
+    if cached and cached[1] > now:
+        return cached[0]
+
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(LarkGroupChatInfo.download_has_permission_setting).where(
+                    LarkGroupChatInfo.chat_id == chat_id
+                )
+            )
+            row = result.scalar_one_or_none()
+            # 无记录或字段为空 → 默认允许；仅 'not_anyone' 时禁止
+            allows = row != "not_anyone"
+    except Exception:
+        logger.warning(f"查询群 {chat_id} 下载权限失败，默认允许")
+        allows = True
+
+    _download_permission_cache[chat_id] = (allows, now + _PERMISSION_CACHE_TTL)
+    return allows
 
 
 def _handle_signal(signum, frame):
@@ -108,7 +147,18 @@ async def vectorize_message(message: ConversationMessage) -> bool:
         logger.info(f"消息 {message.message_id} 内容为空，跳过向量化")
         return False
 
-    # 3. 批量下载图片转Base64
+    # 3. 权限检查：限制下载的群跳过图片下载
+    if image_keys:
+        allows_download = await check_group_allows_download(
+            message.chat_id, message.chat_type
+        )
+        if not allows_download:
+            logger.debug(
+                f"群 {message.chat_id} 不允许下载资源，跳过 {len(image_keys)} 张图片"
+            )
+            image_keys = []
+
+    # 4. 批量下载图片转Base64
     image_base64_list: list[str] = []
     if image_keys:
         # bot_name 默认 bytedance（兼容历史数据）
@@ -120,7 +170,14 @@ async def vectorize_message(message: ConversationMessage) -> bool:
         results = await asyncio.gather(*tasks, return_exceptions=True)
         image_base64_list = [r for r in results if isinstance(r, str) and r]
 
-    # 4. 生成向量
+    # 5. 下载后二次空检查：图片全部下载失败且无文本时跳过
+    if not text_content and not image_base64_list:
+        logger.info(
+            f"消息 {message.message_id} 图片下载失败或被跳过且无文本，跳过向量化"
+        )
+        return False
+
+    # 6. 生成向量
     modality = InstructionBuilder.detect_input_modality(text_content, image_base64_list)
     corpus_instructions = InstructionBuilder.for_corpus(modality)
     cluster_instructions = InstructionBuilder.for_cluster(
@@ -144,10 +201,10 @@ async def vectorize_message(message: ConversationMessage) -> bool:
             hybrid_task, cluster_task
         )
 
-    # 4. 生成向量ID
+    # 7. 生成向量ID
     vector_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, message.message_id))
 
-    # 5. 准备payload
+    # 8. 准备payload
     hybrid_payload = {
         "message_id": message.message_id,
         "user_id": message.user_id,
@@ -163,7 +220,7 @@ async def vectorize_message(message: ConversationMessage) -> bool:
         "timestamp": message.create_time,
     }
 
-    # 6. 并行写入两个集合
+    # 9. 并行写入两个集合
     hybrid_upsert = qdrant_service.upsert_hybrid_vectors(
         collection_name="messages_recall",
         point_id=vector_id,

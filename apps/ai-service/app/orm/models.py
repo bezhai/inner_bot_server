@@ -89,6 +89,9 @@ class LarkGroupChatInfo(Base):
     user_count: Mapped[int] = mapped_column(BigInteger)
     chat_status: Mapped[str] = mapped_column(String(20))
     is_leave: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
+    download_has_permission_setting: Mapped[str | None] = mapped_column(
+        String(20), nullable=True
+    )
 
 
 class TopicMemory(Base):
