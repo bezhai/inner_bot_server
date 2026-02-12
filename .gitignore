@@ -20,6 +20,9 @@ pids/
 .env.test
 .env.production
 
+# MCP config (contains host-specific URLs)
+.mcp.json
+
 # Output directories (for transpiled code)
 dist/
 dist-server/

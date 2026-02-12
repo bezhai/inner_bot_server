@@ -6,6 +6,8 @@ DC := $(COMPOSE) $(COMPOSE_FILES)
 INFRA_SERVICES ?= redis mongo postgres elasticsearch meme qdrant rabbitmq
 LOG_SERVICES ?= logstash kibana
 APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker recall-worker monitor-dashboard
+# deploy-mcp 独立管理，不随 APP_SERVICES 一起重建（避免部署时重启自身）
+TOOL_SERVICES ?= deploy-mcp
 
 generate-types:
 	./idl/scripts/generate.sh
@@ -106,6 +108,20 @@ db-sync:
 		echo "错误: .env 文件不存在，请先创建并配置环境变量"; \
 		exit 1; \
 	fi
+
+# 单独管理 deploy-mcp（不随 deploy-live 重建）
+deploy-mcp-up:
+	$(DC) up -d --build $(TOOL_SERVICES)
+
+deploy-mcp-restart:
+	$(DC) up -d --build --force-recreate $(TOOL_SERVICES)
+
+deploy-mcp-logs:
+	$(DC) logs -f --tail=50 $(TOOL_SERVICES)
+
+# 集成测试
+test-integration:
+	cd apps/ai-service && uv run pytest -m integration --timeout=30
 
 # 设置所有监控任务（自动部署和健康检查）
 monitoring-setup: auto-deploy-setup health-check-setup

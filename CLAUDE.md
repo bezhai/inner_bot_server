@@ -11,6 +11,7 @@ A Lark (飞书) chatbot monorepo with three services: a Node.js/TypeScript main 
 - **apps/main-server** — Koa HTTP server, Lark SDK integration, rule engine, media processing (TypeScript)
 - **apps/ai-service** — FastAPI, LangGraph agents, vector search, memory system, ArQ workers (Python)
 - **apps/cronjob** — Scheduled tasks via node-cron (TypeScript, runs on separate machine)
+- **apps/deploy-mcp** — FastMCP server for remote deployment & observability (Python, runs on production machine)
 - **packages/ts-shared** (`@inner/shared`) — TypeScript shared utilities (cache, logger, HTTP, MongoDB)
 - **packages/py-shared** (`inner-shared`) — Python shared utilities (decorators, middlewares, logging)
 - **packages/lark-utils** — Lark API wrapper
@@ -123,3 +124,38 @@ Configured in `.pre-commit-config.yaml`: Ruff lint+format for Python, ESLint+bui
 All services load from root `.env` (see `.env.example`). Key variable groups: PostgreSQL, MongoDB, Redis, Lark credentials, AI service endpoints, Qdrant, Langfuse, external API keys.
 
 Health endpoints: Main Server `/api/health`, AI Service `/health`.
+
+## AI Pair Programming Workflow
+
+### Post-Implementation Checklist
+
+After making changes, follow this verification flow — do not skip steps:
+
+1. **Local verification** (choose based on change scope):
+   - Single-service logic change → run that service's unit tests
+   - Cross-service change (RabbitMQ/SSE/HTTP calls) → run integration tests
+   - Docker/infra config change → verify with `docker build`
+   - DB schema change → verify locally with `make db-sync`
+
+2. **Push & Deploy**:
+   - `git push`
+   - Call the `deploy` MCP tool to trigger production deployment (do not wait for cron)
+   - Call `wait_for_healthy` to confirm all containers started successfully
+
+3. **Post-deploy observation** (mandatory):
+   - `es_get_error_logs(last_minutes=3, service=<changed service>)` — check for new errors
+   - `get_container_status()` — check container restarts (restart_count > 0 = problem)
+   - No errors → inform user "Deployed and verified, service is healthy"
+   - Errors found → analyze logs, fix, restart from step 1
+
+4. **When post-deploy checks fail**:
+   - Use `es_get_log_context` to get full surrounding context
+   - Fix locally + run tests
+   - Never push an untested fix
+   - Re-deploy + re-verify
+
+### Do NOT auto-deploy these changes (ask user first)
+
+- Infrastructure service config changes (postgres/redis/es)
+- `.env` or secret changes
+- Dockerfile base image changes

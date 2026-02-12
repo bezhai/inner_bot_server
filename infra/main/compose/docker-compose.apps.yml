@@ -133,3 +133,26 @@ services:
       interval: 30s
       timeout: 5s
       retries: 3
+
+  # Deploy MCP Server — remote deployment & observability for Claude Code
+  # Uses host network so health checks can reach host-mapped service ports (localhost:3001, :8000)
+  deploy-mcp:
+    build:
+      context: ../../..
+      dockerfile: apps/deploy-mcp/Dockerfile
+    container_name: deploy-mcp
+    network_mode: host
+    environment:
+      - DEPLOY_MCP_PORT=${DEPLOY_MCP_PORT:-9090}
+      - REPO_DIR=/data/inner_bot_server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /data/inner_bot_server:/data/inner_bot_server
+      - /var/log/inner_bot_server:/var/log/inner_bot_server
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:9090/sse", "-o", "/dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
