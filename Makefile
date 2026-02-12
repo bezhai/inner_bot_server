@@ -108,9 +108,29 @@ db-sync:
 	fi
 
 # deploy-mcp: runs as a systemd service on the host (not in Docker)
+REPO_ROOT := $(shell pwd)
+
 deploy-mcp-setup:
 	cd apps/deploy-mcp && uv sync
-	sudo cp apps/deploy-mcp/deploy-mcp.service /etc/systemd/system/
+	@echo "[Unit]" > /tmp/deploy-mcp.service
+	@echo "Description=Deploy MCP Server (FastMCP SSE)" >> /tmp/deploy-mcp.service
+	@echo "After=network.target docker.service" >> /tmp/deploy-mcp.service
+	@echo "Wants=docker.service" >> /tmp/deploy-mcp.service
+	@echo "" >> /tmp/deploy-mcp.service
+	@echo "[Service]" >> /tmp/deploy-mcp.service
+	@echo "Type=simple" >> /tmp/deploy-mcp.service
+	@echo "WorkingDirectory=$(REPO_ROOT)/apps/deploy-mcp" >> /tmp/deploy-mcp.service
+	@echo "EnvironmentFile=$(REPO_ROOT)/.env" >> /tmp/deploy-mcp.service
+	@echo "Environment=REPO_DIR=$(REPO_ROOT)" >> /tmp/deploy-mcp.service
+	@echo "Environment=DEPLOY_MCP_PORT=9090" >> /tmp/deploy-mcp.service
+	@echo "ExecStart=$(REPO_ROOT)/apps/deploy-mcp/.venv/bin/python server.py" >> /tmp/deploy-mcp.service
+	@echo "Restart=on-failure" >> /tmp/deploy-mcp.service
+	@echo "RestartSec=5" >> /tmp/deploy-mcp.service
+	@echo "" >> /tmp/deploy-mcp.service
+	@echo "[Install]" >> /tmp/deploy-mcp.service
+	@echo "WantedBy=multi-user.target" >> /tmp/deploy-mcp.service
+	sudo cp /tmp/deploy-mcp.service /etc/systemd/system/deploy-mcp.service
+	@rm /tmp/deploy-mcp.service
 	sudo systemctl daemon-reload
 	sudo systemctl enable --now deploy-mcp
 
