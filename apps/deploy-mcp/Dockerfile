@@ -19,7 +19,7 @@ WORKDIR /app
 # Install Python dependencies directly (not a pip-installable package)
 RUN pip install --no-cache-dir "fastmcp>=2.0.0,<3.0.0" "httpx>=0.27.0" "uvicorn>=0.30.0"
 
-COPY server.py .
+COPY apps/deploy-mcp/server.py .
 
 EXPOSE 9090
 
