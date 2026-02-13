@@ -9,18 +9,16 @@ Auth: Bearer token via DEPLOY_MCP_TOKEN env var (reuses INNER_HTTP_SECRET).
 import asyncio
 import json
 import os
+import subprocess
 import time
 
 import httpx
 import uvicorn
 from fastmcp import FastMCP
-from mcp.server.sse import SseServerTransport
-from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from starlette.routing import Mount, Route
 
 # ---------------------------------------------------------------------------
 # Config
@@ -39,6 +37,25 @@ HEALTH_ENDPOINTS = [
     ("main-server", "http://localhost:3001/api/health"),
     ("ai-service", "http://localhost:8000/health"),
 ]
+
+
+def _get_git_commit() -> str:
+    """Read the current git commit hash at startup."""
+    try:
+        return (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=REPO_DIR,
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+    except Exception:
+        return "unknown"
+
+
+STARTUP_COMMIT = _get_git_commit()
 
 # ---------------------------------------------------------------------------
 # FastMCP — tool definitions
@@ -286,6 +303,16 @@ async def wait_for_healthy(timeout: int = 120) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Custom routes
+# ---------------------------------------------------------------------------
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> JSONResponse:
+    return JSONResponse({"status": "ok", "commit": STARTUP_COMMIT})
+
+
+# ---------------------------------------------------------------------------
 # Auth middleware
 # ---------------------------------------------------------------------------
 
@@ -306,40 +333,14 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
 
 
 # ---------------------------------------------------------------------------
-# ASGI app — manual SSE wiring so we can inject auth middleware
+# ASGI app — FastMCP handles SSE transport + tool dispatch natively
 # ---------------------------------------------------------------------------
-
-sse_transport = SseServerTransport("/messages/")
-
-
-async def handle_sse(request: Request):
-    """SSE endpoint: long-lived connection for MCP communication."""
-    async with sse_transport.connect_sse(
-        request.scope, request.receive, request._send
-    ) as (read_stream, write_stream):
-        await mcp._mcp_server.run(
-            read_stream,
-            write_stream,
-            mcp._mcp_server.create_initialization_options(),
-        )
-
-
-async def health_check(request: Request):
-    return JSONResponse({"status": "ok"})
-
 
 middlewares = []
 if DEPLOY_MCP_TOKEN:
     middlewares.append(Middleware(BearerAuthMiddleware))
 
-app = Starlette(
-    routes=[
-        Route("/health", health_check),
-        Route("/sse", handle_sse),
-        Mount("/messages/", app=sse_transport.handle_post_message),
-    ],
-    middleware=middlewares,
-)
+app = mcp.http_app(transport="sse", middleware=middlewares)
 
 if __name__ == "__main__":
     port = int(os.environ.get("DEPLOY_MCP_PORT", "9099"))
