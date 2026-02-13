@@ -141,17 +141,33 @@ export default function Dashboard() {
     ? Math.min(100, ((limits.currentWindowCost || 0) / limits.rateLimitCost) * 100)
     : 0;
 
-  // Calculate recommended usage
+  // Calculate recommended usage (UTC+8)
   const recommendedToday = useMemo(() => {
     if (!limits) return 0;
-    
-    const dailyRemaining = Math.max(0, (limits.dailyCostLimit || 0) - (limits.currentDailyCost || 0));
-    
-    const weeklyRemaining = Math.max(0, (limits.rateLimitCost || 0) - (limits.currentWindowCost || 0));
-    const daysRemaining = Math.max(1, Math.ceil((limits.windowRemainingSeconds || 0) / 86400));
-    const weeklyAmortized = weeklyRemaining / daysRemaining;
-    
-    return Math.min(dailyRemaining, weeklyAmortized);
+
+    // 今天已过去的秒数（东八区）
+    const nowUtc8 = new Date(Date.now() + 8 * 3600_000);
+    const secondsPassedToday =
+      nowUtc8.getUTCHours() * 3600 + nowUtc8.getUTCMinutes() * 60 + nowUtc8.getUTCSeconds();
+
+    // 截止今天 0 点的周用量
+    const weeklyUsedBeforeToday = (limits.currentWindowCost || 0) - (limits.currentDailyCost || 0);
+
+    // 从今天 0 点到窗口结束的总天数
+    const daysFromMidnight = Math.max(
+      1,
+      ((limits.windowRemainingSeconds || 0) + secondsPassedToday) / 86400,
+    );
+
+    // 从今天 0 点视角均摊每天预算
+    const dailyBudgetFromWeekly =
+      ((limits.rateLimitCost || 0) - Math.max(0, weeklyUsedBeforeToday)) / daysFromMidnight;
+
+    // 和日限额取 min，再减去日已用
+    return Math.max(
+      0,
+      Math.min(dailyBudgetFromWeekly, limits.dailyCostLimit || 0) - (limits.currentDailyCost || 0),
+    );
   }, [limits]);
 
   return (
