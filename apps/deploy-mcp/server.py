@@ -16,7 +16,6 @@ import httpx
 import uvicorn
 from fastmcp import FastMCP
 from starlette.middleware import Middleware
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -317,19 +316,34 @@ async def health_check(request: Request) -> JSONResponse:
 # ---------------------------------------------------------------------------
 
 
-class BearerAuthMiddleware(BaseHTTPMiddleware):
-    """Reject requests without a valid Bearer token (skips /health)."""
+class BearerAuthMiddleware:
+    """Pure ASGI middleware for Bearer token auth.
 
-    async def dispatch(self, request: Request, call_next):
-        if request.url.path == "/health":
-            return await call_next(request)
+    BaseHTTPMiddleware wraps response bodies and is incompatible with SSE
+    streaming. This raw ASGI implementation passes SSE through untouched.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        path = scope.get("path", "")
+        if path == "/health":
+            return await self.app(scope, receive, send)
+
         if DEPLOY_MCP_TOKEN:
-            auth = request.headers.get("authorization", "")
+            headers = dict(scope.get("headers", []))
+            auth = headers.get(b"authorization", b"").decode()
             if auth != f"Bearer {DEPLOY_MCP_TOKEN}":
-                return JSONResponse(
+                response = JSONResponse(
                     {"error": "unauthorized"}, status_code=401
                 )
-        return await call_next(request)
+                return await response(scope, receive, send)
+
+        return await self.app(scope, receive, send)
 
 
 # ---------------------------------------------------------------------------
