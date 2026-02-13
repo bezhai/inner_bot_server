@@ -69,6 +69,7 @@ services:
       - L2_QUEUE_MAX_LEN=${L2_QUEUE_MAX_LEN:-200}
     volumes:
       - ../../../.env:/app/apps/ai-service/.env
+      - ai_service_logs:/logs/ai-service
     depends_on:
       - redis
       - postgres
@@ -92,6 +93,7 @@ services:
       - QDRANT_SERVICE_API_KEY=${QDRANT_SERVICE_API_KEY}
     volumes:
       - ../../../.env:/app/apps/ai-service/.env
+      - ai_service_logs:/logs/ai-service
     depends_on:
       - redis
       - postgres
@@ -104,8 +106,14 @@ services:
       context: ../../..
       dockerfile: apps/main-server/Dockerfile
     command: node dist/workers/recall-worker.js
+    environment:
+      - NODE_ENV=production
+      - ENABLE_FILE_LOGGING=true
+      - LOG_DIR=/var/log/main-server
     env_file:
       - ../../../.env
+    volumes:
+      - main_server_logs:/var/log/main-server
     depends_on:
       rabbitmq:
         condition: service_healthy

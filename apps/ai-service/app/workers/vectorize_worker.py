@@ -17,6 +17,7 @@ import signal
 import time
 import uuid
 
+from inner_shared.logger import setup_logging
 from redis.asyncio import Redis
 from redis.exceptions import ResponseError
 from sqlalchemy import update
@@ -457,11 +458,8 @@ async def main():
     signal.signal(signal.SIGINT, _handle_signal)
     signal.signal(signal.SIGTERM, _handle_signal)
 
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
+    # 配置日志（JSON 格式 + 文件输出，供 ELK 采集）
+    setup_logging(log_dir="/logs/ai-service", log_file="vectorize-worker.log")
 
     await consume_stream()
 

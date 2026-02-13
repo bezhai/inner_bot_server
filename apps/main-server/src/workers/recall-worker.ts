@@ -8,6 +8,16 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
+import { LoggerFactory } from '@inner/shared';
+
+// Initialize file logging before any other imports that use console.*
+LoggerFactory.createLogger({
+    enableFileLogging: true,
+    logDir: process.env.LOG_DIR || '/var/log/main-server',
+    logFileName: 'recall-worker.log',
+    enableConsoleOverride: true,
+});
+
 import AppDataSource from 'ormconfig';
 import { AgentResponse } from '@entities/agent-response';
 import { rabbitmqClient, RK_RECALL, QUEUE_RECALL } from '@integrations/rabbitmq';
