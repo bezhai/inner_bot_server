@@ -35,7 +35,12 @@ _CONFIG_PATH = os.environ.get(
 
 def _load_environments() -> dict:
     with open(_CONFIG_PATH) as f:
-        return json.load(f)
+        envs = json.load(f)
+    # Allow REPO_DIR env var to override prod repo_dir (backward compat with systemd)
+    repo_dir_override = os.environ.get("REPO_DIR")
+    if repo_dir_override and "prod" in envs:
+        envs["prod"]["repo_dir"] = repo_dir_override
+    return envs
 
 
 ENVIRONMENTS = _load_environments()
