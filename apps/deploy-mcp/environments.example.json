@@ -1,6 +1,6 @@
 {
   "prod": {
-    "repo_dir": "/data/inner_bot_server",
+    "repo_dir": "/path/to/inner_bot_server",
     "compose_cmd": "docker compose --env-file .env -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml",
     "health_endpoints": [
       ["main-server", "http://localhost:3001/api/health"],
@@ -10,7 +10,7 @@
     "allow_branch_deploy": false
   },
   "staging": {
-    "repo_dir": "/data/inner_bot_server_staging",
+    "repo_dir": "/path/to/inner_bot_server_staging",
     "compose_cmd": "docker compose --env-file .env -p inner_bot_staging -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml -f infra/staging/docker-compose.override.yml",
     "health_endpoints": [
       ["main-server", "http://localhost:3003/api/health"],

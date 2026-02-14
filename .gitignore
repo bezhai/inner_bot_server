@@ -20,6 +20,9 @@ pids/
 .env.test
 .env.production
 
+# Deploy MCP environment config (contains host-specific paths)
+apps/deploy-mcp/environments.json
+
 # MCP config (contains host-specific URLs)
 .mcp.json
 
