@@ -74,30 +74,6 @@ deploy-mcp-setup:
 	sudo systemctl daemon-reload
 	sudo systemctl enable --now deploy-mcp
 
-deploy-mcp-staging-setup:
-	cd apps/deploy-mcp && uv sync
-	@echo "[Unit]" > /tmp/deploy-mcp-staging.service
-	@echo "Description=Deploy MCP Server - Staging (FastMCP SSE)" >> /tmp/deploy-mcp-staging.service
-	@echo "After=network.target docker.service" >> /tmp/deploy-mcp-staging.service
-	@echo "Wants=docker.service" >> /tmp/deploy-mcp-staging.service
-	@echo "" >> /tmp/deploy-mcp-staging.service
-	@echo "[Service]" >> /tmp/deploy-mcp-staging.service
-	@echo "Type=simple" >> /tmp/deploy-mcp-staging.service
-	@echo "WorkingDirectory=$(REPO_ROOT)/apps/deploy-mcp" >> /tmp/deploy-mcp-staging.service
-	@echo "EnvironmentFile=$(REPO_ROOT)/.env" >> /tmp/deploy-mcp-staging.service
-	@echo "Environment=DEPLOY_MCP_PORT=9100" >> /tmp/deploy-mcp-staging.service
-	@echo "Environment=DEPLOY_MCP_ENV=staging" >> /tmp/deploy-mcp-staging.service
-	@echo "ExecStart=$(REPO_ROOT)/apps/deploy-mcp/.venv/bin/python server.py" >> /tmp/deploy-mcp-staging.service
-	@echo "Restart=on-failure" >> /tmp/deploy-mcp-staging.service
-	@echo "RestartSec=5" >> /tmp/deploy-mcp-staging.service
-	@echo "" >> /tmp/deploy-mcp-staging.service
-	@echo "[Install]" >> /tmp/deploy-mcp-staging.service
-	@echo "WantedBy=multi-user.target" >> /tmp/deploy-mcp-staging.service
-	sudo cp /tmp/deploy-mcp-staging.service /etc/systemd/system/deploy-mcp-staging.service
-	@rm /tmp/deploy-mcp-staging.service
-	sudo systemctl daemon-reload
-	sudo systemctl enable --now deploy-mcp-staging
-
 deploy-mcp-restart:
 	cd apps/deploy-mcp && uv sync
 	sudo systemctl restart deploy-mcp

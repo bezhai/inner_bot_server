@@ -381,13 +381,14 @@ Staging 环境的额外资源消耗（省略 Logstash/Kibana/Dashboard 后）：
 | Phase | Scope | Outcome | Status |
 |-------|-------|---------|--------|
 | **Phase 1** | Parameterize hardcodes (6 items) | Repo becomes staging-friendly | Done |
-| **Phase 2** | Compose overlay + .env template + Makefile targets | Staging infra ready | Done |
-| **Phase 3** | Staging deploy-mcp | Manual deploy via MCP | Next |
-| **Phase 4** | Clone + setup + seed | Staging environment live | |
-| **Phase 5** | 日常使用，迭代改进 | Workflow established | |
+| **Phase 2** | Compose overlay + .env template + Makefile cleanup | Staging infra ready | Done |
+| **Phase 3** | Clone + setup on prod machine | Staging environment live | Next |
+| **Phase 4** | 日常使用，迭代改进 | Workflow established | |
+
+Staging deploy-mcp 不需要单独实例，现有 deploy-mcp（port 9099）通过 `env="staging"` 参数 + `environments.json` 即可管理。
 
 ### Phase 2 deliverables
 
 - `infra/staging/docker-compose.override.yml` — port remapping, ES heap 512m, disabled logstash/kibana/monitor-dashboard
-- `infra/staging/.env.staging.example` — staging env var template (no DASHBOARD_* / log infra config)
-- `Makefile` staging targets: `staging-start`, `staging-down`, `staging-deploy-live`, `staging-db-sync`, `deploy-mcp-staging-setup`
+- `infra/staging/.env.staging.example` + `.makerc.example` — staging clone 初始化模板
+- `Makefile` — 清理冗余 targets，加 `-include .makerc` 支持环境覆盖
