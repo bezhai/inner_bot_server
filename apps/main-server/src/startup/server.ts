@@ -98,6 +98,7 @@ export class HttpServerManager {
                     status: 'ok',
                     timestamp: new Date().toISOString(),
                     service: 'main-server',
+                    version: process.env.APP_VERSION || 'unknown',
                     bots: allBots.map((bot) => ({
                         name: bot.bot_name,
                         app_id: bot.app_id,
