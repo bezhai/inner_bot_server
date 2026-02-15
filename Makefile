@@ -32,16 +32,18 @@ deploy-live:
 	$(DC) up -d --no-deps $(APP_SERVICES)
 	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
 
+ENV_FILE ?= .env
+
 db-sync:
-	@echo "正在同步数据库 schema..."
-	@if [ -f .env ]; then \
-		export $$(cat .env | grep -v '^#' | xargs) && \
+	@echo "正在同步数据库 schema ($(ENV_FILE))..."
+	@if [ -f $(ENV_FILE) ]; then \
+		export $$(cat $(ENV_FILE) | grep -v '^#' | xargs) && \
 		atlas schema apply \
 			--url "postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:$${POSTGRES_PORT:-5432}/$${POSTGRES_DB}?sslmode=disable" \
 			--to "file://infra/main/database" \
 			--dev-url "docker://postgres/15/dev"; \
 	else \
-		echo "错误: .env 文件不存在，请先创建并配置环境变量"; \
+		echo "错误: $(ENV_FILE) 文件不存在"; \
 		exit 1; \
 	fi
 

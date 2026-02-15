@@ -19,6 +19,7 @@ pids/
 .env
 .env.test
 .env.production
+.env.staging
 
 # Makefile overrides (staging clone uses this to override compose commands)
 .makerc
