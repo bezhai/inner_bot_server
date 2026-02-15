@@ -1,8 +1,12 @@
-COMPOSE ?= docker compose
-COMPOSE_FILES ?= --env-file .env -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml
-DC := $(COMPOSE) $(COMPOSE_FILES)
+# 可选：staging clone 放一个 .makerc 覆盖下面的变量
+-include .makerc
 
-# 部署服务分组（可通过环境变量覆盖，便于一套仓库多套部署）
+COMPOSE ?= docker compose
+COMPOSE_PROJECT ?=
+COMPOSE_FILES ?= --env-file .env -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml
+DC := $(COMPOSE) $(if $(COMPOSE_PROJECT),-p $(COMPOSE_PROJECT),) $(COMPOSE_FILES)
+
+# 部署服务分组（可通过环境变量覆盖）
 INFRA_SERVICES ?= redis mongo postgres elasticsearch meme qdrant rabbitmq
 LOG_SERVICES ?= logstash kibana
 APP_SERVICES ?= ai-app app ai-service-arq-worker vectorize-worker recall-worker monitor-dashboard
@@ -19,93 +23,30 @@ start-dev:
 down:
 	$(DC) down
 
-# 只重启单个服务
-restart-service:
-	@read -p "请输入要重启的服务名: " service; \
-	$(DC) restart $$service
-
-# 只重启有代码变更的服务
-restart-changed:
-	git pull
-	$(DC) up -d --build --no-deps
-
-# 完全重启
-restart-full:
-	git pull
-	$(DC) build
-	$(DC) down
-	$(DC) up -d
-
-# 生产环境滚动更新
-deploy:
-	git pull
-	$(DC) build
-	# 先更新基础设施服务
-	$(DC) up -d --no-deps $(INFRA_SERVICES)
-	sleep 5
-	# 更新日志相关服务
-	$(DC) up -d --no-deps $(LOG_SERVICES)
-	sleep 5
-	# 最后更新应用服务
-	$(DC) up -d --no-deps $(APP_SERVICES)
-
-# 用于自动部署的生产环境部署命令
 deploy-live:
-	# 只构建和更新有代码变更的服务
 	$(DC) build
-	# 先更新基础设施服务（仅当有变更时）
 	$(DC) up -d --no-deps --no-recreate $(INFRA_SERVICES)
 	sleep 5
-	# 更新日志相关服务（仅当有变更时）
 	$(DC) up -d --no-deps --no-recreate $(LOG_SERVICES)
 	sleep 5
-	# 最后更新应用服务（仅当有变更时）
 	$(DC) up -d --no-deps $(APP_SERVICES)
 	echo "部署完成时间: $$(date)" >> /var/log/inner_bot_server/deploy_history.log
 
-# 设置自动部署定时任务（每3分钟检查一次）
-auto-deploy-setup:
-	@echo "正在设置自动部署定时任务..."
-	@crontab -l > /tmp/current_crontab || echo "" > /tmp/current_crontab
-	@if grep -q "auto_deploy.sh" /tmp/current_crontab; then \
-		echo "自动部署任务已存在，正在更新..."; \
-		sed -i.bak '/auto_deploy.sh/d' /tmp/current_crontab; \
-	fi
-	@echo "*/3 * * * * $(shell pwd)/scripts/auto_deploy.sh >> /var/log/inner_bot_server/cron.log 2>&1" >> /tmp/current_crontab
-	@crontab /tmp/current_crontab
-	@echo "已添加自动部署定时任务，每3分钟执行一次"
-	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
-
-# 手动执行健康检查
-health-check:
-	./scripts/health_check.sh
-
-# 设置健康检查定时任务（每5分钟检查一次）
-health-check-setup:
-	@echo "正在设置健康检查定时任务..."
-	@crontab -l > /tmp/current_crontab || echo "" > /tmp/current_crontab
-	@if grep -q "health_check.sh" /tmp/current_crontab; then \
-		echo "健康检查任务已存在，正在更新..."; \
-		sed -i.bak '/health_check.sh/d' /tmp/current_crontab; \
-	fi
-	@echo "*/5 * * * * $(shell pwd)/scripts/health_check.sh >> /var/log/inner_bot_server/health_check_cron.log 2>&1" >> /tmp/current_crontab
-	@crontab /tmp/current_crontab
-	@echo "已添加健康检查定时任务，每5分钟执行一次"
-	@rm -f /tmp/current_crontab /tmp/current_crontab.bak
-
-# 数据库schema同步
 db-sync:
-	@echo "正在同步数据库schema..."
+	@echo "正在同步数据库 schema..."
 	@if [ -f .env ]; then \
 		export $$(cat .env | grep -v '^#' | xargs) && \
 		atlas schema apply \
-			--url "postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:5432/$${POSTGRES_DB}?sslmode=disable" \
+			--url "postgres://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@$${POSTGRES_HOST}:$${POSTGRES_PORT:-5432}/$${POSTGRES_DB}?sslmode=disable" \
 			--to "file://infra/main/database" \
 			--dev-url "docker://postgres/15/dev"; \
 	else \
 		echo "错误: .env 文件不存在，请先创建并配置环境变量"; \
 		exit 1; \
 	fi
+
+test-integration:
+	cd apps/ai-service && uv run pytest -m integration --timeout=30
 
 # deploy-mcp: runs as a systemd service on the host (not in Docker)
 REPO_ROOT := $(shell pwd)
@@ -133,6 +74,30 @@ deploy-mcp-setup:
 	sudo systemctl daemon-reload
 	sudo systemctl enable --now deploy-mcp
 
+deploy-mcp-staging-setup:
+	cd apps/deploy-mcp && uv sync
+	@echo "[Unit]" > /tmp/deploy-mcp-staging.service
+	@echo "Description=Deploy MCP Server - Staging (FastMCP SSE)" >> /tmp/deploy-mcp-staging.service
+	@echo "After=network.target docker.service" >> /tmp/deploy-mcp-staging.service
+	@echo "Wants=docker.service" >> /tmp/deploy-mcp-staging.service
+	@echo "" >> /tmp/deploy-mcp-staging.service
+	@echo "[Service]" >> /tmp/deploy-mcp-staging.service
+	@echo "Type=simple" >> /tmp/deploy-mcp-staging.service
+	@echo "WorkingDirectory=$(REPO_ROOT)/apps/deploy-mcp" >> /tmp/deploy-mcp-staging.service
+	@echo "EnvironmentFile=$(REPO_ROOT)/.env" >> /tmp/deploy-mcp-staging.service
+	@echo "Environment=DEPLOY_MCP_PORT=9100" >> /tmp/deploy-mcp-staging.service
+	@echo "Environment=DEPLOY_MCP_ENV=staging" >> /tmp/deploy-mcp-staging.service
+	@echo "ExecStart=$(REPO_ROOT)/apps/deploy-mcp/.venv/bin/python server.py" >> /tmp/deploy-mcp-staging.service
+	@echo "Restart=on-failure" >> /tmp/deploy-mcp-staging.service
+	@echo "RestartSec=5" >> /tmp/deploy-mcp-staging.service
+	@echo "" >> /tmp/deploy-mcp-staging.service
+	@echo "[Install]" >> /tmp/deploy-mcp-staging.service
+	@echo "WantedBy=multi-user.target" >> /tmp/deploy-mcp-staging.service
+	sudo cp /tmp/deploy-mcp-staging.service /etc/systemd/system/deploy-mcp-staging.service
+	@rm /tmp/deploy-mcp-staging.service
+	sudo systemctl daemon-reload
+	sudo systemctl enable --now deploy-mcp-staging
+
 deploy-mcp-restart:
 	cd apps/deploy-mcp && uv sync
 	sudo systemctl restart deploy-mcp
@@ -142,11 +107,3 @@ deploy-mcp-logs:
 
 deploy-mcp-status:
 	systemctl status deploy-mcp
-
-# 集成测试
-test-integration:
-	cd apps/ai-service && uv run pytest -m integration --timeout=30
-
-# 设置所有监控任务（自动部署和健康检查）
-monitoring-setup: auto-deploy-setup health-check-setup
-	@echo "所有监控任务已设置完成"

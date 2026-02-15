@@ -1,0 +1,4 @@
+# 复制到 staging repo 根目录: cp infra/staging/.makerc.example .makerc
+# 使 make start / make deploy-live 等命令自动走 staging compose 路径
+COMPOSE_PROJECT = inner_bot_staging
+COMPOSE_FILES = --env-file .env -f infra/main/compose/docker-compose.infra.yml -f infra/main/compose/docker-compose.apps.yml -f infra/staging/docker-compose.override.yml

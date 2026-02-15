@@ -1,0 +1,69 @@
+# Staging overlay — layer on top of the production compose files.
+#
+# Usage:
+#   docker compose --env-file .env \
+#     -p inner_bot_staging \
+#     -f infra/main/compose/docker-compose.infra.yml \
+#     -f infra/main/compose/docker-compose.apps.yml \
+#     -f infra/staging/docker-compose.override.yml \
+#     up -d --build
+#
+# Requires Docker Compose v2.24+ for !override tag support.
+
+services:
+  # ── App services ──────────────────────────────────────────
+  app:
+    ports: !override
+      - "3003:3000"
+
+  ai-app:
+    ports: !override
+      - "8001:8000"
+
+  # ── Infrastructure services ───────────────────────────────
+  postgres:
+    ports: !override
+      - "5433:5432"
+
+  redis:
+    ports: !override
+      - "6380:6379"
+
+  mongo:
+    ports: !override
+      - "27018:27017"
+
+  elasticsearch:
+    ports: !override
+      - "9201:9200"
+    environment: !override
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=true
+      - bootstrap.memory_lock=true
+      - ingest.geoip.downloader.enabled=false
+
+  qdrant:
+    ports: !override
+      - "6335:6333"
+      - "7335:6334"
+
+  rabbitmq:
+    ports: !override
+      - "5673:5672"
+      - "15673:15672"
+
+  meme:
+    ports: !override
+      - "2234:2233"
+
+  # ── Disabled services (staging does not need log infra / dashboard) ──
+  logstash:
+    profiles: ["disabled"]
+
+  kibana:
+    profiles: ["disabled"]
+
+  monitor-dashboard:
+    profiles: ["disabled"]

@@ -20,6 +20,9 @@ pids/
 .env.test
 .env.production
 
+# Makefile overrides (staging clone uses this to override compose commands)
+.makerc
+
 # Deploy MCP environment config (contains host-specific paths)
 apps/deploy-mcp/environments.json
 
