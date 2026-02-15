@@ -1,5 +1,5 @@
 import { PostContent } from 'types/content-types';
-import { PostNode, TextPostNode, AtPostNode, EmotionNode } from 'types/post-node-types';
+import { PostNode, TextPostNode, AtPostNode, EmotionNode, MdPostNode, ImgPostNode } from 'types/post-node-types';
 import { emojiService } from 'infrastructure/crontab/services/emoji';
 
 /**
@@ -131,4 +131,39 @@ export async function createPostContentFromText(text: string): Promise<PostConte
     }
 
     return { content: [contents] };
+}
+
+/**
+ * 将 markdown 文本转换为 PostContent，识别 ![alt](image_key) 图片语法
+ * 图片之间的文本使用 md 节点渲染（支持加粗、斜体等 markdown 格式）
+ */
+export function markdownToPostContent(markdown: string): PostContent {
+    const IMAGE_PATTERN = /!\[.*?\]\(([^)]+)\)/g;
+    const content: PostNode[][] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = IMAGE_PATTERN.exec(markdown)) !== null) {
+        if (match.index > lastIndex) {
+            const text = markdown.slice(lastIndex, match.index).trim();
+            if (text) {
+                content.push([{ tag: 'md', text } as MdPostNode]);
+            }
+        }
+        content.push([{ tag: 'img', image_key: match[1] } as ImgPostNode]);
+        lastIndex = match.index + match[0].length;
+    }
+
+    if (lastIndex < markdown.length) {
+        const text = markdown.slice(lastIndex).trim();
+        if (text) {
+            content.push([{ tag: 'md', text } as MdPostNode]);
+        }
+    }
+
+    if (content.length === 0) {
+        content.push([{ tag: 'md', text: markdown } as MdPostNode]);
+    }
+
+    return { content };
 }

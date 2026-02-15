@@ -20,6 +20,10 @@ export async function sendPost(chat_id: string, content: PostContent) {
     await send(chat_id, { zh_cn: content }, 'post');
 }
 
+export async function replyPost(messageId: string, content: PostContent, replyInThread?: boolean) {
+    await reply(messageId, { zh_cn: content }, 'post', replyInThread);
+}
+
 export async function sendCard(chat_id: string, card: ValidLarkCard) {
     await send(chat_id, card, 'interactive');
 }

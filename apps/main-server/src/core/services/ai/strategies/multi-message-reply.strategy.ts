@@ -2,7 +2,8 @@ import { StreamAction } from 'types/ai';
 import { ChatStateMachineCallbacks } from '../chat-state-machine';
 import { ReplyStrategy, ReplyStrategyContext } from './reply-strategy.interface';
 import { MultiMessageConfig } from '@config/multi-message.config';
-import { replyMessage, sendMsg } from '@lark/basic/message';
+import { replyPost, sendPost } from '@lark/basic/message';
+import { markdownToPostContent } from 'core/services/message/post-content-processor';
 import dayjs from 'dayjs';
 
 /**
@@ -67,11 +68,12 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
     async onFailed(error: Error): Promise<void> {
         // 发送错误消息
         const errorMessage = `抱歉，出了点问题：${error.message}`;
+        const postContent = markdownToPostContent(errorMessage);
         try {
             if (this.isFirstMessage) {
-                await replyMessage(this.context.messageId, errorMessage);
+                await replyPost(this.context.messageId, postContent);
             } else {
-                await sendMsg(this.context.chatId, errorMessage);
+                await sendPost(this.context.chatId, postContent);
             }
         } catch (sendError) {
             console.error('[MultiMessageStrategy] 发送错误消息失败:', sendError);
@@ -172,19 +174,18 @@ export class MultiMessageReplyStrategy implements ReplyStrategy {
         }
 
         try {
-            // 发送消息
+            // 发送消息（使用 post 格式以支持 markdown 和图片）
+            const postContent = markdownToPostContent(content);
             if (this.isFirstMessage) {
                 // 第一条消息作为回复
                 console.debug(`[MultiMessageStrategy] 发送第一条消息（回复）: ${content.substring(0, 50)}...`);
-                await replyMessage(this.context.messageId, content);
+                await replyPost(this.context.messageId, postContent);
                 this.isFirstMessage = false;
-                // 注意：replyMessage 不返回 messageId，这里暂时使用 context.messageId
-                // 实际场景中可能需要修改 replyMessage 返回 messageId
                 this.firstMessageId = this.context.messageId;
             } else {
                 // 后续消息作为独立消息
                 console.debug(`[MultiMessageStrategy] 发送第 ${this.messagesSent + 1} 条消息: ${content.substring(0, 50)}...`);
-                await sendMsg(this.context.chatId, content);
+                await sendPost(this.context.chatId, postContent);
             }
 
             this.lastSendTime = Date.now();
